@@ -1,5 +1,5 @@
 #include "encrypt.h"
-
+#include <endian.h>
 #include <openssl/md5.h>
 
 void encrypt(char *buf, int len) {
@@ -43,6 +43,7 @@ void get_table(const unsigned char* key) {
     tmp_hash = MD5((const unsigned char*)key, strlen((const char*)key), NULL);
     unsigned long long a;
     a = *(unsigned long long *)tmp_hash;
+    a = htole64(a);
     unsigned int i;
 
     for(i = 0; i < 256; ++i) {
