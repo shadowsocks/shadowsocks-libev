@@ -54,20 +54,18 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_ss_local_OBJECTS = utils.$(OBJEXT) jconf.$(OBJEXT) json.$(OBJEXT) \
-	rc4.$(OBJEXT) md5.$(OBJEXT) encrypt.$(OBJEXT) local.$(OBJEXT)
+	encrypt.$(OBJEXT) local.$(OBJEXT)
 ss_local_OBJECTS = $(am_ss_local_OBJECTS)
 ss_local_DEPENDENCIES = $(top_builddir)/libev/libev.la
-am__ss_redir_SOURCES_DIST = utils.c jconf.c json.c rc4.c md5.c \
-	encrypt.c redir.c
+am__ss_redir_SOURCES_DIST = utils.c jconf.c json.c encrypt.c redir.c
 @BUILD_REDIRECTOR_TRUE@am_ss_redir_OBJECTS = utils.$(OBJEXT) \
 @BUILD_REDIRECTOR_TRUE@	jconf.$(OBJEXT) json.$(OBJEXT) \
-@BUILD_REDIRECTOR_TRUE@	rc4.$(OBJEXT) md5.$(OBJEXT) \
 @BUILD_REDIRECTOR_TRUE@	encrypt.$(OBJEXT) redir.$(OBJEXT)
 ss_redir_OBJECTS = $(am_ss_redir_OBJECTS)
 @BUILD_REDIRECTOR_TRUE@ss_redir_DEPENDENCIES =  \
 @BUILD_REDIRECTOR_TRUE@	$(top_builddir)/libev/libev.la
 am_ss_server_OBJECTS = utils.$(OBJEXT) jconf.$(OBJEXT) json.$(OBJEXT) \
-	rc4.$(OBJEXT) md5.$(OBJEXT) encrypt.$(OBJEXT) server.$(OBJEXT)
+	encrypt.$(OBJEXT) server.$(OBJEXT)
 ss_server_OBJECTS = $(am_ss_server_OBJECTS)
 ss_server_DEPENDENCIES = $(top_builddir)/libev/libev.la \
 	$(top_builddir)/libasyncns/libasyncns.la
@@ -206,18 +204,18 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ss_local_SOURCES = utils.c jconf.c json.c \
-				   rc4.c md5.c encrypt.c \
+				   encrypt.c \
 				   local.c
 
 ss_server_SOURCES = utils.c jconf.c json.c \
-					rc4.c md5.c encrypt.c \
+					encrypt.c \
 					server.c
 
 ss_local_LDADD = $(top_builddir)/libev/libev.la
 ss_server_LDADD = $(top_builddir)/libev/libev.la \
 	$(top_builddir)/libasyncns/libasyncns.la
 @BUILD_REDIRECTOR_TRUE@ss_redir_SOURCES = utils.c jconf.c json.c \
-@BUILD_REDIRECTOR_TRUE@				   rc4.c md5.c encrypt.c \
+@BUILD_REDIRECTOR_TRUE@				   encrypt.c \
 @BUILD_REDIRECTOR_TRUE@				   redir.c
 
 @BUILD_REDIRECTOR_TRUE@ss_redir_LDADD = $(top_builddir)/libev/libev.la
@@ -321,8 +319,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jconf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/json.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/local.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/md5.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rc4.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/redir.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/server.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utils.Po@am__quote@

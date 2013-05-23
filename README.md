@@ -11,7 +11,28 @@ It is a port of [shadowsocks](https://github.com/clowwindy/shadowsocks)
 created by [@clowwindy](https://github.com/clowwindy) maintained by 
 [@madeye](https://github.com/madeye).
 
-Current version: 1.2 [![Build Status](https://travis-ci.org/madeye/shadowsocks-libev.png?branch=master)](https://travis-ci.org/madeye/shadowsocks-libev)
+Current version: 1.3 [![Build Status](https://travis-ci.org/madeye/shadowsocks-libev.png?branch=master)](https://travis-ci.org/madeye/shadowsocks-libev)
+
+Changelog
+---------
+
+shadowsocks 1.3 -- Thu, 16 May 2013 10:51:15 +0800
+
+  * Able to bind connections to specific interface 
+  * Support more ciphers: aes-128-cfb, aes-192-cfb, aes-256-cfb, bf-cfb, cast5-cfb, des-cfb
+
+shadowsocks 1.2 -- Tue, 07 May 2013 14:10:33 +0800
+
+  * Close timeouted TCP connections 
+  * Fix a high load issue
+
+shadowsocks 1.1 -- Wed, 10 Apr 2013 12:11:36 +0800
+
+  * Fix a IPV6 resolve issue
+
+shadowsocks 1.0 -- Sat, 06 Apr 2013 16:59:15 +0800
+
+  * Initial release
 
 Features
 --------
@@ -52,7 +73,8 @@ usage:
 
 options:
 
-    encrypt_method:     table, rc4
+    encrypt_method:     table, rc4, aes-128-cfb, aes-192-cfb, aes-256-cfb,
+                        bf-cfb, cast5-cfb, des-cfb
           pid_file:     valid path to the pid file
            timeout:     socket timeout in senconds
        config_file:     json format config file

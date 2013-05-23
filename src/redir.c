@@ -31,8 +31,6 @@
 #define EWOULDBLOCK EAGAIN
 #endif
 
-#define min(a,b) (((a)<(b))?(a):(b))
-
 int getdestaddr(int fd, struct sockaddr_in *destaddr) {
     socklen_t socklen = sizeof(*destaddr);
     int error;
@@ -72,10 +70,11 @@ int create_and_bind(const char *port) {
             continue;
 
         int opt = 1;
-        int err = setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-        if (err) {
-            ERROR("setsocket");
-        }
+        setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        setsockopt(listen_sock, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
+#ifdef SO_NOSIGPIPE
+        setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
 
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
         if (s == 0) {
@@ -132,7 +131,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
         }
     }
 
-    encrypt_ctx(remote->buf, r, server->e_ctx);
+    remote->buf = encrypt(remote->buf, &r, server->e_ctx);
 
     int s = send(remote->fd, remote->buf, r, 0);
     if(s == -1) {
@@ -252,7 +251,7 @@ static void remote_recv_cb (EV_P_ ev_io *w, int revents) {
         }
     }
 
-    decrypt_ctx(server->buf, r, server->d_ctx);
+    server->buf = decrypt(server->buf, &r, server->d_ctx);
     int s = send(server->fd, server->buf, r, 0);
 
     if (s == -1) {
@@ -294,8 +293,8 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
             ev_timer_stop(EV_A_ &remote_send_ctx->watcher);
 
             // send destaddr
-            char addr_to_send[256];
-            uint8_t addr_len = 0;
+            char *addr_to_send = malloc(BUF_SIZE);
+            ssize_t addr_len = 0;
             addr_to_send[addr_len++] = 1;
 
             // handle IP V4 only
@@ -304,9 +303,11 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
             addr_len += in_addr_len;
             memcpy(addr_to_send + addr_len, &server->destaddr.sin_port, 2);
             addr_len += 2;
-            encrypt_ctx(addr_to_send, addr_len, server->e_ctx);
+            addr_to_send = encrypt(addr_to_send, &addr_len, server->e_ctx);
 
             int s = send(remote->fd, addr_to_send, addr_len, 0);
+            free(addr_to_send);
+
             if (s < addr_len) {
                 LOGE("failed to send remote addr.");
                 close_and_free_remote(EV_A_ remote);
@@ -368,6 +369,7 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
 struct remote* new_remote(int fd, int timeout) {
     struct remote *remote;
     remote = malloc(sizeof(struct remote));
+    remote->buf = malloc(BUF_SIZE);
     remote->recv_ctx = malloc(sizeof(struct remote_ctx));
     remote->send_ctx = malloc(sizeof(struct remote_ctx));
     remote->fd = fd;
@@ -388,6 +390,7 @@ void free_remote(struct remote *remote) {
         if (remote->server != NULL) {
             remote->server->remote = NULL;
         }
+        free(remote->buf);
         free(remote->recv_ctx);
         free(remote->send_ctx);
         free(remote);
@@ -404,9 +407,10 @@ void close_and_free_remote(EV_P_ struct remote *remote) {
     }
 }
 
-struct server* new_server(int fd) {
+struct server* new_server(int fd, int method) {
     struct server *server;
     server = malloc(sizeof(struct server));
+    server->buf = malloc(BUF_SIZE);
     server->recv_ctx = malloc(sizeof(struct server_ctx));
     server->send_ctx = malloc(sizeof(struct server_ctx));
     server->fd = fd;
@@ -416,11 +420,11 @@ struct server* new_server(int fd) {
     server->recv_ctx->connected = 0;
     server->send_ctx->server = server;
     server->send_ctx->connected = 0;
-    if (enc_conf.method == RC4) {
-        server->e_ctx = malloc(sizeof(struct rc4_state));
-        server->d_ctx = malloc(sizeof(struct rc4_state));
-        enc_ctx_init(server->e_ctx, 1);
-        enc_ctx_init(server->d_ctx, 0);
+    if (method) {
+        server->e_ctx = malloc(sizeof(struct enc_ctx));
+        server->d_ctx = malloc(sizeof(struct enc_ctx));
+        enc_ctx_init(method, server->e_ctx, 1);
+        enc_ctx_init(method, server->d_ctx, 0);
     } else {
         server->e_ctx = NULL;
         server->d_ctx = NULL;
@@ -435,10 +439,15 @@ void free_server(struct server *server) {
         if (server->remote != NULL) {
             server->remote->server = NULL;
         }
-        if (enc_conf.method == RC4) {
+        if (server->e_ctx != NULL) {
+            EVP_CIPHER_CTX_cleanup(&server->e_ctx->evp);
             free(server->e_ctx);
+        }
+        if (server->d_ctx != NULL) {
+            EVP_CIPHER_CTX_cleanup(&server->d_ctx->evp);
             free(server->d_ctx);
         }
+        free(server->buf);
         free(server->recv_ctx);
         free(server->send_ctx);
         free(server);
@@ -472,6 +481,11 @@ static void accept_cb (EV_P_ ev_io *w, int revents) {
     }
 
     setnonblocking(clientfd);
+    int opt = 1;
+    setsockopt(clientfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
+#ifdef SO_NOSIGPIPE
+    setsockopt(clientfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
 
     struct addrinfo hints, *res;
     int sockfd;
@@ -493,18 +507,15 @@ static void accept_cb (EV_P_ ev_io *w, int revents) {
         return;
     }
 
-    struct timeval timeout;
-    timeout.tv_sec = listener->timeout;
-    timeout.tv_usec = 0;
-    err = setsockopt(sockfd, SOL_SOCKET,
-            SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
-    if (err) ERROR("setsockopt");
-    err = setsockopt(sockfd, SOL_SOCKET,
-            SO_SNDTIMEO, (char *)&timeout, sizeof(timeout));
-    if (err) ERROR("setsockopt");
+    setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
+#ifdef SO_NOSIGPIPE
+    setsockopt(sockfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
+
+    // Setup
     setnonblocking(sockfd);
 
-    struct server *server = new_server(clientfd);
+    struct server *server = new_server(clientfd, listener->method);
     struct remote *remote = new_remote(sockfd, listener->timeout);
     server->remote = remote;
     remote->server = server;
@@ -601,7 +612,7 @@ int main (int argc, char **argv) {
 
     // Setup keys
     LOGD("calculating ciphers...");
-    enc_conf_init(password, method);
+    int m = enc_init(password, method);
 
     // Setup socket
     int listenfd;
@@ -626,6 +637,7 @@ int main (int argc, char **argv) {
     listen_ctx.remote_port = remote_port;
     listen_ctx.timeout = atoi(timeout);
     listen_ctx.fd = listenfd;
+    listen_ctx.method = m;
 
     struct ev_loop *loop = ev_default_loop(0);
     if (!loop) {

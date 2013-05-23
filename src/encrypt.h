@@ -8,40 +8,40 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <openssl/evp.h>
+
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
 #elif HAVE_INTTYPES_H
 #include <inttypes.h>
 #endif
 
-#include "md5.h"
-#include "rc4.h"
+#define BUF_SIZE 512
+#define BLOCK_SIZE 32
 
-#define BUF_SIZE 4096
+#define NONE            -1 
+#define TABLE           0
+#define RC4             1
+#define AES_128_CFB     2
+#define AES_192_CFB     3
+#define AES_256_CFB     4
+#define BF_CFB          5
+#define CAST5_CFB       6
+#define DES_CFB         7
 
-#define TABLE 0
-#define RC4   1
+#define min(a,b) (((a)<(b))?(a):(b))
+#define max(a,b) (((a)>(b))?(a):(b))
 
-struct {
-    int method;
-    union {
-        struct {
-            uint8_t *encrypt_table;
-            uint8_t *decrypt_table;
-            uint32_t salt;
-            uint64_t key;
-        } table;
+struct enc_ctx {
+    uint8_t init;
+    uint8_t iv_len;
+    uint8_t key[EVP_MAX_KEY_LENGTH];
+    EVP_CIPHER_CTX evp;
+};
 
-        struct {
-            uint8_t *key;
-            int key_len;
-        } rc4;
-    } ctx;
-} enc_conf;
-
-void encrypt_ctx(char *buf, int len, struct rc4_state *ctx);
-void decrypt_ctx(char *buf, int len, struct rc4_state *ctx);
-void enc_ctx_init(struct rc4_state *ctx, int enc);
-void enc_conf_init(const char *pass, const char *method);
+char* encrypt(char *plaintext, ssize_t *len, struct enc_ctx *ctx);
+char* decrypt(char *ciphertext, ssize_t *len, struct enc_ctx *ctx);
+void enc_ctx_init(int method, struct enc_ctx *ctx, int enc);
+int enc_init(const char *pass, const char *method);
 
 #endif // _ENCRYPT_H

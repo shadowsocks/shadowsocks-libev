@@ -1,6 +1,7 @@
 shadowsocks (1.3-1) unstable; urgency=low
 
   * Able to bind connections to specific interface 
+  * Support more ciphers: aes-128-cfb, aes-192-cfb, aes-256-cfb, bf-cfb, cast5-cfb, des-cfb
 
  -- Max Lv <max.c.lv@gmail.com>  Thu, 16 May 2013 10:51:15 +0800
 

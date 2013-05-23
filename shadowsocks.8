@@ -66,8 +66,9 @@ Set the shadowsocks password. The server and the client should use the same
 password.
 .TP
 .B \-m \fIencrypt_method\fP
-Set the shadowsocks encryption method. Currently, shadowsocks accepts two
-encryption methods: table or rc4. And the default method is \fItable\fP. 
+Set the shadowsocks encryption method. Currently, shadowsocks accepts several
+encryption methods: table, rc4, aes-128-cfb, aes-192-cfb, aes-256-cfb, bf-cfb, 
+cast5-cfb and des-cfb. The default method is \fItable\fP. 
 .TP
 .B \-f \fIpid_file\fP
 Start shadowsocks as a daemon with a specific pid file.

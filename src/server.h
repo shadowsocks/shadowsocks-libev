@@ -12,6 +12,7 @@ struct listen_ctx {
     ev_io io;
     int fd;
     int timeout;
+    int method;
     char *iface;
     asyncns_t *asyncns;
     struct sockaddr sock;
@@ -26,12 +27,12 @@ struct server_ctx {
 
 struct server {
     int fd;
-    char buf[BUF_SIZE]; // server send from, remote recv into
-    char stage;
     int buf_len;
     int buf_idx;
-    struct rc4_state *e_ctx;
-    struct rc4_state *d_ctx;
+    char *buf; // server send from, remote recv into
+    char stage;
+    struct enc_ctx *e_ctx;
+    struct enc_ctx *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct listen_ctx *listen_ctx;
@@ -47,9 +48,9 @@ struct remote_ctx {
 
 struct remote {
     int fd;
-    char buf[BUF_SIZE]; // remote send from, server recv into
     int buf_len;
     int buf_idx;
+    char *buf; // remote send from, server recv into
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;

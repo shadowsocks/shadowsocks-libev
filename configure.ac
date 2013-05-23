@@ -16,7 +16,11 @@ AC_PROG_LIBTOOL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
+dnl Checks for libev
 m4_include([libev/libev.m4])
+
+dnl Checks for openssl
+AC_SEARCH_LIBS([MD5], [crypto], [ ], AC_MSG_ERROR([libcrypto not found.]))
 
 dnl Checks for host.
 AC_MSG_CHECKING(for what kind of host)

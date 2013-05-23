@@ -70,7 +70,8 @@ void usage() {
     printf("          [-m encrypt_method] [-f pid_file] [-t timeout] [-c config_file]\n");
     printf("\n");
     printf("  options:\n\n");
-    printf("    encrypt_method:     table, rc4\n");
+    printf("    encrypt_method:     table, rc4, aes-128-cfb, aes-192-cfb, aes-256-cfb,\n");
+    printf("                        bf-cfb, cast5-cfb, des-cfb\n");
     printf("          pid_file:     valid path to the pid file\n");
     printf("           timeout:     socket timeout in senconds\n");
     printf("       config_file:     json format config file\n");
