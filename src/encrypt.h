@@ -19,6 +19,7 @@
 #define BUF_SIZE 512
 #define BLOCK_SIZE 32
 
+#define CIPHER_NUM          14
 #define NONE                -1 
 #define TABLE               0
 #define RC4                 1

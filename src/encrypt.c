@@ -28,7 +28,7 @@ static dump(char *tag, char *text) {
 }
 #endif
 
-static const char* supported_ciphers[14] = {
+static const char* supported_ciphers[CIPHER_NUM] = {
     "table",
     "rc4",
     "aes-128-cfb",
@@ -227,6 +227,11 @@ char* ss_decrypt(char *ciphertext, ssize_t *len, struct enc_ctx *ctx) {
 
 void enc_ctx_init(int method, struct enc_ctx *ctx, int enc) {
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(supported_ciphers[method]);
+    if (cipher == NULL) {
+        LOGE("Cipher %s not found in OpenSSL library", supported_ciphers[method]);
+        FATAL("Cannot initialize cipher");
+        return;
+    }
     memset(ctx, 0, sizeof(struct enc_ctx));
 
     EVP_CIPHER_CTX *evp = &ctx->evp;
@@ -246,6 +251,11 @@ void enc_key_init(int method, const char *pass) {
 
     uint8_t iv[EVP_MAX_IV_LENGTH];
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(supported_ciphers[method]);
+    if (cipher == NULL) {
+        LOGE("Cipher %s not found in OpenSSL library", supported_ciphers[method]);
+        FATAL("Cannot initialize cipher");
+        return;
+    }
 
     enc_key_len = EVP_BytesToKey(cipher, EVP_md5(), NULL, (uint8_t *)pass,
             strlen(pass), 1, enc_key, iv);
@@ -254,21 +264,15 @@ void enc_key_init(int method, const char *pass) {
 
 int enc_init(const char *pass, const char *method) {
     int m = TABLE;
-    if (method != NULL && strcmp(method, "table") != 0) {
-        if (strcmp(method, "aes-128-cfb") == 0) {
-            m = AES_128_CFB;
-        } else if (strcmp(method, "aes-192-cfb") == 0) {
-            m = AES_192_CFB;
-        } else if (strcmp(method, "aes-256-cfb") == 0) {
-            m = AES_256_CFB;
-        } else if (strcmp(method, "bf-cfb") == 0) {
-            m = BF_CFB;
-        } else if (strcmp(method, "cast5-cfb") == 0) {
-            m = CAST5_CFB;
-        } else if (strcmp(method, "des-cfb") == 0) {
-            m = DES_CFB;
-        } else if (strcmp(method, "rc4") == 0) {
-            m = RC4;
+    if (method != NULL) {
+        for (m = TABLE; m < CIPHER_NUM; m++) {
+            if (strcmp(method, supported_ciphers[m]) == 0) {
+                break;
+            }
+        }
+        if (m >= CIPHER_NUM) {
+            LOGE("Invalid cipher name: %s, use table instead", method);
+            m = TABLE;
         }
     }
     if (m == TABLE) {
