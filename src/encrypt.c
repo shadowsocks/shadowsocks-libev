@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <openssl/md5.h>
+#include <openssl/rand.h>
 
 #include "encrypt.h"
 #include "utils.h"
@@ -160,9 +161,7 @@ char* ss_encrypt(char *plaintext, ssize_t *len, struct enc_ctx *ctx) {
             int i;
             uint8_t iv[EVP_MAX_IV_LENGTH];
             iv_len = enc_iv_len;
-            for (i = 0; i < iv_len; i++) {
-                iv[i] = rand() % 256;
-            }
+            RAND_bytes(iv, iv_len);
             EVP_CipherInit_ex(&ctx->evp, NULL, NULL, enc_key, iv, 1);
             memcpy(ciphertext, iv, iv_len);
             ctx->init = 1;
