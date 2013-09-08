@@ -8,7 +8,8 @@
 #include "jconf.h"
 #include "asyncns.h"
 
-struct listen_ctx {
+struct listen_ctx
+{
     ev_io io;
     int fd;
     int timeout;
@@ -18,14 +19,16 @@ struct listen_ctx {
     struct sockaddr sock;
 };
 
-struct server_ctx {
+struct server_ctx
+{
     ev_io io;
     ev_timer watcher;
     int connected;
     struct server *server;
 };
 
-struct server {
+struct server
+{
     int fd;
     int buf_len;
     int buf_idx;
@@ -40,13 +43,15 @@ struct server {
     struct remote *remote;
 };
 
-struct remote_ctx {
+struct remote_ctx
+{
     ev_io io;
     int connected;
     struct remote *remote;
 };
 
-struct remote {
+struct remote
+{
     int fd;
     int buf_len;
     int buf_idx;

@@ -12,31 +12,31 @@
 
 struct method_select_request
 {
-	char ver;
-	char nmethods;
-	char methods[255];
+    char ver;
+    char nmethods;
+    char methods[255];
 };
 
 struct method_select_response
 {
-	char ver;
-	char method;
+    char ver;
+    char method;
 };
 
 struct socks5_request
 {
-	char ver;
-	char cmd;
-	char rsv;
-	char atyp;
+    char ver;
+    char cmd;
+    char rsv;
+    char atyp;
 };
 
 struct socks5_response
 {
-	char ver;
-	char rep;
-	char rsv;
-	char atyp;
+    char ver;
+    char rep;
+    char rsv;
+    char atyp;
 };
 
 #endif //_SOCKS5_H

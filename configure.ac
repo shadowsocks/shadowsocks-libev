@@ -2,7 +2,7 @@ dnl                                               -*- Autoconf -*-
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([shadowsocks], [1.3.3], [max.c.lv@gmail.com])
+AC_INIT([shadowsocks], [1.4.0], [max.c.lv@gmail.com])
 AC_CONFIG_SRCDIR([src/encrypt.c])
 AC_CONFIG_HEADERS([config.h])
 
@@ -15,6 +15,8 @@ AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+AC_LANG_SOURCE
+AM_PROG_CC_C_O
 
 dnl Checks for libev
 m4_include([libev/libev.m4])

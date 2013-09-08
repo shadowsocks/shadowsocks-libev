@@ -3,6 +3,6 @@
     "server_port":8388,
     "local_port":1080,
     "password":"barfoo!",
-    "timeout":600,
+    "timeout":60,
     "method":null
 }
