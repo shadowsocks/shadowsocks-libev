@@ -19,6 +19,12 @@ debian/files
 debian/shadowsocks.substvars
 debian/*.debhelper*
 
+# Ignore garbage of OS X
+*.DS_Store
+
+# Ignore vim cache
+*.swp
+
 #	Do not edit the following section
 # 	Edit Compile Debug Document Distribute
 *~

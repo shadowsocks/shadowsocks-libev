@@ -3,7 +3,20 @@
 
 #include "config.h"
 
+#ifndef __MINGW32__
 #include <sys/socket.h>
+#else
+
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
+
+#endif
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

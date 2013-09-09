@@ -1,9 +1,7 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <time.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -16,14 +14,20 @@
 
 #define INT_DIGITS 19		/* enough for 64 bit integer */
 
+#ifndef __MINGW32__
 void ERROR(const char *s)
 {
     char *msg = strerror(errno);
     LOGE("%s: %s", s, msg);
 
 }
+#endif
 
+#ifdef __MINGW32__
+char *ss_itoa(int i)
+#else
 char *itoa(int i)
+#endif
 {
     /* Room for INT_DIGITS digits, - and '\0' */
     static char buf[INT_DIGITS + 2];
@@ -103,7 +107,7 @@ void usage()
 
 void demonize(const char* path)
 {
-
+#ifndef __MINGW32__
     /* Our process ID and Session ID */
     pid_t pid, sid;
 
@@ -150,5 +154,6 @@ void demonize(const char* path)
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
+#endif
 }
 

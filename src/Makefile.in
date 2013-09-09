@@ -34,8 +34,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = ss-local$(EXEEXT) ss-server$(EXEEXT) $(am__EXEEXT_1)
-@BUILD_REDIRECTOR_TRUE@am__append_1 = ss-redir
+bin_PROGRAMS = ss-local$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2)
+@BUILD_WINCOMPAT_FALSE@am__append_1 = ss-server
+@BUILD_WINCOMPAT_TRUE@am__append_2 = win32.c
+@BUILD_REDIRECTOR_TRUE@am__append_3 = ss-redir
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -51,13 +53,18 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-@BUILD_REDIRECTOR_TRUE@am__EXEEXT_1 = ss-redir$(EXEEXT)
+@BUILD_WINCOMPAT_FALSE@am__EXEEXT_1 = ss-server$(EXEEXT)
+@BUILD_REDIRECTOR_TRUE@am__EXEEXT_2 = ss-redir$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
+am__ss_local_SOURCES_DIST = utils.c jconf.c json.c encrypt.c \
+	udprelay.c cache.c local.c win32.c
+@BUILD_WINCOMPAT_TRUE@am__objects_1 = ss_local-win32.$(OBJEXT)
 am_ss_local_OBJECTS = ss_local-utils.$(OBJEXT) \
 	ss_local-jconf.$(OBJEXT) ss_local-json.$(OBJEXT) \
 	ss_local-encrypt.$(OBJEXT) ss_local-udprelay.$(OBJEXT) \
-	ss_local-cache.$(OBJEXT) ss_local-local.$(OBJEXT)
+	ss_local-cache.$(OBJEXT) ss_local-local.$(OBJEXT) \
+	$(am__objects_1)
 ss_local_OBJECTS = $(am_ss_local_OBJECTS)
 am__DEPENDENCIES_1 =
 am__DEPENDENCIES_2 = $(top_builddir)/libev/libev.la \
@@ -96,8 +103,8 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(ss_local_SOURCES) $(ss_redir_SOURCES) $(ss_server_SOURCES)
-DIST_SOURCES = $(ss_local_SOURCES) $(am__ss_redir_SOURCES_DIST) \
-	$(ss_server_SOURCES)
+DIST_SOURCES = $(am__ss_local_SOURCES_DIST) \
+	$(am__ss_redir_SOURCES_DIST) $(ss_server_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -223,14 +230,8 @@ AM_CFLAGS = -g -O2 -Wall -fno-strict-aliasing -I$(top_builddir)/libev \
 	-I$(top_builddir)/libasyncns
 AM_LDFLAGS = -static
 SS_COMMON_LIBS = $(top_builddir)/libev/libev.la $(INET_NTOP_LIB)
-ss_local_SOURCES = utils.c \
-                   jconf.c \
-                   json.c \
-		   encrypt.c \
-		   udprelay.c \
-		   cache.c \
-		   local.c
-
+ss_local_SOURCES = utils.c jconf.c json.c encrypt.c udprelay.c cache.c \
+	local.c $(am__append_2)
 ss_server_SOURCES = utils.c \
                     jconf.c \
                     json.c \
@@ -355,6 +356,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-local.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-udprelay.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-utils.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-win32.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_server-cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_server-encrypt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_server-jconf.Po@am__quote@
@@ -482,6 +484,20 @@ ss_local-local.obj: local.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='local.c' object='ss_local-local.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -c -o ss_local-local.obj `if test -f 'local.c'; then $(CYGPATH_W) 'local.c'; else $(CYGPATH_W) '$(srcdir)/local.c'; fi`
+
+ss_local-win32.o: win32.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -MT ss_local-win32.o -MD -MP -MF $(DEPDIR)/ss_local-win32.Tpo -c -o ss_local-win32.o `test -f 'win32.c' || echo '$(srcdir)/'`win32.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/ss_local-win32.Tpo $(DEPDIR)/ss_local-win32.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='win32.c' object='ss_local-win32.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -c -o ss_local-win32.o `test -f 'win32.c' || echo '$(srcdir)/'`win32.c
+
+ss_local-win32.obj: win32.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -MT ss_local-win32.obj -MD -MP -MF $(DEPDIR)/ss_local-win32.Tpo -c -o ss_local-win32.obj `if test -f 'win32.c'; then $(CYGPATH_W) 'win32.c'; else $(CYGPATH_W) '$(srcdir)/win32.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/ss_local-win32.Tpo $(DEPDIR)/ss_local-win32.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='win32.c' object='ss_local-win32.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -c -o ss_local-win32.obj `if test -f 'win32.c'; then $(CYGPATH_W) 'win32.c'; else $(CYGPATH_W) '$(srcdir)/win32.c'; fi`
 
 ss_server-utils.o: utils.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_server_CFLAGS) $(CFLAGS) -MT ss_server-utils.o -MD -MP -MF $(DEPDIR)/ss_server-utils.Tpo -c -o ss_server-utils.o `test -f 'utils.c' || echo '$(srcdir)/'`utils.c

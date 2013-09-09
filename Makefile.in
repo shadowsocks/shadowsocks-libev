@@ -100,7 +100,7 @@ AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
 	distdir dist dist-all distcheck
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
+DIST_SUBDIRS = libasyncns libev src
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -259,7 +259,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = libasyncns libev src
+@BUILD_WINCOMPAT_FALSE@SUBDIRS = libasyncns libev src
+@BUILD_WINCOMPAT_TRUE@SUBDIRS = libev src
 ACLOCAL_AMFLAGS = -I m4
 man_MANS = shadowsocks.8
 all: config.h

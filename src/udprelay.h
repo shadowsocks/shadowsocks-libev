@@ -79,6 +79,6 @@ int udprelay(const char *server_host, const char *server_port,
 #ifdef UDPRELAY_REMOTE
              asyncns_t *asyncns,
 #endif
-             int method, const char *interface);
+             int method, const char *interface_name);
 
 #endif // _UDPRELAY_H

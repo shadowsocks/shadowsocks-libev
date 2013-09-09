@@ -1,17 +1,20 @@
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <arpa/inet.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <pthread.h>
 #include <signal.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+
+#ifndef __MINGW32__
+#include <errno.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <pthread.h>
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -21,6 +24,10 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #define SET_INTERFACE
+#endif
+
+#ifdef __MINGW32__
+#include "win32.h"
 #endif
 
 #include "utils.h"
@@ -42,6 +49,7 @@
 int verbose = 0;
 int udprelay = 0;
 
+#ifndef __MINGW32__
 static int setnonblocking(int fd)
 {
     int flags;
@@ -49,6 +57,7 @@ static int setnonblocking(int fd)
         flags = 0;
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+#endif
 
 #ifdef SET_INTERFACE
 int setinterface(int socket_fd, const char* interface_name)
@@ -213,13 +222,13 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents)
     {
         struct socks5_request *request = (struct socks5_request *)remote->buf;
 
-        struct sockaddr_in s_addr;
-        memset(&s_addr, 0, sizeof(s_addr));
+        struct sockaddr_in sock_addr;
+        memset(&sock_addr, 0, sizeof(sock_addr));
 
         if (udprelay && request->cmd == 3)
         {
-            socklen_t addr_len = sizeof(s_addr);
-            getsockname(server->fd, (struct sockaddr *)&s_addr,
+            socklen_t addr_len = sizeof(sock_addr);
+            getsockname(server->fd, (struct sockaddr *)&sock_addr,
                         &addr_len);
             if (verbose)
             {
@@ -338,11 +347,11 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents)
         response.atyp = 1;
 
         memcpy(server->buf, &response, sizeof(struct socks5_response));
-        memcpy(server->buf + sizeof(struct socks5_response), &s_addr.sin_addr, sizeof(s_addr.sin_addr));
-        memcpy(server->buf + sizeof(struct socks5_response) + sizeof(s_addr.sin_addr),
-               &s_addr.sin_port, sizeof(s_addr.sin_port));
+        memcpy(server->buf + sizeof(struct socks5_response), &sock_addr.sin_addr, sizeof(sock_addr.sin_addr));
+        memcpy(server->buf + sizeof(struct socks5_response) + sizeof(sock_addr.sin_addr),
+               &sock_addr.sin_port, sizeof(sock_addr.sin_port));
 
-        int reply_size = sizeof(struct socks5_response) + sizeof(s_addr.sin_addr) + sizeof(s_addr.sin_port);
+        int reply_size = sizeof(struct socks5_response) + sizeof(sock_addr.sin_addr) + sizeof(sock_addr.sin_port);
         int s = send(server->fd, server->buf, reply_size, 0);
         if (s < reply_size)
         {
@@ -884,12 +893,16 @@ int main (int argc, char **argv)
         demonize(pid_path);
     }
 
+#ifdef __MINGW32__
+    winsock_init();
+#else
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
+#endif
 
     // Setup keys
-    LOGD("initialize cihpers... %s", method);
+    LOGD("initialize ciphers... %s", method);
     int m = enc_init(password, method);
 
     // Setup socket
@@ -937,6 +950,11 @@ int main (int argc, char **argv)
     }
 
     ev_run (loop, 0);
+
+#ifdef __MINGW32__
+    winsock_cleanup();
+#endif
+
     return 0;
 }
 

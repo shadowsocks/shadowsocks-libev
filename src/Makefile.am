@@ -6,7 +6,12 @@ AM_LDFLAGS = -static
 
 SS_COMMON_LIBS = $(top_builddir)/libev/libev.la $(INET_NTOP_LIB)
  
-bin_PROGRAMS = ss-local ss-server
+bin_PROGRAMS = ss-local
+
+if !BUILD_WINCOMPAT
+bin_PROGRAMS += ss-server
+endif
+
 ss_local_SOURCES = utils.c \
                    jconf.c \
                    json.c \
@@ -27,6 +32,10 @@ ss_server_LDADD += $(top_builddir)/libasyncns/libasyncns.la
 
 ss_local_CFLAGS = $(AM_CFLAGS) -DUDPRELAY_LOCAL
 ss_server_CFLAGS = $(AM_CFLAGS) -DUDPRELAY_REMOTE
+
+if BUILD_WINCOMPAT
+ss_local_SOURCES += win32.c
+endif
 
 if BUILD_REDIRECTOR
 bin_PROGRAMS += ss-redir

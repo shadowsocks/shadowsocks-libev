@@ -1,18 +1,21 @@
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <arpa/inet.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <pthread.h>
 #include <signal.h>
 #include <string.h>
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
+
+#ifndef __MINGW32__
+#include <arpa/inet.h>
+#include <errno.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <pthread.h>
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -22,6 +25,10 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #define SET_INTERFACE
+#endif
+
+#ifdef __MINGW32__
+#include "win32.h"
 #endif
 
 #include <openssl/md5.h>
@@ -51,6 +58,7 @@ static char *iface;
 static int remote_conn = 0;
 static int server_conn = 0;
 
+#ifndef __MINGW32__
 static int setnonblocking(int fd)
 {
     int flags;
@@ -58,6 +66,7 @@ static int setnonblocking(int fd)
         flags = 0;
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+#endif
 
 #ifdef SET_INTERFACE
 static int setinterface(int socket_fd, const char* interface_name)
@@ -740,11 +749,11 @@ int udprelay_init(const char *server_host, const char *server_port,
 #ifdef UDPRELAY_REMOTE
              asyncns_t *asyncns,
 #endif
-             int method, const char *interface)
+             int method, const char *interface_name)
 {
 
 
-    iface = interface;
+    iface = interface_name;
 
     // Inilitialize ev loop
     struct ev_loop *loop = EV_DEFAULT;

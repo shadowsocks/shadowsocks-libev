@@ -64,12 +64,34 @@ no more than 5% on a low-end router (Buffalo WHR-G300N V2 with a 400MHz MIPS CPU
 Installation
 ------------
 
-Build the binary like this:
+For Unix-like systems, especially Debian-based systems, 
+e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 
 ```bash
     sudo apt-get install build-essential autoconf libtool libssl-dev
     ./configure && make
     sudo make install
+```
+
+For Windows, use either MinGW (msys) or Cygwin to build.
+At the moment, only `ss-local` is supported to build against MinGW (msys).
+
+If you are using MinGW (msys), please download OpenSSL source tarball
+to the home directory of msys, and build it like this (may take a few minutes):
+
+```bash
+    tar zxf openssl-1.0.1e.tar.gz
+    cd openssl-1.0.1e
+    ./config --prefix="$HOME/prebuilt" --openssldir="$HOME/prebuilt/openssl"
+    make && make install
+```
+
+Then, build the binary using the commands below, and all `.exe` files 
+will be built at `$HOME/ss/bin`:
+
+```bash
+    ./configure --prefix="$HOME/ss" --with-openssl="$HOME/prebuilt"
+    make && make install
 ```
 
 Usage

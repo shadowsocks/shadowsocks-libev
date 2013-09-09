@@ -616,11 +616,13 @@ ac_header_list=
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
+LIBOBJS
 PTHREAD_CFLAGS
 PTHREAD_LIBS
 PTHREAD_CC
 acx_pthread_config
-LIBOBJS
+BUILD_WINCOMPAT_FALSE
+BUILD_WINCOMPAT_TRUE
 BUILD_REDIRECTOR_FALSE
 BUILD_REDIRECTOR_TRUE
 INET_NTOP_LIB
@@ -12709,6 +12711,14 @@ fi
 
 
 
+case $host in
+  *-mingw*)
+    LIBS="$LIBS -lgdi32 -lws2_32"
+    ;;
+  *)
+    ;;
+esac
+
 
 
 
@@ -13007,6 +13017,24 @@ case $host in
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: Linux" >&5
 $as_echo "Linux" >&6; }
     ;;
+  *-mingw*)
+
+$as_echo "#define FD_SETSIZE 2048" >>confdefs.h
+
+
+$as_echo "#define EV_FD_TO_WIN32_HANDLE(fd) (fd)" >>confdefs.h
+
+
+$as_echo "#define EV_WIN32_HANDLE_TO_FD(handle) (handle)" >>confdefs.h
+
+
+$as_echo "#define EV_WIN32_CLOSE_FD(fd) closesocket(fd)" >>confdefs.h
+
+
+    os_support=mingw
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: MinGW" >&5
+$as_echo "MinGW" >&6; }
+    ;;
   *)
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: transparent proxy does not support for $host" >&5
 $as_echo "transparent proxy does not support for $host" >&6; }
@@ -13019,6 +13047,14 @@ esac
 else
   BUILD_REDIRECTOR_TRUE='#'
   BUILD_REDIRECTOR_FALSE=
+fi
+
+ if test "$os_support" = "mingw"; then
+  BUILD_WINCOMPAT_TRUE=
+  BUILD_WINCOMPAT_FALSE='#'
+else
+  BUILD_WINCOMPAT_TRUE='#'
+  BUILD_WINCOMPAT_FALSE=
 fi
 
 
@@ -13035,6 +13071,29 @@ fi
 
 done
 
+
+case $host in
+  *-mingw*)
+    for ac_header in windows.h winsock2.h ws2tcpip.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+else
+  as_fn_error $? "Missing MinGW headers" "$LINENO" 5
+fi
+
+done
+
+    ;;
+  *)
+    # These are POSIX-like systems using BSD-like sockets API.
+    ;;
+esac
 
 for ac_header in sys/socket.h
 do :
@@ -13918,73 +13977,6 @@ $as_echo "#define HAVE_WORKING_FORK 1" >>confdefs.h
 
 fi
 
-for ac_header in stdlib.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "stdlib.h" "ac_cv_header_stdlib_h" "$ac_includes_default"
-if test "x$ac_cv_header_stdlib_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_STDLIB_H 1
-_ACEOF
-
-fi
-
-done
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for GNU libc compatible malloc" >&5
-$as_echo_n "checking for GNU libc compatible malloc... " >&6; }
-if ${ac_cv_func_malloc_0_nonnull+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test "$cross_compiling" = yes; then :
-  ac_cv_func_malloc_0_nonnull=no
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#if defined STDC_HEADERS || defined HAVE_STDLIB_H
-# include <stdlib.h>
-#else
-char *malloc ();
-#endif
-
-int
-main ()
-{
-return ! malloc (0);
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_run "$LINENO"; then :
-  ac_cv_func_malloc_0_nonnull=yes
-else
-  ac_cv_func_malloc_0_nonnull=no
-fi
-rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
-  conftest.$ac_objext conftest.beam conftest.$ac_ext
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_func_malloc_0_nonnull" >&5
-$as_echo "$ac_cv_func_malloc_0_nonnull" >&6; }
-if test $ac_cv_func_malloc_0_nonnull = yes; then :
-
-$as_echo "#define HAVE_MALLOC 1" >>confdefs.h
-
-else
-  $as_echo "#define HAVE_MALLOC 0" >>confdefs.h
-
-   case " $LIBOBJS " in
-  *" malloc.$ac_objext "* ) ;;
-  *) LIBOBJS="$LIBOBJS malloc.$ac_objext"
- ;;
-esac
-
-
-$as_echo "#define malloc rpl_malloc" >>confdefs.h
-
-fi
-
-
 for ac_header in sys/select.h sys/socket.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
@@ -14105,6 +14097,55 @@ _ACEOF
 fi
 done
 
+
+if test "$ac_cv_func_select" != "yes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for select in ws2_32" >&5
+$as_echo_n "checking for select in ws2_32... " >&6; }
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#ifdef HAVE_WINSOCK2_H
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#endif
+
+int
+main ()
+{
+
+      select(0,(fd_set *)NULL,(fd_set *)NULL,(fd_set *)NULL,(struct timeval *)NULL);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+      HAVE_SELECT="1"
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_SELECT 1
+_ACEOF
+
+      HAVE_SYS_SELECT_H="1"
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_SYS_SELECT_H 1
+_ACEOF
+
+
+else
+
+      as_fn_error $? "no" "$LINENO" 5
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
 
 # Check whether --enable-largefile was given.
 if test "${enable_largefile+set}" = set; then :
@@ -14858,6 +14899,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_REDIRECTOR_TRUE}" && test -z "${BUILD_REDIRECTOR_FALSE}"; then
   as_fn_error $? "conditional \"BUILD_REDIRECTOR\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_WINCOMPAT_TRUE}" && test -z "${BUILD_WINCOMPAT_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_WINCOMPAT\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 
