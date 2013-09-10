@@ -11,3 +11,7 @@ START=yes
 
 # Configuration file
 CONFFILE="/etc/shadowsocks/config.json"
+
+# User and group to run the server as
+USER=root
+GROUP=root

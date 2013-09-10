@@ -30,6 +30,9 @@ SCRIPTNAME=/etc/init.d/$NAME
 
 [ "$START" = "yes" ] || exit 0
 
+: ${USER:="root"}
+: ${GROUP:="root"}
+
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
 
@@ -43,17 +46,16 @@ SCRIPTNAME=/etc/init.d/$NAME
 do_start()
 {
 	# Take care of pidfile permissions
-	USER=$(egrep '\buser\s*=' $CONFFILE | sed -r 's/.*\buser\s+=\s*(.*);/\1/')
 	mkdir /var/run/$NAME 2>/dev/null || true
-	chown "$USER" /var/run/$NAME
+	chown "$USER:$GROUP" /var/run/$NAME
 
 	# Return
 	#   0 if daemon has been started
 	#   1 if daemon was already running
 	#   2 if daemon could not be started
-	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null \
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $USER:$GROUP --exec $DAEMON --test > /dev/null \
 		|| return 1
-	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- \
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $USER:$GROUP --exec $DAEMON -- \
 		-c "$CONFFILE" -f $PIDFILE \
 		|| return 2
 }
