@@ -108,6 +108,132 @@ sudo vim /etc/shadowsocks/config.json
 sudo /etc/init.d/shadowsocks start
 ```
 
+### CentOS
+
+Install the compile tools
+```bash
+yum install -y gcc automake autoconf libtool make build-essential autoconf libtool gcc
+yum install -y curl curl-devel zlib-devel openssl-devel perl perl-devel cpio expat-devel gettext-devel
+```
+
+Compile and install
+```bash
+./configure && make
+make install
+```
+
+Create config.json
+```bash
+mkdir /etc/shadowsocks
+vi /etc/shadowsocks/config.json
+```
+Then fill your infomation
+
+Create the service file
+```bash
+vi /etc/rc.d/init.d/shadowsocks
+```
+
+Paste below code in vi
+```bash
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          shadowsocks
+# Required-Start:    $network $local_fs $remote_fs
+# Required-Stop:     $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: lightweight secured scoks5 proxy
+# Description:       Shadowsocks-libev is a lightweight secured 
+#                    scoks5 proxy for embedded devices and low end boxes.
+#                    
+### END INIT INFO
+
+# Author: Vinna
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+NAME=shadowsocks
+DAEMON=/usr/local/bin/ss-server
+prog=$(basename $DAEMON)
+
+PIDFILE=/var/run/$NAME/$prog.pid
+CONFFILE=/etc/$NAME/config.json
+
+lockfile=/var/lock/subsys/$NAME/$prog
+
+start()
+{
+    echo -n $"Starting $prog: "
+    daemon $DAEMON -c $CONFFILE -f $PIDFILE
+    retval=$?
+    echo
+    [ $retval -eq 0 ] && touch $lockfile
+    return $retval
+}
+
+stop()
+{
+	echo -n $"Stopping $prog: "
+	killproc -p $PIDFILE $DAEMON
+	RETVAL=$?
+	[ $RETVAL -eq 0 ] && rm -f $lockfile
+	echo
+	return $retval
+}
+
+restart() {
+    stop
+    start
+}
+
+rh_status() {
+    status $prog
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    status)
+        rh_status
+        ;;
+    condrestart|try-restart)
+        rh_status_q || exit 0
+            ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart}"
+        exit 2
+esac
+```
+Then save and quit vi
+
+Ctreate some folder
+```bash
+mkdir /var/run/shadowsocks
+mkdir /var/lock/subsys/shadowsocks
+```
+Then start it
+```bash
+service shadowsocks start
+```
+
 ### Linux
 
 For Unix-like systems, especially Debian-based systems, 
