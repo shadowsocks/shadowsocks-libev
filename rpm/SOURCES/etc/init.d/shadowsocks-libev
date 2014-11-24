@@ -24,7 +24,7 @@
 
 # Daemon
 NAME=shadowsocks-server
-DAEMON=/usr/local/bin/ss-server
+DAEMON=/usr/bin/ss-server
 
 # Path to the configuration file.
 #
