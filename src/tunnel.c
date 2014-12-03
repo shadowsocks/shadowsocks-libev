@@ -753,6 +753,10 @@ int main(int argc, char **argv)
     // parse tunnel addr
     parse_addr(tunnel_addr_str, &tunnel_addr);
 
+    if (tunnel_addr.port == NULL) {
+        tunnel_addr.port = "53";
+    }
+
 #ifdef __MINGW32__
     winsock_init();
 #else
