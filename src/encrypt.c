@@ -246,7 +246,6 @@ unsigned char *enc_md5(const unsigned char *d, size_t n, unsigned char *md)
 void enc_table_init(const char *pass)
 {
     uint32_t i;
-    uint32_t salt;
     uint64_t key = 0;
     uint8_t *digest;
 
@@ -263,8 +262,7 @@ void enc_table_init(const char *pass)
         enc_table[i] = i;
     }
     for (i = 1; i < 1024; ++i) {
-        salt = i;
-        merge_sort(enc_table, 256, salt, key);
+        merge_sort(enc_table, 256, i, key);
     }
     for (i = 0; i < 256; ++i) {
         // gen decrypt table from encrypt table

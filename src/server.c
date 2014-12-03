@@ -64,6 +64,10 @@
 #define BUF_SIZE 2048
 #endif
 
+#ifndef SSMAXCONN
+#define SSMAXCONN 1024
+#endif
+
 static void signal_cb(EV_P_ ev_signal *w, int revents);
 static void accept_cb(EV_P_ ev_io *w, int revents);
 static void server_recv_cb(EV_P_ ev_io *w, int revents);
@@ -1088,7 +1092,7 @@ int main(int argc, char **argv)
         if (listenfd < 0) {
             FATAL("bind() error..");
         }
-        if (listen(listenfd, SOMAXCONN) == -1) {
+        if (listen(listenfd, SSMAXCONN) == -1) {
             FATAL("listen() error.");
         }
         setnonblocking(listenfd);
