@@ -59,7 +59,7 @@ void free_addr(ss_addr_t *addr)
 
 void parse_addr(const char *str, ss_addr_t *addr)
 {
-    int ret = -1, n = 0;
+    int ipv6 = 0, ret = -1, n = 0;
     char *pch;
     pch = strchr(str, ':');
     while (pch != NULL) {
@@ -68,15 +68,22 @@ void parse_addr(const char *str, ss_addr_t *addr)
         pch = strchr(pch + 1, ':');
     }
     if (n > 1) {
-        if (strcmp(str + ret, "]") != 0) {
+        ipv6 = 1;
+        if (str[ret - 1] != ']') {
             ret = -1;
         }
     }
     if (ret == -1) {
-        addr->host = strdup(str);
+        if (ipv6)
+            addr->host = ss_strndup(str + 1, strlen(str) - 2);
+        else
+            addr->host = strdup(str);
         addr->port = NULL;
     } else {
-        addr->host = ss_strndup(str, ret);
+        if (ipv6)
+            addr->host = ss_strndup(str + 1, ret - 2);
+        else
+            addr->host = ss_strndup(str, ret);
         addr->port = strdup(str + ret + 1);
     }
 }

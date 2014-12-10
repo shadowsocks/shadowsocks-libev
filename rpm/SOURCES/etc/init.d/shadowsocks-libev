@@ -69,7 +69,7 @@ exit 0
 else
 echo -n $"Starting ${NAME}: "
 #daemon --check $DAEMON --user $USER "$DAEMON -f $PID -c $CONF > /dev/null"
-daemon $DAEMON -c $CONF -f $PID
+daemon $DAEMON -u -c $CONF -f $PID
 fi
 
 RETVAL=$?
