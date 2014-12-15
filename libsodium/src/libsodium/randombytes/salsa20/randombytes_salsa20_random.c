@@ -30,8 +30,12 @@
 # if defined(__cplusplus)
 extern "C"
 # endif
+#if defined(__MINGW32__)
+BOOLEAN (APIENTRY *RtlGenRandom)(PVOID, ULONG);
+#else
 BOOLEAN NTAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength);
 # pragma comment(lib, "advapi32.lib")
+#endif
 #endif
 
 #define SALSA20_RANDOM_BLOCK_SIZE crypto_core_salsa20_OUTPUTBYTES
@@ -189,6 +193,10 @@ randombytes_salsa20_random_stir(void)
         abort(); /* LCOV_EXCL_LINE */
     }
 #else /* _WIN32 */
+#if defined (__MINGW32__)
+	HMODULE lib = LoadLibraryW (L"advapi32.dll");
+	RtlGenRandom = (BOOLEAN(APIENTRY*)(PVOID,ULONG))GetProcAddress (lib,"SystemFunction036");
+#endif
     if (! RtlGenRandom((PVOID) m0, (ULONG) sizeof m0)) {
         abort(); /* LCOV_EXCL_LINE */
     }

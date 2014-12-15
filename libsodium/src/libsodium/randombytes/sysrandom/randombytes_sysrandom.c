@@ -26,8 +26,12 @@
 # if defined(__cplusplus)
 extern "C"
 # endif
+#if defined(__MINGW32__)
+BOOLEAN (APIENTRY *RtlGenRandom)(PVOID, ULONG);
+#else
 BOOLEAN NTAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength);
 # pragma comment(lib, "advapi32.lib")
+#endif
 #endif
 
 #ifdef __OpenBSD__
@@ -211,6 +215,10 @@ randombytes_sysrandom_buf(void * const buf, const size_t size)
     if (size > (size_t) 0xffffffff) {
         abort(); /* LCOV_EXCL_LINE */
     }
+#if defined (__MINGW32__)
+	HMODULE lib = LoadLibraryW (L"advapi32.dll");
+	RtlGenRandom = (BOOLEAN(APIENTRY*)(PVOID,ULONG))GetProcAddress (lib,"SystemFunction036");
+#endif
     if (! RtlGenRandom((PVOID) buf, (ULONG) size)) {
         abort(); /* LCOV_EXCL_LINE */
     }
