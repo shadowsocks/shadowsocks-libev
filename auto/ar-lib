@@ -2,7 +2,7 @@
 # Wrapper for Microsoft lib.exe
 
 me=ar-lib
-scriptversion=2012-01-30.22; # UTC
+scriptversion=2012-03-01.08; # UTC
 
 # Copyright (C) 2010, 2012 Free Software Foundation, Inc.
 # Written by Peter Rosin <peda@lysator.liu.se>.
@@ -153,7 +153,9 @@ action=${action#-}
 delete=
 extract=
 list=
+quick=
 replace=
+index=
 create=
 
 while test -n "$action"
@@ -162,7 +164,10 @@ do
     d*) delete=yes  ;;
     x*) extract=yes ;;
     t*) list=yes    ;;
+    q*) quick=yes   ;;
     r*) replace=yes ;;
+    s*) index=yes   ;;
+    S*)             ;; # the index is always updated implicitly
     c*) create=yes  ;;
     u*)             ;; # TODO: don't ignore the update modifier
     v*)             ;; # TODO: don't ignore the verbose modifier
@@ -173,8 +178,8 @@ do
   action=${action#?}
 done
 
-case $delete$extract$list$replace in
-  yes)
+case $delete$extract$list$quick$replace,$index in
+  yes,* | ,yes)
     ;;
   yesyes*)
     func_error "more than one action specified"
@@ -225,7 +230,7 @@ elif test -n "$extract"; then
     done
   fi
 
-elif test -n "$replace"; then
+elif test -n "$quick$replace"; then
   if test ! -f "$orig_archive"; then
     if test -z "$create"; then
       echo "$me: creating $orig_archive"

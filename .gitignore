@@ -12,7 +12,8 @@ config.log
 config.status
 libtool
 pid
-ss*
+ss.*
+ss-*
 stamp-h1
 .libs
 .pc

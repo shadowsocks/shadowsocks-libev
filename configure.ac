@@ -2,7 +2,7 @@ dnl                                               -*- Autoconf -*-
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([shadowsocks-libev], [1.6.0], [max.c.lv@gmail.com])
+AC_INIT([shadowsocks-libev], [1.6.1], [max.c.lv@gmail.com])
 AC_CONFIG_SRCDIR([src/encrypt.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR(auto)
@@ -10,6 +10,9 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([subdir-objects foreign -Wall -Werror])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+AM_MAINTAINER_MODE
+AM_DEP_TRACK
 
 dnl Checks for lib
 AC_DISABLE_STATIC
@@ -44,7 +47,7 @@ m4_include([libev/libev.m4])
 dnl Add library for mingw
 case $host in
   *-mingw*)
-    LIBS="$LIBS -lgdi32 -lws2_32 -lcrypt32"
+    LIBS="$LIBS -ladvapi32 -lgdi32 -lws2_32 -lcrypt32"
     ;;
   *)
     ;;
@@ -215,6 +218,8 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS([malloc memset socket])
 
 ACX_PTHREAD
+
+AC_CONFIG_SUBDIRS([libsodium])
 
 AC_CONFIG_FILES([ shadowsocks-libev.pc
                  Makefile

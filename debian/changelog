@@ -1,3 +1,9 @@
+shadowsocks-libev (1.6.1-1) unstable; urgency=high
+
+  * Add salsa20 and chacha20 support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 13 Dec 2014 15:11:34 +0800
+
 shadowsocks-libev (1.6.0-1) unstable; urgency=low
 
   * Solve conflicts with other shadowsocks portings.

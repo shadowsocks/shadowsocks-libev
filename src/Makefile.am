@@ -5,12 +5,14 @@ AM_CFLAGS += -I$(top_srcdir)/libev
 AM_CFLAGS += -I$(top_srcdir)/libasyncns
 AM_CFLAGS += -I$(top_srcdir)/libipset/include
 AM_CFLAGS += -I$(top_srcdir)/libcork/include
+AM_CFLAGS += -I$(top_srcdir)/libsodium/src/libsodium/include
 
 AM_LDFLAGS = -static
 
 SS_COMMON_LIBS = $(top_builddir)/libev/libev.la \
 				 $(top_builddir)/libipset/libipset.la \
 				 $(top_builddir)/libcork/libcork.la \
+				 $(top_builddir)/libsodium/src/libsodium/libsodium.la \
 				 $(INET_NTOP_LIB)
 
 bin_PROGRAMS = ss-local ss-tunnel

@@ -1091,13 +1091,13 @@ int main(int argc, char **argv)
         int listenfd;
         listenfd = create_and_bind(host, server_port);
         if (listenfd < 0) {
-            FATAL("bind() error..");
+            FATAL("bind() error");
         }
         if (listen(listenfd, SSMAXCONN) == -1) {
-            FATAL("listen() error.");
+            FATAL("listen() error");
         }
         setnonblocking(listenfd);
-        LOGD("server listening at port %s.", server_port);
+        LOGD("server listening at port %s", server_port);
 
         struct listen_ctx *listen_ctx = &listen_ctx_list[index + 1];
 

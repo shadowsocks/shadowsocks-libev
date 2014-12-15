@@ -1,7 +1,7 @@
 if BUILD_WINCOMPAT
-SUBDIRS = libcork libipset libev src
+SUBDIRS = libsodium libcork libipset libev src
 else
-SUBDIRS = libcork libipset libasyncns libev src
+SUBDIRS = libsodium libcork libipset libasyncns libev src
 endif
 
 ACLOCAL_AMFLAGS = -I m4
