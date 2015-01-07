@@ -9,21 +9,23 @@ ENV CONFIGFILE $CONFIGDIR/shadowsocks.json
 ENV PORT 8388
 
 # Set up building environment
-RUN apt-get update
-RUN apt-get install -y $DEPENDENCIES
+RUN apt-get update && \
+    apt-get install -y $DEPENDENCIES && \
+    apt-get clean
 
 # Get the latest code, build and install
 WORKDIR $BASEDIR
 RUN git clone https://github.com/shadowsocks/shadowsocks-libev.git
 WORKDIR $BASEDIR/shadowsocks-libev
-RUN ./configure
-RUN make
-RUN make install
+RUN ./configure && \
+    make && \
+    make install
 
 # Tear down building environment and delete git repository
 WORKDIR $BASEDIR
 RUN rm -rf $BASEDIR/shadowsocks-libev
-RUN apt-get --purge autoremove -y $DEPENDENCIES
+RUN apt-get --purge autoremove -y $DEPENDENCIES && \
+    apt-get clean
 
 # Config file can be in a separated container
 VOLUME ["$CONFIGDIR"]
@@ -33,4 +35,5 @@ ADD shadowsocks.json $CONFIGFILE
 EXPOSE $PORT
 
 # Override the host and port in the config file.
-CMD ss-server --fast-open -c $CONFIGFILE -s 0.0.0.0 -p $PORT
+ENTRYPOINT /entrypoint.sh
+CMD --help
