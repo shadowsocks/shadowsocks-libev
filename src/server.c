@@ -1244,11 +1244,9 @@ int main(int argc, char **argv)
 
     // Setup UDP
     if (udprelay) {
-        LOGI("udprelay enabled");
-		for(port_i=0;port_i<port_num;port_i++) {
-		   init_udprelay(server_host[0], server_port[port_i], m, atoi(timeout),
-                         iface);
-		}
+        LOGI("udprelay enabled");		
+		init_udprelay(server_host[0], server_port[0], m, atoi(timeout),
+                     iface);	
     }
 
     // setuid
