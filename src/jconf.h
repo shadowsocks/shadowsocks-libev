@@ -23,6 +23,7 @@
 #define _JCONF_H
 
 #define MAX_REMOTE_NUM 10
+#define MAX_PORT_NUM 20
 #define MAX_CONF_SIZE 16 * 1024
 #define MAX_DNS_NUM 4
 #define MAX_CONNECT_TIMEOUT 10
@@ -34,8 +35,9 @@ typedef struct {
 
 typedef struct {
     int remote_num;
+	int port_num;
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
-    char *remote_port;
+    char *remote_port[MAX_PORT_NUM];
     char *local_addr;
     char *local_port;
     char *password;

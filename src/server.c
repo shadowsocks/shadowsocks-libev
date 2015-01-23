@@ -1019,8 +1019,9 @@ int main(int argc, char **argv)
     char *iface = NULL;
 
     int server_num = 0;
+	int port_num = 0;
     const char *server_host[MAX_REMOTE_NUM];
-    const char *server_port = NULL;
+    const char *server_port[MAX_PORT_NUM];
 
     char * nameservers[MAX_DNS_NUM + 1];
     int nameserver_num = 0;
@@ -1043,10 +1044,14 @@ int main(int argc, char **argv)
             }
             break;
         case 's':
-            server_host[server_num++] = optarg;
+			if (server_num < MAX_REMOTE_NUM) {
+				server_host[server_num++] = optarg;
+			}
             break;
         case 'p':
-            server_port = optarg;
+            if (port_num < MAX_PORT_NUM) {
+				server_port[port_num++] = optarg;
+			}
             break;
         case 'k':
             password = optarg;
@@ -1097,8 +1102,11 @@ int main(int argc, char **argv)
                 server_host[i] = conf->remote_addr[i].host;
             }
         }
-        if (server_port == NULL) {
-            server_port = conf->remote_port;
+        if (port_num == 0) {
+			port_num = conf->port_num;
+            for (i = 0; i < port_num; i++) {
+				server_port[i] = conf->remote_port[i];
+			}
         }
         if (password == NULL) {
             password = conf->password;
@@ -1138,7 +1146,7 @@ int main(int argc, char **argv)
         server_host[server_num++] = NULL;
     }
 
-    if (server_num == 0 || server_port == NULL || password == NULL) {
+    if (port_num == 0 || password == NULL) {
         usage();
         exit(EXIT_FAILURE);
     }
@@ -1199,44 +1207,48 @@ int main(int argc, char **argv)
     struct listen_ctx listen_ctx_list[server_num];
 
     // bind to each interface
-    while (server_num > 0) {
-        int index = --server_num;
-        const char * host = server_host[index];
+	int port_i;
+	int server_i;
+	for(port_i=0;port_i<port_num;port_i++){
+		for(server_i=0;server_i<server_num;server_i++) {
+			// Bind to port
+			int listenfd;
+			listenfd = create_and_bind(server_host[server_i], server_port[port_i]);
+			if (listenfd < 0) {
+				FATAL("bind() error");
+			}
+			if (listen(listenfd, SSMAXCONN) == -1) {
+				FATAL("listen() error");
+			}
+			setnonblocking(listenfd);
+			if(server_host[server_i]) LOGI("server listening at %s:%s", server_host[server_i], server_port[port_i]);
+			else LOGI("server listening at port %s", server_port[port_i]);
 
-        // Bind to port
-        int listenfd;
-        listenfd = create_and_bind(host, server_port);
-        if (listenfd < 0) {
-            FATAL("bind() error");
-        }
-        if (listen(listenfd, SSMAXCONN) == -1) {
-            FATAL("listen() error");
-        }
-        setnonblocking(listenfd);
-        LOGI("server listening at port %s", server_port);
+			for (int i = 0; i < nameserver_num; i++) {
+				LOGI("using nameserver: %s", nameservers[i]);
+			}
 
-        for (int i = 0; i < nameserver_num; i++) {
-            LOGI("using nameserver: %s", nameservers[i]);
-        }
+			struct listen_ctx *listen_ctx = &listen_ctx_list[server_i];
 
-        struct listen_ctx *listen_ctx = &listen_ctx_list[index];
+			// Setup proxy context
+			listen_ctx->timeout = atoi(timeout);
+			listen_ctx->fd = listenfd;
+			listen_ctx->method = m;
+			listen_ctx->iface = iface;
+			listen_ctx->loop = loop;
 
-        // Setup proxy context
-        listen_ctx->timeout = atoi(timeout);
-        listen_ctx->fd = listenfd;
-        listen_ctx->method = m;
-        listen_ctx->iface = iface;
-        listen_ctx->loop = loop;
-
-        ev_io_init(&listen_ctx->io, accept_cb, listenfd, EV_READ);
-        ev_io_start(loop, &listen_ctx->io);
-    }
+			ev_io_init(&listen_ctx->io, accept_cb, listenfd, EV_READ);
+			ev_io_start(loop, &listen_ctx->io);
+		}
+	}
 
     // Setup UDP
     if (udprelay) {
         LOGI("udprelay enabled");
-        init_udprelay(server_host[0], server_port, m, atoi(timeout),
-                      iface);
+		for(port_i=0;port_i<port_num;port_i++) {
+		   init_udprelay(server_host[0], server_port[port_i], m, atoi(timeout),
+                         iface);
+		}
     }
 
     // setuid

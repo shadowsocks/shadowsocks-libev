@@ -613,8 +613,10 @@ int main(int argc, char **argv)
     while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:c:b:a:")) != -1) {
         switch (c) {
         case 's':
-            remote_addr[remote_num].host = optarg;
-            remote_addr[remote_num++].port = NULL;
+			if (remote_num < MAX_REMOTE_NUM) {
+				remote_addr[remote_num].host = optarg;
+				remote_addr[remote_num++].port = NULL;
+			}
             break;
         case 'p':
             remote_port = optarg;
@@ -661,7 +663,7 @@ int main(int argc, char **argv)
             }
         }
         if (remote_port == NULL) {
-            remote_port = conf->remote_port;
+            remote_port = conf->remote_port[0];
         }
         if (local_addr == NULL) {
             local_addr = conf->local_addr;

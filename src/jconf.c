@@ -139,10 +139,7 @@ jconf_t *read_jconf(const char * file)
             json_value *value = obj->u.object.values[i].value;
             if (strcmp(name, "server") == 0) {
                 if (value->type == json_array) {
-                    for (j = 0; j < value->u.array.length; j++) {
-                        if (j >= MAX_REMOTE_NUM) {
-                            break;
-                        }
+                    for (j = 0; j < value->u.array.length && j < MAX_REMOTE_NUM; j++) {                        
                         json_value *v = value->u.array.values[j];
                         parse_addr(to_string(v), conf.remote_addr + j);
                         conf.remote_num = j + 1;
@@ -153,7 +150,16 @@ jconf_t *read_jconf(const char * file)
                     conf.remote_num = 1;
                 }
             } else if (strcmp(name, "server_port") == 0) {
-                conf.remote_port = to_string(value);
+				 if (value->type == json_array) {
+                    for (j = 0; j < value->u.array.length && j < MAX_PORT_NUM; j++) {                        
+                        json_value *v = value->u.array.values[j];
+						conf.remote_port[j] = to_string(v);
+                        conf.port_num = j + 1;
+                    }
+                } else if (value->type == json_string) {
+					conf.remote_port[0] = to_string(value);
+                    conf.port_num = 1;
+                }
             } else if (strcmp(name, "local") == 0) {
                 conf.local_addr = to_string(value);
             } else if (strcmp(name, "local_port") == 0) {
