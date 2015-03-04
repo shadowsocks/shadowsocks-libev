@@ -253,6 +253,9 @@ void usage()
         "                                  only available in server mode\n");
     printf("\n");
     printf(
+        "       [-a <user>]                username to run as\n");
+    printf("\n");
+    printf(
         "       [--fast-open]              enable TCP fast open,\n");
     printf(
         "                                  only available in local and server mode,\n");
