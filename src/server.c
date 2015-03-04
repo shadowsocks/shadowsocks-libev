@@ -1300,8 +1300,8 @@ int main(int argc, char **argv)
     }
 
     // setuid
-    LOGI("setuid to %s",user);
     if (user != NULL) {
+        LOGI("setuid to %s",user);
         run_as(user);
     }
 

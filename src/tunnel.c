@@ -728,9 +728,11 @@ int main(int argc, char **argv)
         if (password == NULL) {
             password = conf->password;
         }
+/* not tested
         if (user == NULL) {
             user = conf->user;
         }
+*/
         if (method == NULL) {
             method = conf->method;
         }
