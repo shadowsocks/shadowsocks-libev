@@ -825,9 +825,11 @@ int main(int argc, char **argv)
     }
 
     // setuid
+/* not tested
     if (user != NULL) {
         run_as(user);
     }
+*/
 
     ev_run(loop, 0);
 

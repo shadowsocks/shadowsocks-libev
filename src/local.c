@@ -1102,9 +1102,11 @@ int main(int argc, char **argv)
     }
 
     // setuid
+/* not tested
     if (user != NULL) {
         run_as(user);
     }
+*/
 
     // Init connections
     cork_dllist_init(&connections);
