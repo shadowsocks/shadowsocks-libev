@@ -40,6 +40,7 @@ typedef struct {
     char *local_addr;
     char *local_port;
     char *password;
+    char *user;
     char *method;
     char *timeout;
     int fast_open;
