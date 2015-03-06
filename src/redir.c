@@ -681,6 +681,9 @@ int main(int argc, char **argv)
         if (password == NULL) {
             password = conf->password;
         }
+        if (user == NULL) {
+            user = conf->user;
+        }
         if (method == NULL) {
             method = conf->method;
         }
@@ -752,9 +755,11 @@ int main(int argc, char **argv)
     ev_io_start(loop, &listen_ctx.io);
 
     // setuid
+/* not tested
     if (user != NULL) {
         run_as(user);
     }
+*/
 
     ev_run(loop, 0);
 
