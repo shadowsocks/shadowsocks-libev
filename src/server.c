@@ -1175,6 +1175,9 @@ int main(int argc, char **argv)
         if (password == NULL) {
             password = conf->password;
         }
+        if (user == NULL) {
+            user = conf->user;
+        }
         if (method == NULL) {
             method = conf->method;
         }
@@ -1321,6 +1324,7 @@ int main(int argc, char **argv)
 
     // setuid
     if (user != NULL) {
+        LOGI("setuid to %s",user);
         run_as(user);
     }
 
