@@ -886,6 +886,7 @@ int main(int argc, char **argv)
     srand(time(NULL));
 
     int remote_num = 0;
+    int have_arg = 0;
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
     char *remote_port = NULL;
 
@@ -905,6 +906,7 @@ int main(int argc, char **argv)
                             long_options, &option_index)) != -1) {
         switch (c) {
         case 0:
+            have_arg = 1;
             if (option_index == 0) {
                 fast_open = 1;
             } else if (option_index == 1) {
@@ -913,46 +915,59 @@ int main(int argc, char **argv)
             }
             break;
         case 's':
+            have_arg = 1;
             if (remote_num < MAX_REMOTE_NUM) {
                 remote_addr[remote_num].host = optarg;
                 remote_addr[remote_num++].port = NULL;
             }
             break;
         case 'p':
+            have_arg = 1;
             remote_port = optarg;
             break;
         case 'l':
+            have_arg = 1;
             local_port = optarg;
             break;
         case 'k':
+            have_arg = 1;
             password = optarg;
             break;
         case 'f':
+            have_arg = 1;
             pid_flags = 1;
             pid_path = optarg;
             break;
         case 't':
+            have_arg = 1;
             timeout = optarg;
             break;
         case 'm':
+            have_arg = 1;
             method = optarg;
             break;
         case 'c':
+            have_arg = 1;
             conf_path = optarg;
             break;
         case 'i':
+            have_arg = 1;
             iface = optarg;
             break;
         case 'b':
+            have_arg = 1;
             local_addr = optarg;
             break;
         case 'a':
+            have_arg = 1;
             user = optarg;
             break;
         case 'u':
+            have_arg = 1;
             udprelay = 1;
             break;
         case 'v':
+            have_arg = 1;
             verbose = 1;
             break;
         }
@@ -963,48 +978,58 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    /*
+     * If user not give any option
+     * I wanna use optind == argc, but if user just input request argument option, 
+     * optind == argc will not work
+     */
+    if (!have_arg) {
+	    if (conf_path == NULL) {
+		conf_path = DEFAULT_CONF_PATH;
+	    }
+    }
     if (conf_path != NULL) {
-        jconf_t *conf = read_jconf(conf_path);
-        if (remote_num == 0) {
-            remote_num = conf->remote_num;
-            for (i = 0; i < remote_num; i++) {
-                remote_addr[i] = conf->remote_addr[i];
+	jconf_t *conf = read_jconf(conf_path);
+	if (remote_num == 0) {
+	    remote_num = conf->remote_num;
+	    for (i = 0; i < remote_num; i++) {
+	        remote_addr[i] = conf->remote_addr[i];
             }
         }
-        if (remote_port == NULL) {
+	if (remote_port == NULL) {
             remote_port = conf->remote_port;
-        }
-        if (local_addr == NULL) {
-            local_addr = conf->local_addr;
-        }
-        if (local_port == NULL) {
-            local_port = conf->local_port;
-        }
-        if (password == NULL) {
-            password = conf->password;
-        }
-        if (method == NULL) {
-            method = conf->method;
-        }
-        if (timeout == NULL) {
-            timeout = conf->timeout;
-        }
-        if (fast_open == 0) {
-            fast_open = conf->fast_open;
-        }
+	}
+	if (local_addr == NULL) {
+	    local_addr = conf->local_addr;
+	}
+	if (local_port == NULL) {
+	    local_port = conf->local_port;
+	}
+	if (password == NULL) {
+	    password = conf->password;
+	}
+	if (method == NULL) {
+	    method = conf->method;
+	}
+	if (timeout == NULL) {
+	    timeout = conf->timeout;
+	}
+	if (fast_open == 0) {
+	    fast_open = conf->fast_open;
+	}
 #ifdef HAVE_SETRLIMIT
-        if (nofile == 0) {
-            nofile = conf->nofile;
-        }
-        /*
-         * no need to check the return value here since we will show
-         * the user an error message if setrlimit(2) fails
-         */
-        if (nofile) {
-            if (verbose) {
-                LOGI("setting NOFILE to %d", nofile);
-            }
-            set_nofile(nofile);
+	if (nofile == 0) {
+	    nofile = conf->nofile;
+	}
+	/*
+	 * no need to check the return value here since we will show
+	 * the user an error message if setrlimit(2) fails
+	 */
+	if (nofile) {
+	    if (verbose) {
+		    LOGI("setting NOFILE to %d", nofile);
+	    }
+	    set_nofile(nofile);
         }
 #endif
     }

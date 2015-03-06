@@ -37,6 +37,8 @@
 
 #endif
 
+#define DEFAULT_CONF_PATH "./config.json"
+
 #ifndef SOL_TCP
 #define SOL_TCP IPPROTO_TCP
 #endif
