@@ -973,7 +973,7 @@ int main(int argc, char **argv)
         if (remote_num == 0) {
             remote_num = conf->remote_num;
             for (i = 0; i < remote_num; i++) {
-                 remote_addr[i] = conf->remote_addr[i];
+                remote_addr[i] = conf->remote_addr[i];
             }
         }
         if (remote_port == NULL) {
@@ -1006,7 +1006,7 @@ int main(int argc, char **argv)
          * the user an error message if setrlimit(2) fails
          */
         if (nofile) {
-            if (verbose) { 
+            if (verbose) {
                 LOGI("setting NOFILE to %d", nofile);
             }
             set_nofile(nofile);
