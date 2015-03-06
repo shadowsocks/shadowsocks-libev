@@ -37,7 +37,7 @@
 
 #endif
 
-#define DEFAULT_CONF_PATH "./config.json"
+#define DEFAULT_CONF_PATH "/etc/shadowsocks/config.json"
 
 #ifndef SOL_TCP
 #define SOL_TCP IPPROTO_TCP
