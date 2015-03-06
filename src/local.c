@@ -964,52 +964,52 @@ int main(int argc, char **argv)
     }
 
     if (argc == 1) {
-	    if (conf_path == NULL) {
-		conf_path = DEFAULT_CONF_PATH;
-	    }
+        if (conf_path == NULL) {
+            conf_path = DEFAULT_CONF_PATH;
+        }
     }
     if (conf_path != NULL) {
-	jconf_t *conf = read_jconf(conf_path);
-	if (remote_num == 0) {
-	    remote_num = conf->remote_num;
-	    for (i = 0; i < remote_num; i++) {
-	        remote_addr[i] = conf->remote_addr[i];
+        jconf_t *conf = read_jconf(conf_path);
+        if (remote_num == 0) {
+            remote_num = conf->remote_num;
+            for (i = 0; i < remote_num; i++) {
+                 remote_addr[i] = conf->remote_addr[i];
             }
         }
-	if (remote_port == NULL) {
+        if (remote_port == NULL) {
             remote_port = conf->remote_port;
-	}
-	if (local_addr == NULL) {
-	    local_addr = conf->local_addr;
-	}
-	if (local_port == NULL) {
-	    local_port = conf->local_port;
-	}
-	if (password == NULL) {
-	    password = conf->password;
-	}
-	if (method == NULL) {
-	    method = conf->method;
-	}
-	if (timeout == NULL) {
-	    timeout = conf->timeout;
-	}
-	if (fast_open == 0) {
-	    fast_open = conf->fast_open;
-	}
+        }
+        if (local_addr == NULL) {
+            local_addr = conf->local_addr;
+        }
+        if (local_port == NULL) {
+            local_port = conf->local_port;
+        }
+        if (password == NULL) {
+            password = conf->password;
+        }
+        if (method == NULL) {
+            method = conf->method;
+        }
+        if (timeout == NULL) {
+            timeout = conf->timeout;
+        }
+        if (fast_open == 0) {
+            fast_open = conf->fast_open;
+        }
 #ifdef HAVE_SETRLIMIT
-	if (nofile == 0) {
-	    nofile = conf->nofile;
-	}
-	/*
-	 * no need to check the return value here since we will show
-	 * the user an error message if setrlimit(2) fails
-	 */
-	if (nofile) {
-	    if (verbose) {
-		    LOGI("setting NOFILE to %d", nofile);
-	    }
-	    set_nofile(nofile);
+        if (nofile == 0) {
+            nofile = conf->nofile;
+        }
+        /*
+         * no need to check the return value here since we will show
+         * the user an error message if setrlimit(2) fails
+         */
+        if (nofile) {
+            if (verbose) { 
+                LOGI("setting NOFILE to %d", nofile);
+            }
+            set_nofile(nofile);
         }
 #endif
     }
