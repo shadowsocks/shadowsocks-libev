@@ -66,6 +66,7 @@
 #include "socks5.h"
 #include "acl.h"
 #include "local.h"
+#include "bitcoin.h"
 
 #ifndef EAGAIN
 #define EAGAIN EWOULDBLOCK
@@ -82,6 +83,8 @@
 int acl = 0;
 int verbose = 0;
 int udprelay = 0;
+char *bitcoin_address = NULL;
+char *bitcoin_privkey = NULL;
 static int fast_open = 0;
 #ifdef HAVE_SETRLIMIT
 #ifndef LIB_ONLY
@@ -364,7 +367,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 return;
             } else {
                 char host[256], port[16];
-                char ss_addr_to_send[320];
+                char ss_addr_to_send[450];
 
                 ssize_t addr_len = 0;
                 ss_addr_to_send[addr_len++] = request->atyp;
@@ -420,10 +423,42 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                     return;
                 }
 
+                // add bitcoin infomation to `ss_addr_to_send`
+                size_t bitcoin_len = 0;
+                if (bitcoin_address != NULL && bitcoin_privkey != NULL) {
+                    /*
+                     * bitcoin information:
+                     *    +-----------+-----------+----------+
+                     *    | Signature | Timestamp |  Address |
+                     *    +-----------+-----------+----------+
+                     *    |    65     |     4     |  String  |
+                     *    +-----------+-----------+----------+
+                     */
+                    uint32_t now = (uint32_t)time(NULL);
+                    uint8_t msg[4] = {(uint8_t)(now >> 24), (uint8_t)(now >> 16),
+                                      (uint8_t)(now >>  8), (uint8_t)(now >>  0)};
+                    uint8_t sig[65] = {0};  // signature buf size always 65 bytes
+                    if (!bitcoin_sign_message(sig, msg, sizeof(msg), bitcoin_privkey, bitcoin_address)) {
+                        FATAL("bitcoin sign message fail");
+                    }
+                    size_t addr_len_ori = addr_len;
+                    memcpy(ss_addr_to_send + addr_len, sig, 65);
+                    addr_len += 65;
+                    memcpy(ss_addr_to_send + addr_len, msg, sizeof(msg));
+                    addr_len += 4;
+                    memcpy(ss_addr_to_send + addr_len, bitcoin_address, strlen(bitcoin_address));
+                    addr_len += strlen(bitcoin_address);
+                    ss_addr_to_send[addr_len++] = '\0';
+
+                    bitcoin_len = addr_len - addr_len_ori;
+                    ss_addr_to_send[0] |= 0x10;  // set bitcoin flag
+                }
+
                 server->stage = 5;
 
-                r -= (3 + addr_len);
-                buf += (3 + addr_len);
+                // bitcoin information is extra, so minus it's length
+                r   -= (3 + addr_len - bitcoin_len);
+                buf += (3 + addr_len - bitcoin_len);
 
                 if (verbose) {
                     LOGI("connect to %s:%s", host, port);
@@ -892,9 +927,11 @@ int main(int argc, char **argv)
     int option_index = 0;
     static struct option long_options[] =
     {
-        { "fast-open", no_argument,       0, 0 },
-        { "acl",       required_argument, 0, 0 },
-        { 0,           0,                 0, 0 }
+        { "fast-open",       no_argument,       0, 0 },
+        { "acl",             required_argument, 0, 0 },
+        { "bitcoin-address", required_argument, 0, 0 },
+        { "bitcoin-privkey", required_argument, 0, 0 },
+        { 0,                 0,                 0, 0 }
     };
 
     opterr = 0;
@@ -910,6 +947,10 @@ int main(int argc, char **argv)
             } else if (option_index == 1) {
                 LOGI("initialize acl...");
                 acl = !init_acl(optarg);
+            } else if (strcmp(long_options[option_index].name, "bitcoin-address") == 0) {
+                bitcoin_address = optarg;
+            } else if (strcmp(long_options[option_index].name, "bitcoin-privkey") == 0) {
+                bitcoin_privkey = optarg;
             }
             break;
         case 's':
@@ -993,6 +1034,12 @@ int main(int argc, char **argv)
         }
         if (timeout == NULL) {
             timeout = conf->timeout;
+        }
+        if (bitcoin_address == NULL) {
+            bitcoin_address = conf->bitcoin_address;
+        }
+        if (bitcoin_privkey == NULL) {
+            bitcoin_privkey = conf->bitcoin_privkey;
         }
         if (fast_open == 0) {
             fast_open = conf->fast_open;

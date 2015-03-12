@@ -267,6 +267,21 @@ void usage()
         "                                  only available in local and server mode\n");
     printf("\n");
     printf(
+        "       [--bitcoin-list <bitcoin_file>]    config file of address list\n");
+    printf(
+        "                                          only available in server mode\n");
+    printf("\n");
+    printf(
+        "       [--bitcoin-adddress <address>]     config file of bitcoin address\n");
+    printf(
+        "                                          only available in local mode\n");
+    printf("\n");
+    printf(
+        "       [--bitcoin-privkey <private_key>]  config file of private key for above address\n");
+    printf(
+        "                                          only available in local mode\n");
+    printf("\n");
+    printf(
         "       [-v]                       verbose mode\n");
     printf("\n");
 }

@@ -62,6 +62,7 @@
 #include "utils.h"
 #include "acl.h"
 #include "server.h"
+#include "bitcoin.h"
 
 #ifndef EAGAIN
 #define EAGAIN EWOULDBLOCK
@@ -103,6 +104,7 @@ int acl = 0;
 int verbose = 0;
 int udprelay = 0;
 static int fast_open = 0;
+struct btc_list *bitcoin_list = NULL;
 #ifdef HAVE_SETRLIMIT
 static int nofile = 0;
 #endif
@@ -435,9 +437,10 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
          *    +------+----------+----------+
          */
 
-        int offset = 0;
+        int offset = 1;
         int need_query = 0;
-        char atyp = server->buf[offset++];
+        char atyp = server->buf[0] & 0x0F;
+        char atyp_btc = (server->buf[0] & 0x10) == 0x10 ? 1 : 0;
         char host[256] = { 0 };
         uint16_t port = 0;
         struct addrinfo info;
@@ -544,6 +547,58 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (verbose) {
             LOGI("connect to: %s:%d", host, ntohs(port));
+        }
+
+        if (bitcoin_list != NULL) {
+            if (atyp_btc == 0) {
+                if (verbose) {
+                    LOGE("client should carry with bitcoin information");
+                }
+                close_and_free_server(EV_A_ server);
+                return;
+            }
+            /*
+             * bitcoin information:
+             *    +-----------+-----------+----------+
+             *    | Signature | Timestamp |  Address |
+             *    +-----------+-----------+----------+
+             *    |    65     |     4     |  String  |
+             *    +-----------+-----------+----------+
+             */
+            char *signature = server->buf + offset;
+            uint8_t *t = (uint8_t *)server->buf + offset + 65;
+            uint32_t ts = ((uint32_t)*(t+0) << 24) + ((uint32_t)*(t+1) << 16)
+                        + ((uint32_t)*(t+2) <<  8) + ((uint32_t)*(t+3) <<  0);
+            char *address = server->buf + offset + 65 + 4;
+            int64_t ts_offset = (int64_t)time(NULL) - (int64_t)ts;
+            if (labs(ts_offset) > 60 * 30) {
+                if (verbose) {
+                    LOGE("invalid timestamp: %u, offset too large: %d",
+                         ts, (int32_t)ts_offset);
+                }
+                close_and_free_server(EV_A_ server);
+                return;
+            }
+            if (!bitcoin_verify_message(address, (uint8_t *)signature, t, 4)) {
+                if (verbose) {
+                    LOGE("invalid signature, address: %s", address);
+                }
+                close_and_free_server(EV_A_ server);
+                return;
+            }
+            if (bitcoin_check_address(bitcoin_list, address) == 0) {
+                if (verbose) {
+                    LOGE("address \"%s\" is NOT in list", address);
+                }
+                close_and_free_server(EV_A_ server);
+                return;
+            }
+            offset += 65 + 4 + strlen(address) + 1;
+
+            if (verbose) {
+                LOGI("bitcoin address: %s, time offset: %d",
+                     address, (int32_t)ts_offset);
+            }
         }
 
         // XXX: should handle buffer carefully
@@ -1086,9 +1141,10 @@ int main(int argc, char **argv)
     int option_index = 0;
     static struct option long_options[] =
     {
-        { "fast-open", no_argument,       0, 0 },
-        { "acl",       required_argument, 0, 0 },
-        { 0,           0,                 0, 0 }
+        { "fast-open",    no_argument,       0, 0 },
+        { "acl",          required_argument, 0, 0 },
+        { "bitcoin-list", required_argument, 0, 0 },
+        { 0,              0,                 0, 0 }
     };
 
     opterr = 0;
@@ -1104,6 +1160,12 @@ int main(int argc, char **argv)
             } else if (option_index == 1) {
                 LOGI("initialize acl...");
                 acl = !init_acl(optarg);
+            } else if (strcmp(long_options[option_index].name, "bitcoin-list") == 0) {
+                LOGI("bitcoin list file: %s", optarg);
+                bitcoin_list = bitcoin_init_list(optarg);
+                if (bitcoin_setup_update_thread(bitcoin_list) == 0) {
+                    FATAL("setup bitcoin check list thread failure");
+                }
             }
             break;
         case 's':
@@ -1345,6 +1407,10 @@ int main(int argc, char **argv)
 
     if (udprelay) {
         free_udprelay();
+    }
+    
+    if (bitcoin_list) {
+        bitcoin_clean_update_thread(bitcoin_list);
     }
 
     resolv_shutdown(loop);

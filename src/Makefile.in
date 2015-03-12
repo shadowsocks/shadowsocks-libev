@@ -115,7 +115,7 @@ am__DEPENDENCIES_3 = $(am__DEPENDENCIES_2) \
 	$(top_builddir)/libudns/libudns.la
 libshadowsocks_la_DEPENDENCIES = $(am__DEPENDENCIES_3)
 am__libshadowsocks_la_SOURCES_DIST = utils.c jconf.c json.c encrypt.c \
-	udprelay.c cache.c acl.c netutils.c local.c win32.c
+	udprelay.c cache.c acl.c netutils.c bitcoin.c local.c win32.c
 @BUILD_WINCOMPAT_TRUE@am__objects_1 = libshadowsocks_la-win32.lo
 am__objects_2 = libshadowsocks_la-utils.lo libshadowsocks_la-jconf.lo \
 	libshadowsocks_la-json.lo libshadowsocks_la-encrypt.lo \
@@ -135,14 +135,14 @@ libshadowsocks_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 @BUILD_REDIRECTOR_TRUE@am__EXEEXT_2 = ss-redir$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 am__ss_local_SOURCES_DIST = utils.c jconf.c json.c encrypt.c \
-	udprelay.c cache.c acl.c netutils.c local.c win32.c
+	udprelay.c cache.c acl.c netutils.c bitcoin.c local.c win32.c
 @BUILD_WINCOMPAT_TRUE@am__objects_3 = ss_local-win32.$(OBJEXT)
 am_ss_local_OBJECTS = ss_local-utils.$(OBJEXT) \
 	ss_local-jconf.$(OBJEXT) ss_local-json.$(OBJEXT) \
 	ss_local-encrypt.$(OBJEXT) ss_local-udprelay.$(OBJEXT) \
 	ss_local-cache.$(OBJEXT) ss_local-acl.$(OBJEXT) \
-	ss_local-netutils.$(OBJEXT) ss_local-local.$(OBJEXT) \
-	$(am__objects_3)
+	ss_local-netutils.$(OBJEXT) ss_local-bitcoin.$(OBJEXT) \
+	ss_local-local.$(OBJEXT) $(am__objects_3)
 ss_local_OBJECTS = $(am_ss_local_OBJECTS)
 ss_local_DEPENDENCIES = $(am__DEPENDENCIES_2) \
 	$(top_builddir)/libudns/libudns.la
@@ -162,7 +162,8 @@ am_ss_server_OBJECTS = ss_server-utils.$(OBJEXT) \
 	ss_server-jconf.$(OBJEXT) ss_server-json.$(OBJEXT) \
 	ss_server-encrypt.$(OBJEXT) ss_server-udprelay.$(OBJEXT) \
 	ss_server-cache.$(OBJEXT) ss_server-acl.$(OBJEXT) \
-	ss_server-resolv.$(OBJEXT) ss_server-server.$(OBJEXT)
+	ss_server-resolv.$(OBJEXT) ss_server-bitcoin.$(OBJEXT) \
+	ss_server-server.$(OBJEXT)
 ss_server_OBJECTS = $(am_ss_server_OBJECTS)
 ss_server_DEPENDENCIES = $(am__DEPENDENCIES_2) \
 	$(top_builddir)/libudns/libudns.la
@@ -359,7 +360,7 @@ SS_COMMON_LIBS = $(top_builddir)/libev/libev.la \
 				 $(INET_NTOP_LIB)
 
 ss_local_SOURCES = utils.c jconf.c json.c encrypt.c udprelay.c cache.c \
-	acl.c netutils.c local.c $(am__append_2)
+	acl.c netutils.c bitcoin.c local.c $(am__append_2)
 ss_tunnel_SOURCES = utils.c jconf.c json.c encrypt.c udprelay.c \
 	cache.c netutils.c tunnel.c $(am__append_3)
 ss_server_SOURCES = utils.c \
@@ -370,11 +371,14 @@ ss_server_SOURCES = utils.c \
 					cache.c \
 					acl.c \
 					resolv.c \
+					bitcoin.c \
                     server.c
 
-ss_local_LDADD = $(SS_COMMON_LIBS) $(top_builddir)/libudns/libudns.la
+ss_local_LDADD = $(SS_COMMON_LIBS) $(top_builddir)/libudns/libudns.la \
+        -lpthread
 ss_tunnel_LDADD = $(SS_COMMON_LIBS) $(top_builddir)/libudns/libudns.la
-ss_server_LDADD = $(SS_COMMON_LIBS) $(top_builddir)/libudns/libudns.la
+ss_server_LDADD = $(SS_COMMON_LIBS) $(top_builddir)/libudns/libudns.la \
+        -lpthread
 ss_local_CFLAGS = $(AM_CFLAGS) -DUDPRELAY_LOCAL
 ss_tunnel_CFLAGS = $(AM_CFLAGS) -DUDPRELAY_LOCAL -DUDPRELAY_TUNNEL
 ss_server_CFLAGS = $(AM_CFLAGS) -DUDPRELAY_REMOTE
@@ -382,7 +386,7 @@ ss_server_CFLAGS = $(AM_CFLAGS) -DUDPRELAY_REMOTE
 @BUILD_REDIRECTOR_TRUE@                   jconf.c \
 @BUILD_REDIRECTOR_TRUE@                   json.c \
 @BUILD_REDIRECTOR_TRUE@                   encrypt.c \
-@BUILD_REDIRECTOR_TRUE@				   netutils.c \
+@BUILD_REDIRECTOR_TRUE@                   netutils.c \
 @BUILD_REDIRECTOR_TRUE@                   redir.c
 
 @BUILD_REDIRECTOR_TRUE@ss_redir_LDADD = $(SS_COMMON_LIBS) \
@@ -530,6 +534,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jconf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/json.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libshadowsocks_la-acl.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libshadowsocks_la-bitcoin.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libshadowsocks_la-cache.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libshadowsocks_la-encrypt.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libshadowsocks_la-jconf.Plo@am__quote@
@@ -542,6 +547,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/redir.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-acl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-bitcoin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-encrypt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-jconf.Po@am__quote@
@@ -552,6 +558,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-utils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_local-win32.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_server-acl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_server-bitcoin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_server-cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_server-encrypt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_server-jconf.Po@am__quote@
@@ -650,6 +657,13 @@ libshadowsocks_la-netutils.lo: netutils.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='netutils.c' object='libshadowsocks_la-netutils.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libshadowsocks_la_CFLAGS) $(CFLAGS) -c -o libshadowsocks_la-netutils.lo `test -f 'netutils.c' || echo '$(srcdir)/'`netutils.c
+
+libshadowsocks_la-bitcoin.lo: bitcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libshadowsocks_la_CFLAGS) $(CFLAGS) -MT libshadowsocks_la-bitcoin.lo -MD -MP -MF $(DEPDIR)/libshadowsocks_la-bitcoin.Tpo -c -o libshadowsocks_la-bitcoin.lo `test -f 'bitcoin.c' || echo '$(srcdir)/'`bitcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libshadowsocks_la-bitcoin.Tpo $(DEPDIR)/libshadowsocks_la-bitcoin.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@ $(AM_V_CC)source='bitcoin.c' object='libshadowsocks_la-bitcoin.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@ DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@ $(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libshadowsocks_la_CFLAGS) $(CFLAGS) -c -o libshadowsocks_la-bitcoin.lo `test -f 'bitcoin.c' || echo '$(srcdir)/'`bitcoin.c
 
 libshadowsocks_la-local.lo: local.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libshadowsocks_la_CFLAGS) $(CFLAGS) -MT libshadowsocks_la-local.lo -MD -MP -MF $(DEPDIR)/libshadowsocks_la-local.Tpo -c -o libshadowsocks_la-local.lo `test -f 'local.c' || echo '$(srcdir)/'`local.c
@@ -776,6 +790,20 @@ ss_local-netutils.obj: netutils.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='netutils.c' object='ss_local-netutils.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -c -o ss_local-netutils.obj `if test -f 'netutils.c'; then $(CYGPATH_W) 'netutils.c'; else $(CYGPATH_W) '$(srcdir)/netutils.c'; fi`
+
+ss_local-bitcoin.o: bitcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -MT ss_local-bitcoin.o -MD -MP -MF $(DEPDIR)/ss_local-bitcoin.Tpo -c -o ss_local-bitcoin.o `test -f 'bitcoin.c' || echo '$(srcdir)/'`bitcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_local-bitcoin.Tpo $(DEPDIR)/ss_local-bitcoin.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@ $(AM_V_CC)source='bitcoin.c' object='ss_local-bitcoin.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@ DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -c -o ss_local-bitcoin.o `test -f 'bitcoin.c' || echo '$(srcdir)/'`bitcoin.c
+
+ss_local-bitcoin.obj: bitcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -MT ss_local-bitcoin.obj -MD -MP -MF $(DEPDIR)/ss_local-bitcoin.Tpo -c -o ss_local-bitcoin.obj `if test -f 'bitcoin.c'; then $(CYGPATH_W) 'bitcoin.c'; else $(CYGPATH_W) '$(srcdir)/bitcoin.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_local-bitcoin.Tpo $(DEPDIR)/ss_local-bitcoin.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@ $(AM_V_CC)source='bitcoin.c' object='ss_local-bitcoin.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@ DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -c -o ss_local-bitcoin.obj `if test -f 'bitcoin.c'; then $(CYGPATH_W) 'bitcoin.c'; else $(CYGPATH_W) '$(srcdir)/bitcoin.c'; fi`
 
 ss_local-local.o: local.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_local_CFLAGS) $(CFLAGS) -MT ss_local-local.o -MD -MP -MF $(DEPDIR)/ss_local-local.Tpo -c -o ss_local-local.o `test -f 'local.c' || echo '$(srcdir)/'`local.c
@@ -916,6 +944,20 @@ ss_server-resolv.obj: resolv.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='resolv.c' object='ss_server-resolv.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_server_CFLAGS) $(CFLAGS) -c -o ss_server-resolv.obj `if test -f 'resolv.c'; then $(CYGPATH_W) 'resolv.c'; else $(CYGPATH_W) '$(srcdir)/resolv.c'; fi`
+
+ss_server-bitcoin.o: bitcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_server_CFLAGS) $(CFLAGS) -MT ss_server-bitcoin.o -MD -MP -MF $(DEPDIR)/ss_server-bitcoin.Tpo -c -o ss_server-bitcoin.o `test -f 'bitcoin.c' || echo '$(srcdir)/'`bitcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_server-bitcoin.Tpo $(DEPDIR)/ss_server-bitcoin.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@ $(AM_V_CC)source='bitcoin.c' object='ss_server-bitcoin.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@ DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_server_CFLAGS) $(CFLAGS) -c -o ss_server-bitcoin.o `test -f 'bitcoin.c' || echo '$(srcdir)/'`bitcoin.c
+           
+ss_server-bitcoin.obj: bitcoin.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_server_CFLAGS) $(CFLAGS) -MT ss_server-bitcoin.obj -MD -MP -MF $(DEPDIR)/ss_server-bitcoin.Tpo -c -o ss_server-bitcoin.obj `if test -f 'bitcoin.c'; then $(CYGPATH_W) 'bitcoin.c'; else $(CYGPATH_W) '$(srcdir)/bitcoin.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_server-bitcoin.Tpo $(DEPDIR)/ss_server-bitcoin.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@ $(AM_V_CC)source='bitcoin.c' object='ss_server-bitcoin.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@ DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_server_CFLAGS) $(CFLAGS) -c -o ss_server-bitcoin.obj `if test -f 'bitcoin.c'; then $(CYGPATH_W) 'bitcoin.c'; else $(CYGPATH_W) '$(srcdir)/bitcoin.c'; fi`
 
 ss_server-server.o: server.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_server_CFLAGS) $(CFLAGS) -MT ss_server-server.o -MD -MP -MF $(DEPDIR)/ss_server-server.Tpo -c -o ss_server-server.o `test -f 'server.c' || echo '$(srcdir)/'`server.c

@@ -45,6 +45,8 @@ typedef struct {
     int fast_open;
     int nofile;
     char *nameserver;
+    char *bitcoin_address;
+    char *bitcoin_privkey;
 } jconf_t;
 
 jconf_t *read_jconf(const char * file);
