@@ -126,6 +126,18 @@ sudo apt-get install build-essential autoconf libtool libssl-dev
 sudo make install
 ```
 
+Or you can run following command via root user, quick install it.
+```bash
+apt-get install build-essential autoconf libtool libssl-dev git-core -y
+mkdir ~/software
+cd ~/software
+git clone https://github.com/shadowsocks/shadowsocks-libev.git
+cd shadowsocks-libev
+./configure --prefix=/usr
+make && make install
+```
+Tested on ubuntu 15.04
+
 ### FreeBSD
 
 ```bash
