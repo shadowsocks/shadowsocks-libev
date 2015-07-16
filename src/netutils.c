@@ -80,15 +80,16 @@ size_t get_sockaddr(char *host, char *port, struct sockaddr_storage *storage, in
         hints.ai_family = AF_UNSPEC;     /* Return IPv4 and IPv6 choices */
         hints.ai_socktype = SOCK_STREAM; /* We want a TCP socket */
 
-        int err, i;
+        int err, i, sleep_seconds;
 
         for (i = 1; i < 8; i++) {
             err = getaddrinfo(host, port, &hints, &result);
             if (!block || !err) {
                 break;
             } else {
-                sleep(pow(2, i));
-                LOGE("failed to resolve server name, wait %.0f seconds", pow(2, i));
+                sleep_seconds = pow(2, i);
+                sleep(sleep_seconds);
+                LOGE("failed to resolve server name, wait %.0f seconds", sleep_seconds);
             }
         }
 
