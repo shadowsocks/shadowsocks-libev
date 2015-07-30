@@ -79,6 +79,10 @@
 #define BUF_SIZE 2048
 #endif
 
+#ifndef MSG_FASTOPEN
+#define MSG_FASTOPEN   0x20000000
+#endif
+
 int verbose = 0;
 #ifdef ANDROID
 int vpn = 0;
