@@ -1,0 +1,117 @@
+#!/bin/bash
+#
+# Script to run Shadowsocks in daemon mode at boot time.
+# ScriptAuthor: icyboy
+# Revision 1.0 - 14th Sep 2013
+#====================================================================
+# Run level information:
+# chkconfig: 2345 99 99
+# Description: lightweight secured socks5 proxy
+# processname: ss-server
+# Author: Max Lv <max.c.lv@gmail.com>;
+# Run "/sbin/chkconfig --add shadowsocks" to add the Run levels.
+#====================================================================
+
+#====================================================================
+# Paths and variables and system checks.
+
+# Source function library
+. /etc/rc.d/init.d/functions
+
+# Source the program envrionment/config file
+[ -f /etc/default/${NAME} ] && . /etc/default/${NAME} || :
+
+PREFIX=shadowsocks-libev
+FULL_SCRIPT_NAME=$(basename $0)
+DAEMON=ss${FULL_SCRIPT_NAME#${PREFIX}}
+: ${CONFFILE:="/etc/shadowsocks/config.json"}
+: ${USER:="root"}
+: ${GROUP:="root"}
+: ${START:="yes"}
+
+# Path to the lock file.
+LOCK_FILE=/var/lock/subsys/${FULL_SCRIPT_NAME}
+
+# Path to the pid file.
+PID=/var/run/${FULL_SCRIPT_NAME}.pid
+#====================================================================
+
+
+#====================================================================
+# Run controls:
+
+RETVAL=0
+
+# Start shadowsocks as daemon.
+#
+start() {
+    if [ -f $LOCK_FILE ]; then
+        echo "$FULL_SCRIPT_NAME is already running!"
+        return 0
+    else
+        [ "$START" = "yes" ] || exit 0
+
+        # Check that networking is up.
+        #
+        [ ${NETWORKING} = "yes" ] || exit 0
+
+        # Modify the file descriptor limit
+        [ ! -z "${MAXFD}" ] && ulimit -n ${MAXFD} || :
+
+        echo -n $"Starting ${FULL_SCRIPT_NAME}: "
+        daemon $DAEMON -a $USER -u -c $CONFFILE -f $PID $DAEMON_ARGS
+    fi
+
+    RETVAL=$?
+    echo
+
+    [ $RETVAL -eq 0 ] && success && touch $LOCK_FILE
+    chown "$USER:$GROUP" $LOCK_FILE
+
+    return $RETVAL
+}
+
+
+# Stop shadowsocks.
+#
+stop() {
+    echo -n $"Shutting down ${FULL_SCRIPT_NAME}: "
+
+    killproc -p ${PID}
+    RETVAL=$?
+    [ $RETVAL -eq 0 ]
+    rm -f $LOCK_FILE
+    rm -f ${PID}
+    echo
+    return $RETVAL
+}
+
+# See how we were called.
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    condrestart)
+        if [ -f $LOCK_FILE ]; then
+            stop
+            start
+            RETVAL=$?
+        fi
+        ;;
+    status)
+        status $DAEMON
+        RETVAL=$?
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart|condrestart|status}"
+        RETVAL=1
+esac
+
+exit $RETVAL

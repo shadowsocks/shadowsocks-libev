@@ -1,0 +1,122 @@
+%if 0%{?rhel} >= 7 || 0%{?fedora} >= 19
+%global with_systemd 1
+%else
+%global with_systemd 0
+%endif
+
+Name:		shadowsocks-libev
+Version:	__FAKE_VERSION_TO_BE_SUBSTITUTED__
+Release:	1%{?dist}
+Summary:	A lightweight and secure socks5 proxy
+
+Group:		Applications/Internet
+License:	GPLv3+
+URL:		https://github.com/madeye/%{name}
+Source0:	%{name}-%{version}.__FAKE_FORMAT_TO_BE_SUBSTITUTED__
+Source1:	config.json
+Source2:	shadowsocks-libev-server@.service
+Source3:	shadowsocks-libev-local@.service
+Source4:	shadowsocks-libev.default
+Source5:	shadowsocks-libev
+
+
+Conflicts:	python-shadowsocks python3-shadowsocks
+
+BuildRequires:	openssl-devel
+Requires:	openssl
+%if 0%{?with_systemd}
+Requires:	systemd
+%else
+Requires:	chkconfig
+Requires:	service
+%endif
+
+
+%description
+shadowsocks-libev is a lightweight secured scoks5 proxy for embedded devices and low end boxes.
+
+
+%prep
+%setup -q
+
+
+%build
+%configure --enable-shared
+make %{?_smp_mflags}
+
+
+%install
+make install DESTDIR=%{buildroot}
+mkdir -p %{buildroot}%{_sysconfdir}/shadowsocks
+install -m 644 %{SOURCE1} %{buildroot}%{_sysconfdir}/shadowsocks/
+%if 0%{?with_systemd}
+mkdir -p %{buildroot}%{_unitdir}
+install -m 644 %{SOURCE2} %{SOURCE3} %{buildroot}%{_unitdir}/
+%else
+mkdir -p %{buildroot}%{_sysconfdir}/default
+install -m 644 %{SOURCE4} %{buildroot}%{_sysconfdir}/default/shadowsocks-libev
+mkdir -p %{buildroot}%{_initddir}
+install -m 754 %{SOURCE5} %{buildroot}%{_initddir}/shadowsocks-libev-server
+install -m 754 %{SOURCE5} %{buildroot}%{_initddir}/shadowsocks-libev-local
+%endif
+
+
+%post
+%if 0%{?with_systemd}
+%systemd_post shadowsocks-libev-server@.service
+%systemd_post shadowsocks-libev-local@.service
+%else
+if [ $1 -eq 1 ]; then
+    chkconfig --add shadowsocks-libev-server
+    chkconfig --add shadowsocks-libev-local
+else
+    service shadowsocks-libev-server condrestart
+    service shadowsocks-libev-local condrestart
+fi
+%endif
+
+
+%preun
+%if 0%{?with_systemd}
+%systemd_preun shadowsocks-libev-server@.service
+%systemd_preun shadowsocks-libev-local@.service
+%else
+if [ $1 -eq 0 ]; then
+    /sbin/service shadowsocks-libev stop
+    /sbin/chkconfig --del shadowsocks-libev
+fi
+%endif
+
+%if 0%{?with_systemd}
+%postun
+%systemd_postun_with_restart shadowsocks-libev-server@.service
+%systemd_postun_with_restart shadowsocks-libev-local@.service
+%endif
+
+
+%files
+%{_bindir}/*
+%{_libdir}/*
+%config(noreplace) %{_sysconfdir}/shadowsocks/config.json
+%doc %{_mandir}/*
+%if 0%{?with_systemd}
+%{_unitdir}/shadowsocks-libev-server@.service
+%{_unitdir}/shadowsocks-libev-local@.service
+%else
+%config(noreplace) %{_sysconfdir}/default/shadowsocks-libev
+%{_initddir}/shadowsocks-libev-server
+%{_initddir}/shadowsocks-libev-local
+%endif
+
+
+%package devel
+Summary:    Development files for shadowsocks-libev
+License:    GPLv3+
+
+%description devel
+Development files for shadowsocks-libev
+
+%files devel
+%{_includedir}/*
+
+%changelog
