@@ -270,10 +270,10 @@ AC_CHECK_FUNCS([malloc memset socket])
 AX_PTHREAD([
         AC_DEFINE(HAVE_PTHREAD, 1,
           [Define if you have POSIX threads libraries and header files.])
-        CLIBS="$PTHREAD_LIBS $LIBS"
+        LIBS="$PTHREAD_LIBS $LIBS"
         CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
         LDFLAGS="$LDFLAGS $PTHREAD_CFLAGS"
-        CC="$PTHREAD_CC"],
+        ],
         AC_MSG_ERROR([No pthread support on this machine]))
 
 AM_COND_IF([USE_SYSTEM_SHARED_LIB],
