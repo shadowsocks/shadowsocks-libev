@@ -33,7 +33,7 @@ void winsock_init(void)
     WSADATA wsaData;
     int ret;
     wVersionRequested = MAKEWORD(1, 1);
-    ret = WSAStartup(wVersionRequested, &wsaData);
+    ret               = WSAStartup(wVersionRequested, &wsaData);
     if (ret != 0) {
         FATAL("Could not initialize winsock");
     }

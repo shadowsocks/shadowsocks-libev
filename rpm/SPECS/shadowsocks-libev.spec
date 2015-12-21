@@ -1,5 +1,5 @@
 Name:		shadowsocks-libev
-Version:	2.4.0
+Version:	2.4.1
 Release:	1%{?dist}
 Summary:	A lightweight and secure socks5 proxy
 

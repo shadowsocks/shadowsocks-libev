@@ -26,7 +26,6 @@
  *
  */
 
-#include "api.h"
 #include "crypto_hash_sha256.h"
 #include "utils.h"
 
@@ -40,6 +39,7 @@
 /* Avoid namespace collisions with BSD <sys/endian.h>. */
 #define be32dec _sha256_be32dec
 #define be32enc _sha256_be32enc
+#define be64enc _sha256_be64enc
 
 static inline uint32_t
 be32dec(const void *pp)
@@ -53,12 +53,27 @@ be32dec(const void *pp)
 static inline void
 be32enc(void *pp, uint32_t x)
 {
-    uint8_t * p = (uint8_t *)pp;
+    uint8_t *p = (uint8_t *)pp;
 
     p[3] = x & 0xff;
     p[2] = (x >> 8) & 0xff;
     p[1] = (x >> 16) & 0xff;
     p[0] = (x >> 24) & 0xff;
+}
+
+static inline void
+be64enc(void * pp, uint64_t x)
+{
+    uint8_t * p = (uint8_t *)pp;
+
+    p[7] = x & 0xff;
+    p[6] = (x >> 8) & 0xff;
+    p[5] = (x >> 16) & 0xff;
+    p[4] = (x >> 24) & 0xff;
+    p[3] = (x >> 32) & 0xff;
+    p[2] = (x >> 40) & 0xff;
+    p[1] = (x >> 48) & 0xff;
+    p[0] = (x >> 56) & 0xff;
 }
 
 static void
@@ -206,9 +221,9 @@ SHA256_Pad(crypto_hash_sha256_state *state)
     unsigned char len[8];
     uint32_t r, plen;
 
-    be32enc_vect(len, state->count, 8);
+    be64enc(len, state->count);
 
-    r = (state->count[1] >> 3) & 0x3f;
+    r = (state->count >> 3) & 0x3f;
     plen = (r < 56) ? (56 - r) : (120 - r);
     crypto_hash_sha256_update(state, PAD, (unsigned long long) plen);
 
@@ -218,16 +233,13 @@ SHA256_Pad(crypto_hash_sha256_state *state)
 int
 crypto_hash_sha256_init(crypto_hash_sha256_state *state)
 {
-    state->count[0] = state->count[1] = 0;
+    static const uint32_t sha256_initstate[8] = {
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    };
 
-    state->state[0] = 0x6A09E667;
-    state->state[1] = 0xBB67AE85;
-    state->state[2] = 0x3C6EF372;
-    state->state[3] = 0xA54FF53A;
-    state->state[4] = 0x510E527F;
-    state->state[5] = 0x9B05688C;
-    state->state[6] = 0x1F83D9AB;
-    state->state[7] = 0x5BE0CD19;
+    state->count = (uint64_t) 0U;
+    memcpy(state->state, sha256_initstate, sizeof sha256_initstate);
 
     return 0;
 }
@@ -237,20 +249,13 @@ crypto_hash_sha256_update(crypto_hash_sha256_state *state,
                           const unsigned char *in,
                           unsigned long long inlen)
 {
-    uint32_t bitlen[2];
     uint32_t r;
 
-    r = (state->count[1] >> 3) & 0x3f;
-
-    bitlen[1] = ((uint32_t)inlen) << 3;
-    bitlen[0] = (uint32_t)(inlen >> 29);
-
-    /* LCOV_EXCL_START */
-    if ((state->count[1] += bitlen[1]) < bitlen[1]) {
-        state->count[0]++;
+    if (inlen <= 0U) {
+        return 0;
     }
-    /* LCOV_EXCL_STOP */
-    state->count[0] += bitlen[0];
+    r = (state->count >> 3) & 0x3f;
+    state->count += (uint64_t)(inlen) << 3;
 
     if (inlen < 64 - r) {
         memcpy(&state->buf[r], in, inlen);
@@ -283,8 +288,8 @@ crypto_hash_sha256_final(crypto_hash_sha256_state *state,
 }
 
 int
-crypto_hash(unsigned char *out, const unsigned char *in,
-            unsigned long long inlen)
+crypto_hash_sha256(unsigned char *out, const unsigned char *in,
+                   unsigned long long inlen)
 {
     crypto_hash_sha256_state state;
 

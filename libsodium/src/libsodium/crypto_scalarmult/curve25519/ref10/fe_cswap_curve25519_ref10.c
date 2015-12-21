@@ -41,7 +41,7 @@ void fe_cswap(fe f,fe g,unsigned int b)
   crypto_int32 x7 = f7 ^ g7;
   crypto_int32 x8 = f8 ^ g8;
   crypto_int32 x9 = f9 ^ g9;
-  b = -b;
+  b = (unsigned int) (- (int) b);
   x0 &= b;
   x1 &= b;
   x2 &= b;

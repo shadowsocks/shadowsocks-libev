@@ -48,17 +48,18 @@ SODIUM_EXPORT
 int crypto_sign_keypair(unsigned char *pk, unsigned char *sk);
 
 SODIUM_EXPORT
-int crypto_sign(unsigned char *sm, unsigned long long *smlen,
+int crypto_sign(unsigned char *sm, unsigned long long *smlen_p,
                 const unsigned char *m, unsigned long long mlen,
                 const unsigned char *sk);
 
 SODIUM_EXPORT
-int crypto_sign_open(unsigned char *m, unsigned long long *mlen,
+int crypto_sign_open(unsigned char *m, unsigned long long *mlen_p,
                      const unsigned char *sm, unsigned long long smlen,
-                     const unsigned char *pk);
+                     const unsigned char *pk)
+            __attribute__ ((warn_unused_result));
 
 SODIUM_EXPORT
-int crypto_sign_detached(unsigned char *sig, unsigned long long *siglen,
+int crypto_sign_detached(unsigned char *sig, unsigned long long *siglen_p,
                          const unsigned char *m, unsigned long long mlen,
                          const unsigned char *sk);
 
@@ -66,7 +67,9 @@ SODIUM_EXPORT
 int crypto_sign_verify_detached(const unsigned char *sig,
                                 const unsigned char *m,
                                 unsigned long long mlen,
-                                const unsigned char *pk);
+                                const unsigned char *pk)
+            __attribute__ ((warn_unused_result));
+
 #ifdef __cplusplus
 }
 #endif

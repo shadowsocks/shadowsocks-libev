@@ -1,4 +1,114 @@
 
+* Version 1.0.7
+ - More functions whose return value should be checked have been
+tagged with `__attribute__ ((warn_unused_result))`: `crypto_box_easy()`,
+`crypto_box_detached()`, `crypto_box_beforenm()`, `crypto_box()`, and
+`crypto_scalarmult()`.
+ - Sandy2x, the fastest Curve25519 implementation ever, has been
+merged in, and is automatically used on CPUs supporting the AVX
+instructions set.
+ - An SSE2 optimized implementation of Poly1305 was added, and is
+twice as fast as the portable one.
+ - An SSSE3 optimized implementation of ChaCha20 was added, and is
+twice as fast as the portable one.
+ - Faster `sodium_increment()` for common nonce sizes.
+ - New helper functions have been added: `sodium_is_zero()` and
+ `sodium_add()`.
+ - `sodium_runtime_has_aesni()` now properly detects the CPU flag when
+ compiled using Visual Studio.
+
+* Version 1.0.6
+ - Optimized implementations of Blake2 have been added for modern
+Intel platforms. `crypto_generichash()` is now faster than MD5 and SHA1
+implementations while being far more secure.
+ - Functions for which the return value should be checked have been
+tagged with `__attribute__ ((warn_unused_result))`. This will
+intentionally break code compiled with `-Werror` that didn't bother
+checking critical return values.
+ - The `crypto_sign_edwards25519sha512batch_*()` functions have been
+tagged as deprecated.
+ - Undocumented symbols that were exported, but were only useful for
+internal purposes have been removed or made private:
+`sodium_runtime_get_cpu_features()`, the implementation-specific
+`crypto_onetimeauth_poly1305_donna()` symbols,
+`crypto_onetimeauth_poly1305_set_implementation()`,
+`crypto_onetimeauth_poly1305_implementation_name()` and
+`crypto_onetimeauth_pick_best_implementation()`.
+ - `sodium_compare()` now works as documented, and compares numbers
+in little-endian format instead of behaving like `memcmp()`.
+ - The previous changes should not break actual applications, but to be
+safe, the library version major was incremented.
+ - `sodium_runtime_has_ssse3()` and `sodium_runtime_has_sse41()` have
+been added.
+ - The library can now be compiled with the CompCert compiler.
+
+* Version 1.0.5
+ - Compilation issues on some platforms were fixed: missing alignment
+directives were added (required at least on RHEL-6/i386), a workaround
+for a VRP bug on gcc/armv7 was added, and the library can now be compiled
+with the SunPro compiler.
+ - Javascript target: io.js is not supported any more. Use nodejs.
+
+* Version 1.0.4
+ - Support for AES256-GCM has been added. This requires
+a CPU with the aesni and pclmul extensions, and is accessible via the
+crypto_aead_aes256gcm_*() functions.
+ - The Javascript target doesn't use eval() any more, so that the
+library can be used in Chrome packaged applications.
+ - QNX and CloudABI are now supported.
+ - Support for NaCl has finally been added.
+ - ChaCha20 with an extended (96 bit) nonce and a 32-bit counter has
+been implemented as crypto_stream_chacha20_ietf(),
+crypto_stream_chacha20_ietf_xor() and crypto_stream_chacha20_ietf_xor_ic().
+An IETF-compatible version of ChaCha20Poly1305 is available as
+crypto_aead_chacha20poly1305_ietf_npubbytes(),
+crypto_aead_chacha20poly1305_ietf_encrypt() and
+crypto_aead_chacha20poly1305_ietf_decrypt().
+ - The sodium_increment() helper function has been added, to increment
+an arbitrary large number (such as a nonce).
+ - The sodium_compare() helper function has been added, to compare
+arbitrary large numbers (such as nonces, in order to prevent replay
+attacks).
+
+* Version 1.0.3
+ - In addition to sodium_bin2hex(), sodium_hex2bin() is now a
+constant-time function.
+ - crypto_stream_xsalsa20_ic() has been added.
+ - crypto_generichash_statebytes(), crypto_auth_*_statebytes() and
+crypto_hash_*_statebytes() have been added in order to retrieve the
+size of structures keeping states from foreign languages.
+ - The JavaScript target doesn't require /dev/urandom or an external
+randombytes() implementation any more. Other minor Emscripten-related
+improvements have been made in order to support libsodium.js
+ - Custom randombytes implementations do not need to provide their own
+implementation of randombytes_uniform() any more. randombytes_stir()
+and randombytes_close() can also be NULL pointers if they are not
+required.
+ - On Linux, getrandom(2) is being used instead of directly accessing
+/dev/urandom, if the kernel supports this system call.
+ - crypto_box_seal() and crypto_box_seal_open() have been added.
+ - A solutions for Visual Studio 2015 was added.
+
+* Version 1.0.2
+ - The _easy and _detached APIs now support precalculated keys;
+crypto_box_easy_afternm(), crypto_box_open_easy_afternm(),
+crypto_box_detached_afternm() and crypto_box_open_detached_afternm()
+have been added as an alternative to the NaCl interface.
+ - Memory allocation functions can now be used on operating systems with
+no memory protection.
+ - crypto_sign_open() and crypto_sign_edwards25519sha512batch_open()
+now accept a NULL pointer instead of a pointer to the message size, if
+storing this information is not required.
+ - The close-on-exec flag is now set on the descriptor returned when
+opening /dev/urandom.
+ - A libsodium-uninstalled.pc file to use pkg-config even when
+libsodium is not installed, has been added.
+ - The iOS target now includes armv7s and arm64 optimized code, as well
+as i386 and x86_64 code for the iOS simulator.
+ - sodium_free() can now be called on regions with PROT_NONE protection.
+ - The Javascript tests can run on Ubuntu, where the node binary was
+renamed nodejs. io.js can also be used instead of node.
+
 * Version 1.0.1
  - DLL_EXPORT was renamed SODIUM_DLL_EXPORT in order to avoid
 collisions with similar macros defined by other libraries.

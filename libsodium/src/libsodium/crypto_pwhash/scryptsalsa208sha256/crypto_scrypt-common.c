@@ -153,7 +153,8 @@ escrypt_r(escrypt_local_t * local, const uint8_t * passwd, size_t passwdlen,
     if (need > buflen || need < saltlen) {
         return NULL;
     }
-#if defined(HAVE_EMMINTRIN_H) || defined(_MSC_VER)
+#if defined(HAVE_EMMINTRIN_H) || \
+    (defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64) || defined(_M_IX86)))
     escrypt_kdf =
         sodium_runtime_has_sse2() ? escrypt_kdf_sse : escrypt_kdf_nosse;
 #else
@@ -234,7 +235,8 @@ crypto_pwhash_scryptsalsa208sha256_ll(const uint8_t * passwd, size_t passwdlen,
     if (escrypt_init_local(&local)) {
         return -1; /* LCOV_EXCL_LINE */
     }
-#if defined(HAVE_EMMINTRIN_H) || defined(_MSC_VER)
+#if defined(HAVE_EMMINTRIN_H) || \
+    (defined(_MSC_VER) && (defined(_M_X64) || defined(_M_AMD64) || defined(_M_IX86)))
     escrypt_kdf =
         sodium_runtime_has_sse2() ? escrypt_kdf_sse : escrypt_kdf_nosse;
 #else

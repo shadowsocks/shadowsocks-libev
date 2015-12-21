@@ -95,12 +95,12 @@ crypto_pwhash_scryptsalsa208sha256_memlimit_sensitive(void)
 
 int
 crypto_pwhash_scryptsalsa208sha256(unsigned char * const out,
-                                    unsigned long long outlen,
-                                    const char * const passwd,
-                                    unsigned long long passwdlen,
-                                    const unsigned char * const salt,
-                                    unsigned long long opslimit,
-                                    size_t memlimit)
+                                   unsigned long long outlen,
+                                   const char * const passwd,
+                                   unsigned long long passwdlen,
+                                   const unsigned char * const salt,
+                                   unsigned long long opslimit,
+                                   size_t memlimit)
 {
     uint32_t N_log2;
     uint32_t p;
@@ -125,10 +125,10 @@ crypto_pwhash_scryptsalsa208sha256(unsigned char * const out,
 
 int
 crypto_pwhash_scryptsalsa208sha256_str(char out[crypto_pwhash_scryptsalsa208sha256_STRBYTES],
-                                        const char * const passwd,
-                                        unsigned long long passwdlen,
-                                        unsigned long long opslimit,
-                                        size_t memlimit)
+                                       const char * const passwd,
+                                       unsigned long long passwdlen,
+                                       unsigned long long opslimit,
+                                       size_t memlimit)
 {
     uint8_t         salt[crypto_pwhash_scryptsalsa208sha256_STRSALTBYTES];
     char            setting[crypto_pwhash_scryptsalsa208sha256_STRSETTINGBYTES + 1U];
@@ -179,8 +179,8 @@ crypto_pwhash_scryptsalsa208sha256_str(char out[crypto_pwhash_scryptsalsa208sha2
 
 int
 crypto_pwhash_scryptsalsa208sha256_str_verify(const char str[crypto_pwhash_scryptsalsa208sha256_STRBYTES],
-                                               const char * const passwd,
-                                               unsigned long long passwdlen)
+                                              const char * const passwd,
+                                              unsigned long long passwdlen)
 {
     char            wanted[crypto_pwhash_scryptsalsa208sha256_STRBYTES];
     escrypt_local_t escrypt_local;

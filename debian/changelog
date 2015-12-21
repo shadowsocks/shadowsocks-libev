@@ -1,3 +1,9 @@
+shadowsocks-libev (2.4.3-1) unstable; urgency=high
+
+  * Refine the buffer allocation.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 19 Dec 2015 12:30:21 +0900
+
 shadowsocks-libev (2.4.1-1) unstable; urgency=high
 
   * Fix a security bug.

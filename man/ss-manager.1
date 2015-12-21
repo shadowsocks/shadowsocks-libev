@@ -139,6 +139,22 @@ Enable verbose mode.
 
         stat: {"8001":11370}
 
+.SH EXAMPLE
+To use \*(Ma(1), First start it and specify necessary information.
+Then communicate with \*(Ma(1) through UNIX Domain Socket using UDP protocol:
+
+    # Start the manager. Arguments for ss-server will be passed to generated
+    # ss-server process(es) respectively.
+    ss-manager --manager-address /tmp/manager.sock --executable \
+$(which ss-server) -s example.com -m aes-256-cfb -c /path/to/config.json
+
+    # Connect to the socket. Using netcat-openbsd as an example.
+    # You should use scripts or other programs for further management.
+    nc -Uu /tmp/ss.socket
+
+After that, you may communicate with \*(Ma(1) as described above in the
+\fBPROTOCOL\fR section.
+
 .SH SEE ALSO
 .BR \*(Lo (1),
 .BR \*(Se (1),

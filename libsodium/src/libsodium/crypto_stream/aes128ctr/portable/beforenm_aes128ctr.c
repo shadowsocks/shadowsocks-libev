@@ -2,12 +2,12 @@
  * Date: 2009-03-19
  * Public domain */
 
-#include "api.h"
+#include "crypto_stream_aes128ctr.h"
 #include "consts.h"
 #include "int128.h"
 #include "common.h"
 
-int crypto_stream_beforenm(unsigned char *c, const unsigned char *k)
+int crypto_stream_aes128ctr_beforenm(unsigned char *c, const unsigned char *k)
 {
 
   /*

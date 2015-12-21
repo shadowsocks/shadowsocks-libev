@@ -48,7 +48,6 @@ struct cache {
     void (*free_cb) (void *element); /**<Callback function to free cache entries */
 };
 
-
 extern int cache_create(struct cache **dst, const size_t capacity,
                         void (*free_cb)(void *element));
 extern int cache_delete(struct cache *cache, int keep_data);

@@ -41,21 +41,21 @@ typedef struct {
 } profile_t;
 
 /* An example profile
-
-   const profile_t EXAMPLE_PROFILE = {
-    .remote_host = "example.com",
-    .local_addr = "127.0.0.1",
-    .method = "bf-cfb",
-    .password = "barfoo!",
-    .remote_port = 8338,
-    .local_port = 1080,
-    .timeout = 600;
-    .acl = NULL,
-    .log = NULL,
-    .fast_open = 0,
-    .mode = 0,
-    .verbose = 0
-   };
+ *
+ * const profile_t EXAMPLE_PROFILE = {
+ *  .remote_host = "example.com",
+ *  .local_addr = "127.0.0.1",
+ *  .method = "bf-cfb",
+ *  .password = "barfoo!",
+ *  .remote_port = 8338,
+ *  .local_port = 1080,
+ *  .timeout = 600;
+ *  .acl = NULL,
+ *  .log = NULL,
+ *  .fast_open = 0,
+ *  .mode = 0,
+ *  .verbose = 0
+ * };
  */
 
 #ifdef __cplusplus

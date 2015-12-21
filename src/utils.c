@@ -20,6 +20,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -31,10 +35,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include "utils.h"
 
 #ifdef HAVE_SETRLIMIT
@@ -45,7 +45,7 @@
 #define INT_DIGITS 19           /* enough for 64 bit integer */
 
 #ifdef LIB_ONLY
-FILE * logfile;
+FILE *logfile;
 #endif
 
 #ifdef HAS_SYSLOG
@@ -57,8 +57,8 @@ void ERROR(const char *s)
 {
     char *msg = strerror(errno);
     LOGE("%s: %s", s, msg);
-
 }
+
 #endif
 
 int use_tty = 1;
@@ -71,13 +71,13 @@ char *ss_itoa(int i)
     if (i >= 0) {
         do {
             *--p = '0' + (i % 10);
-            i /= 10;
+            i   /= 10;
         } while (i != 0);
         return p;
     } else {                     /* i < 0 */
         do {
             *--p = '0' - (i % 10);
-            i /= 10;
+            i   /= 10;
         } while (i != 0);
         *--p = '-';
     }
@@ -100,9 +100,10 @@ int run_as(const char *user)
             char buf[buflen];  /* variable length array */
 
             /* Note that we use getpwnam_r() instead of getpwnam(),
-               which returns its result in a statically allocated buffer and
-               cannot be considered thread safe. */
+             * which returns its result in a statically allocated buffer and
+             * cannot be considered thread safe. */
             err = getpwnam_r(user, &pwdbuf, buf, buflen, &pwd);
+
             if (err == 0 && pwd) {
                 /* setgid first, because we may not be allowed to do it anymore after setuid */
                 if (setgid(pwd->pw_gid) != 0) {
@@ -129,7 +130,7 @@ int run_as(const char *user)
                 return 0;
             } else if (buflen >= 16 * 1024) {
                 /* If getpwnam_r() seems defective, call it quits rather than
-                   keep on allocating ever larger buffers until we crash. */
+                 * keep on allocating ever larger buffers until we crash. */
                 LOGE(
                     "getpwnam_r() requires more than %u bytes of buffer space.",
                     (unsigned)buflen);
@@ -159,11 +160,9 @@ int run_as(const char *user)
 #endif
     }
 
-#endif //__MINGW32__
+#endif // __MINGW32__
     return 1;
 }
-
-
 
 char *ss_strndup(const char *s, size_t n)
 {
@@ -193,22 +192,28 @@ void usage()
     printf(
         "  maintained by Max Lv <max.c.lv@gmail.com> and Linus Yang <laokongzi@gmail.com>\n\n");
     printf("  usage:\n\n");
-    printf("    ss-[local|redir|server|tunnel|manager]\n");
+#ifdef MODULE_LOCAL
+    printf("    ss-local\n");
+#elif MODULE_REMOTE
+    printf("    ss-server\n");
+#elif MODULE_TUNNEl
+    printf("    ss-tunnel\n");
+#elif MODULE_REDIR
+    printf("    ss-redir\n");
+#elif MODULE_MANAGER
+    printf("    ss-manager\n");
+#endif
     printf("\n");
     printf(
-        "       -s <server_host>           host name or ip address of your remote server\n");
-    printf("\n");
+        "       -s <server_host>           Host name or ip address of your remote server.\n");
     printf(
-        "       -p <server_port>           port number of your remote server\n");
-    printf("\n");
+        "       -p <server_port>           Port number of your remote server.\n");
     printf(
-        "       -l <local_port>            port number of your local server\n");
-    printf("\n");
+        "       -l <local_port>            Port number of your local server.\n");
     printf(
-        "       -k <password>              password of your remote server\n");
-    printf("\n");
+        "       -k <password>              Password of your remote server.\n");
     printf(
-        "       [-m <encrypt_method>]      encrypt method: table, rc4, rc4-md5,\n");
+        "       -m <encrypt_method>        Encrypt method: table, rc4, rc4-md5,\n");
     printf(
         "                                  aes-128-cfb, aes-192-cfb, aes-256-cfb,\n");
     printf(
@@ -216,80 +221,79 @@ void usage()
     printf(
         "                                  camellia-256-cfb, cast5-cfb, des-cfb, idea-cfb,\n");
     printf(
-        "                                  rc2-cfb, seed-cfb, salsa20 and chacha20\n");
+        "                                  rc2-cfb, seed-cfb, salsa20 and chacha20.\n");
     printf("\n");
     printf(
-        "       [-f <pid_file>]            the file path to store pid\n");
+        "       [-a <user>]                Run as another user.\n");
+    printf(
+        "       [-f <pid_file>]            The file path to store pid.\n");
+    printf(
+        "       [-t <timeout>]             Socket timeout in seconds.\n");
+    printf(
+        "       [-c <config_file>]         The path to config file.\n");
+#ifdef HAVE_SETRLIMIT
+    printf(
+        "       [-n <number>]              Max number of open files.\n");
+#endif
+#ifndef MODULE_REDIR
+    printf(
+        "       [-i <interface>]           Network interface to bind.\n");
+#endif
+#ifndef MODULE_REMOTE
+    printf(
+        "       [-b <local_address>]       Local address to bind.\n");
+#endif
     printf("\n");
     printf(
-        "       [-t <timeout>]             socket timeout in seconds\n");
+        "       [-u]                       Enable UDP relay,\n");
+#ifdef MODULE_REDIR
+    printf(
+        "                                  TPROXY is required in redir mode.\n");
+#endif
+#ifndef MODULE_LOCAL
+    printf(
+        "       [-U]                       Enable UDP relay and disable TCP relay.\n");
+#endif
+    printf(
+        "       [-A]                       Enable onetime authentication.\n");
+#ifdef MODULE_REMOTE
+    printf(
+        "       [-w]                       Enable white list mode (when ACL enabled).\n");
+#endif
+    printf("\n");
+#ifdef MODULE_TUNNEl
+    printf(
+        "       [-L <addr>:<port>]         Destination server address and port\n");
+    printf(
+        "                                  for local port forwarding.\n");
+#endif
+#ifdef MODULE_REMOTE
+    printf(
+        "       [-d <addr>]                Name servers for internal DNS resolver.\n");
+#endif
+#if defined(MODULE_REMOTE) || defined(MODULE_LOCAL)
+    printf(
+        "       [--fast-open]              Enable TCP fast open.\n");
+    printf(
+        "                                  with Linux kernel > 3.7.0.\n");
+    printf(
+        "       [--acl <acl_file>]         Path to ACL (Access Control List).\n");
+#endif
+#if defined(MODULE_REMOTE) || defined(MODULE_MANAGER)
+    printf(
+        "       [--manager-address <addr>] UNIX domain socket address.\n");
+#endif
+#ifdef MODULE_MANAGER
+    printf(
+        "       [--executable <path>]      Path to the executable of ss-server.\n");
+#endif
     printf("\n");
     printf(
-        "       [-c <config_file>]         the path to config file\n");
-    printf("\n");
-    printf(
-        "       [-i <interface>]           network interface to bind,\n");
-    printf(
-        "                                  not available in redir mode\n");
-    printf("\n");
-    printf(
-        "       [-b <local_address>]       local address to bind,\n");
-    printf(
-        "                                  not available in server mode\n");
-    printf("\n");
-    printf(
-        "       [-u]                       enable UDP relay,\n");
-    printf(
-        "                                  TPROXY is required in redir mode\n");
-    printf("\n");
-    printf(
-        "       [-U]                       enable UDP relay and disable TCP relay,\n");
-    printf(
-        "                                  not available in local mode\n");
-    printf("\n");
-    printf(
-        "       [-A]                       enable onetime authentication\n");
-    printf("\n");
-    printf(
-        "       [-L <addr>:<port>]         specify destination server address and port\n");
-    printf(
-        "                                  for local port forwarding,\n");
-    printf(
-        "                                  only available in tunnel mode\n");
-    printf("\n");
-    printf(
-        "       [-d <addr>]                setup name servers for internal DNS resolver,\n");
-    printf(
-        "                                  only available in server mode\n");
-    printf("\n");
-    printf(
-        "       [--fast-open]              enable TCP fast open,\n");
-    printf(
-        "                                  only available in local and server mode,\n");
-    printf(
-        "                                  with Linux kernel > 3.7.0\n");
-    printf("\n");
-    printf(
-        "       [--acl <acl_file>]         config file of ACL (Access Control List)\n");
-    printf(
-        "                                  only available in local and server mode\n");
-    printf("\n");
-    printf(
-        "       [--manager-address <addr>] UNIX domain socket address\n");
-    printf(
-        "                                  only available in server and manager mode\n");
-    printf("\n");
-    printf(
-        "       [--executable <path>]      path to the executable of ss-server\n");
-    printf(
-        "                                  only available in manager mode\n");
-    printf("\n");
-    printf(
-        "       [-v]                       verbose mode\n");
+        "       [-v]                       Verbose mode\n");
     printf("\n");
 }
 
-void daemonize(const char * path)
+void daemonize(const char *path)
 {
 #ifndef __MINGW32__
     /* Our process ID and Session ID */
@@ -302,14 +306,14 @@ void daemonize(const char * path)
     }
 
     /* If we got a good PID, then
-       we can exit the parent process. */
+     * we can exit the parent process. */
     if (pid > 0) {
         FILE *file = fopen(path, "w");
         if (file == NULL) {
             FATAL("Invalid pid file\n");
         }
 
-        fprintf(file, "%d", pid);
+        fprintf(file, "%d", (int)pid);
         fclose(file);
         exit(EXIT_SUCCESS);
     }
@@ -364,5 +368,5 @@ int set_nofile(int nofile)
 
     return 0;
 }
-#endif
 
+#endif
