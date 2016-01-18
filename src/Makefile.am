@@ -33,7 +33,6 @@ ss_local_SOURCES = utils.c \
 				   cache.c \
 				   acl.c \
 				   netutils.c \
-				   hmac-sha1.c \
 				   local.c
 
 ss_tunnel_SOURCES = utils.c \
@@ -43,7 +42,6 @@ ss_tunnel_SOURCES = utils.c \
 					udprelay.c \
 					cache.c \
 					netutils.c \
-					hmac-sha1.c \
 					tunnel.c
 
 ss_server_SOURCES = utils.c \
@@ -55,7 +53,6 @@ ss_server_SOURCES = utils.c \
 					cache.c \
 					acl.c \
 					resolv.c \
-					hmac-sha1.c \
                     server.c
 
 ss_manager_SOURCES = utils.c \
@@ -96,7 +93,6 @@ ss_redir_SOURCES = utils.c \
 				   netutils.c \
 				   cache.c \
 				   udprelay.c \
-				   hmac-sha1.c \
                    redir.c
 ss_redir_CFLAGS = $(AM_CFLAGS) -DMODULE_REDIR
 ss_redir_LDADD = $(SS_COMMON_LIBS)

@@ -35,7 +35,7 @@
 #define MSG_FASTOPEN   0x20000000
 #endif
 
-#else
+#elif !defined(__APPLE__)
 
 #ifdef TCP_FASTOPEN
 #undef TCP_FASTOPEN

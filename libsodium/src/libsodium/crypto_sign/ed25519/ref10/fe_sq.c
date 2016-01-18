@@ -117,24 +117,24 @@ void fe_sq(fe h,const fe f)
   crypto_int64 carry8;
   crypto_int64 carry9;
 
-  carry0 = (h0 + (crypto_int64) (1<<25)) >> 26; h1 += carry0; h0 -= carry0 << 26;
-  carry4 = (h4 + (crypto_int64) (1<<25)) >> 26; h5 += carry4; h4 -= carry4 << 26;
+  carry0 = (h0 + (crypto_int64) (1L << 25)) >> 26; h1 += carry0; h0 -= carry0 << 26;
+  carry4 = (h4 + (crypto_int64) (1L << 25)) >> 26; h5 += carry4; h4 -= carry4 << 26;
 
-  carry1 = (h1 + (crypto_int64) (1<<24)) >> 25; h2 += carry1; h1 -= carry1 << 25;
-  carry5 = (h5 + (crypto_int64) (1<<24)) >> 25; h6 += carry5; h5 -= carry5 << 25;
+  carry1 = (h1 + (crypto_int64) (1L << 24)) >> 25; h2 += carry1; h1 -= carry1 << 25;
+  carry5 = (h5 + (crypto_int64) (1L << 24)) >> 25; h6 += carry5; h5 -= carry5 << 25;
 
-  carry2 = (h2 + (crypto_int64) (1<<25)) >> 26; h3 += carry2; h2 -= carry2 << 26;
-  carry6 = (h6 + (crypto_int64) (1<<25)) >> 26; h7 += carry6; h6 -= carry6 << 26;
+  carry2 = (h2 + (crypto_int64) (1L << 25)) >> 26; h3 += carry2; h2 -= carry2 << 26;
+  carry6 = (h6 + (crypto_int64) (1L << 25)) >> 26; h7 += carry6; h6 -= carry6 << 26;
 
-  carry3 = (h3 + (crypto_int64) (1<<24)) >> 25; h4 += carry3; h3 -= carry3 << 25;
-  carry7 = (h7 + (crypto_int64) (1<<24)) >> 25; h8 += carry7; h7 -= carry7 << 25;
+  carry3 = (h3 + (crypto_int64) (1L << 24)) >> 25; h4 += carry3; h3 -= carry3 << 25;
+  carry7 = (h7 + (crypto_int64) (1L << 24)) >> 25; h8 += carry7; h7 -= carry7 << 25;
 
-  carry4 = (h4 + (crypto_int64) (1<<25)) >> 26; h5 += carry4; h4 -= carry4 << 26;
-  carry8 = (h8 + (crypto_int64) (1<<25)) >> 26; h9 += carry8; h8 -= carry8 << 26;
+  carry4 = (h4 + (crypto_int64) (1L << 25)) >> 26; h5 += carry4; h4 -= carry4 << 26;
+  carry8 = (h8 + (crypto_int64) (1L << 25)) >> 26; h9 += carry8; h8 -= carry8 << 26;
 
-  carry9 = (h9 + (crypto_int64) (1<<24)) >> 25; h0 += carry9 * 19; h9 -= carry9 << 25;
+  carry9 = (h9 + (crypto_int64) (1L << 24)) >> 25; h0 += carry9 * 19; h9 -= carry9 << 25;
 
-  carry0 = (h0 + (crypto_int64) (1<<25)) >> 26; h1 += carry0; h0 -= carry0 << 26;
+  carry0 = (h0 + (crypto_int64) (1L << 25)) >> 26; h1 += carry0; h0 -= carry0 << 26;
 
   h[0] = (crypto_int32) h0;
   h[1] = (crypto_int32) h1;

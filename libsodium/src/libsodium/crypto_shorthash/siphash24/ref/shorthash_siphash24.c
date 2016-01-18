@@ -1,4 +1,4 @@
-#include "api.h"
+#include "crypto_shorthash_siphash24.h"
 #include "crypto_uint64.h"
 #include "crypto_uint32.h"
 #include "crypto_uint8.h"
@@ -35,7 +35,8 @@ typedef crypto_uint8   u8;
     v2 += v1; v1=ROTL(v1,17); v1 ^= v2; v2=ROTL(v2,32); \
   } while(0)
 
-int crypto_shorthash(unsigned char *out,const unsigned char *in,unsigned long long inlen,const unsigned char *k)
+int crypto_shorthash_siphash24(unsigned char *out, const unsigned char *in,
+                               unsigned long long inlen, const unsigned char *k)
 {
   /* "somepseudorandomlygeneratedbytes" */
   u64 v0 = 0x736f6d6570736575ULL;

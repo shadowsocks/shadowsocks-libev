@@ -42,6 +42,16 @@
 #include "netutils.h"
 #include "utils.h"
 
+#ifndef SO_REUSEPORT
+#define SO_REUSEPORT 15
+#endif
+
+int set_reuseport(int socket)
+{
+    int opt = 1;
+    return setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
+}
+
 size_t get_sockaddr_len(struct sockaddr *addr)
 {
     if (addr->sa_family == AF_INET) {

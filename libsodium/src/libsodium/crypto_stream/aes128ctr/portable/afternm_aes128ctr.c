@@ -2,12 +2,12 @@
  * Date: 2009-03-19
  * Public domain */
 
-#include "api.h"
+#include "crypto_stream_aes128ctr.h"
 #include "int128.h"
 #include "common.h"
 #include "consts.h"
 
-int crypto_stream_afternm(unsigned char *out, unsigned long long len, const unsigned char *nonce, const unsigned char *c)
+int crypto_stream_aes128ctr_afternm(unsigned char *out, unsigned long long len, const unsigned char *nonce, const unsigned char *c)
 {
 
   int128 xmm0;

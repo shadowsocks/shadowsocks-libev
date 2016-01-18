@@ -438,6 +438,10 @@ int create_server_socket(const char *host, const char *port)
 #ifdef SO_NOSIGPIPE
         set_nosigpipe(server_sock);
 #endif
+        int err = set_reuseport(server_sock);
+        if (err == 0) {
+            LOGI("udp port reuse enabled");
+        }
 
 #ifdef MODULE_REDIR
         if (setsockopt(server_sock, SOL_IP, IP_TRANSPARENT, &opt, sizeof(opt))) {
@@ -568,7 +572,7 @@ static void query_resolve_cb(struct sockaddr *addr, void *data)
 
         // Lookup in the conn cache
         if (remote_ctx == NULL) {
-            char *key = hash_key(0, &query_ctx->src_addr);
+            char *key = hash_key(AF_UNSPEC, &query_ctx->src_addr);
             cache_lookup(query_ctx->server_ctx->conn_cache, key, HASH_KEY_LEN, (void *)&remote_ctx);
         }
 
@@ -613,7 +617,7 @@ static void query_resolve_cb(struct sockaddr *addr, void *data)
             } else {
                 if (!cache_hit) {
                     // Add to conn cache
-                    char *key = hash_key(0, &remote_ctx->src_addr);
+                    char *key = hash_key(AF_UNSPEC, &remote_ctx->src_addr);
                     cache_insert(query_ctx->server_ctx->conn_cache, key, HASH_KEY_LEN, (void *)remote_ctx);
                     ev_io_start(EV_A_ & remote_ctx->io);
                     ev_timer_start(EV_A_ & remote_ctx->watcher);
@@ -667,7 +671,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
 #ifdef MODULE_LOCAL
-    int err = ss_decrypt_all(buf, server_ctx->method, 0);
+    int err = ss_decrypt_all(buf, server_ctx->method, 0, BUF_SIZE);
     if (err) {
         // drop the packet silently
         goto CLEAN_UP;
@@ -727,7 +731,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
     memcpy(buf->array, addr_header, addr_header_len);
     buf->len += addr_header_len;
 
-    int err = ss_encrypt_all(buf, server_ctx->method, 0);
+    int err = ss_encrypt_all(buf, server_ctx->method, 0, BUF_SIZE);
     if (err) {
         // drop the packet silently
         goto CLEAN_UP;
@@ -818,8 +822,8 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     msg.msg_iov     = iov;
     msg.msg_iovlen  = 1;
 
-    ssize_t buf_len = recvmsg(server_ctx->fd, &msg, 0);
-    if (buf_len == -1) {
+    buf->len = recvmsg(server_ctx->fd, &msg, 0);
+    if (buf->len == -1) {
         ERROR("[udp] server_recvmsg");
         goto CLEAN_UP;
     }
@@ -850,7 +854,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 
     tx += buf->len;
 
-    int err = ss_decrypt_all(buf, server_ctx->method, server_ctx->auth);
+    int err = ss_decrypt_all(buf, server_ctx->method, server_ctx->auth, BUF_SIZE);
     if (err) {
         // drop the packet silently
         goto CLEAN_UP;
@@ -928,8 +932,6 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     memcpy(buf->array, addr_header, addr_header_len);
     buf->len += addr_header_len;
 
-    char *key = hash_key(dst_addr.ss_family, &src_addr);
-
 #elif MODULE_TUNNEL
 
     char addr_header[256] = { 0 };
@@ -984,8 +986,6 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     memcpy(buf->array, addr_header, addr_header_len);
     buf->len += addr_header_len;
 
-    char *key = hash_key(ip.version == 4 ? AF_INET : AF_INET6, &src_addr);
-
 #else
 
     char host[256] = { 0 };
@@ -1002,7 +1002,12 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     char *addr_header = buf->array + offset;
-    char *key         = hash_key(dst_addr.ss_family, &src_addr);
+#endif
+
+#ifdef MODULE_LOCAL
+    char *key = hash_key(server_ctx->remote_addr->sa_family, &src_addr);
+#else
+    char *key = hash_key(dst_addr.ss_family, &src_addr);
 #endif
 
     struct cache *conn_cache = server_ctx->conn_cache;
@@ -1113,7 +1118,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         buf->array[0] |= ONETIMEAUTH_FLAG;
     }
 
-    int err = ss_encrypt_all(buf, server_ctx->method, server_ctx->auth);
+    int err = ss_encrypt_all(buf, server_ctx->method, server_ctx->auth, BUF_SIZE);
 
     if (err) {
         // drop the packet silently

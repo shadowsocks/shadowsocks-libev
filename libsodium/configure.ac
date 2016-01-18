@@ -1,5 +1,5 @@
 AC_PREREQ([2.65])
-AC_INIT([libsodium],[1.0.1],
+AC_INIT([libsodium],[1.0.7],
   [https://github.com/jedisct1/libsodium/issues],
   [libsodium],
   [https://github.com/jedisct1/libsodium])
@@ -16,10 +16,10 @@ AC_SUBST(VERSION)
 ISODATE=`date +%Y-%m-%d`
 AC_SUBST(ISODATE)
 
-SODIUM_LIBRARY_VERSION_MAJOR=7
-SODIUM_LIBRARY_VERSION_MINOR=3
-DLL_VERSION=6
-SODIUM_LIBRARY_VERSION=13:3:0
+SODIUM_LIBRARY_VERSION_MAJOR=9
+SODIUM_LIBRARY_VERSION_MINOR=0
+DLL_VERSION=8
+SODIUM_LIBRARY_VERSION=18:0:0
 #                       | | |
 #                +------+ | +---+
 #                |        |     |
@@ -37,6 +37,12 @@ AC_SUBST(SODIUM_LIBRARY_VERSION)
 AC_SUBST(DLL_VERSION)
 
 LX_CFLAGS=${CFLAGS-NONE}
+
+dnl Path check
+
+AS_IF([test pwd | fgrep ' ' > /dev/null 2>&1],
+  [AC_MSG_WARN([The build directory contains whitespaces - This can cause tests/installation to fail due to limitations of some libtool versions])]
+)
 
 dnl Switches
 
@@ -78,10 +84,10 @@ AC_ARG_ENABLE(pie,
 AS_CASE([$host_os], [mingw*|cygwin*|msys], [enable_pie="no"])
 
 AC_ARG_ENABLE(blocking-random,
-[AS_HELP_STRING(--enable-blocking-random,Use /dev/random instead of /dev/urandom)],
+[AS_HELP_STRING(--enable-blocking-random,Enable this switch only if /dev/urandom is totally broken on the target platform)],
 [
   AS_IF([test "x$enableval" = "xyes"], [
-    AC_DEFINE([USE_BLOCKING_RANDOM], [1], [Use blocking random])
+    AC_DEFINE([USE_BLOCKING_RANDOM], [1], [/dev/urandom is insecure on the target platform])
   ])
 ])
 
@@ -96,7 +102,7 @@ AC_ARG_ENABLE(minimal,
   ])
 ],
 [
-  enable_minimal="yes"
+  enable_minimal="no"
 ])
 AM_CONDITIONAL([MINIMAL], [test x$enable_minimal = xyes])
 
@@ -129,6 +135,14 @@ AC_ARG_ENABLE(debug,
   ])
 ])
 
+AC_ARG_ENABLE(opt,
+[AS_HELP_STRING(--enable-opt,Optimize for the native CPU - The resulting library will be faster but not portable)],
+[
+  AS_IF([test "x$enableval" = "xyes"], [
+    CFLAGS="$CFLAGS -flto -march=native"
+    LDFLAGS="$LDFLAGS -flto -march=native"])
+])
+
 AC_SUBST([MAINT])
 
 dnl Checks
@@ -136,6 +150,8 @@ dnl Checks
 AC_PROG_CC_C99
 AM_PROG_AS
 AC_USE_SYSTEM_EXTENSIONS
+
+AC_CHECK_DEFINE([__native_client__], [NATIVECLIENT="yes"], [])
 
 AC_CHECK_DEFINE([_FORTIFY_SOURCE], [], [
   AX_CHECK_COMPILE_FLAG([-D_FORTIFY_SOURCE=2],
@@ -173,7 +189,7 @@ LIBTOOL_EXTRA_FLAGS="$LIBTOOL_EXTRA_FLAGS -version-info $SODIUM_LIBRARY_VERSION"
 AC_ARG_ENABLE(soname-versions,
   [AC_HELP_STRING([--enable-soname-versions], [enable soname versions (must be disabled for Android) (default: enabled)])],
     [
-	AS_IF([test "x$enableval" = "xno"], [
+        AS_IF([test "x$enableval" = "xno"], [
           LIBTOOL_EXTRA_FLAGS="$LIBTOOL_OLD_FLAGS -avoid-version"
         ])
     ]
@@ -255,23 +271,36 @@ dnl Checks for headers
 AS_IF([test "x$EMSCRIPTEN" = "x"],[
 
   AC_MSG_CHECKING(for MMX instructions set)
+  oldcflags="$CFLAGS"
+  AX_CHECK_COMPILE_FLAG([-mmmx], [CFLAGS="$CFLAGS -mmmx"])
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #pragma GCC target("mmx")
 #include <mmintrin.h>
 ]], [[ __m64 x = _mm_setzero_si64(); ]])],
     [AC_MSG_RESULT(yes)
-     AC_DEFINE([HAVE_MMINTRIN_H], [1], [mmx is available])],
+     AC_DEFINE([HAVE_MMINTRIN_H], [1], [mmx is available])
+     AX_CHECK_COMPILE_FLAG([-mmmx], [CFLAGS_MMX="-mmmx"])],
     [AC_MSG_RESULT(no)])
+  CFLAGS="$oldcflags"
 
   AC_MSG_CHECKING(for SSE2 instructions set)
+  oldcflags="$CFLAGS"
+  AX_CHECK_COMPILE_FLAG([-msse2], [CFLAGS="$CFLAGS -msse2"])
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #pragma GCC target("sse2")
+#ifndef __SSE2__
+# define __SSE2__
+#endif
 #include <emmintrin.h>
 ]], [[ __m128d x = _mm_setzero_pd(); ]])],
     [AC_MSG_RESULT(yes)
-     AC_DEFINE([HAVE_EMMINTRIN_H], [1], [sse2 is available])],
+     AC_DEFINE([HAVE_EMMINTRIN_H], [1], [sse2 is available])
+     AX_CHECK_COMPILE_FLAG([-msse2], [CFLAGS_SSE2="-msse2"])],
     [AC_MSG_RESULT(no)])
+  CFLAGS="$oldcflags"
 
+  oldcflags="$CFLAGS"
+  AX_CHECK_COMPILE_FLAG([-msse3], [CFLAGS="$CFLAGS -msse3"])
   AC_MSG_CHECKING(for SSE3 instructions set)
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #pragma GCC target("sse3")
@@ -279,18 +308,77 @@ AS_IF([test "x$EMSCRIPTEN" = "x"],[
 ]], [[ __m128 x = _mm_addsub_ps(_mm_cvtpd_ps(_mm_setzero_pd()),
                                 _mm_cvtpd_ps(_mm_setzero_pd())); ]])],
     [AC_MSG_RESULT(yes)
-     AC_DEFINE([HAVE_PMMINTRIN_H], [1], [sse3 is available])],
+     AC_DEFINE([HAVE_PMMINTRIN_H], [1], [sse3 is available])
+     AX_CHECK_COMPILE_FLAG([-msse3], [CFLAGS_SSE3="-msse3"])],
     [AC_MSG_RESULT(no)])
+  CFLAGS="$oldcflags"
 
+  oldcflags="$CFLAGS"
+  AX_CHECK_COMPILE_FLAG([-mssse3], [CFLAGS="$CFLAGS -mssse3"])
   AC_MSG_CHECKING(for SSSE3 instructions set)
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #pragma GCC target("ssse3")
 #include <tmmintrin.h>
 ]], [[ __m64 x = _mm_abs_pi32(_m_from_int(0)); ]])],
     [AC_MSG_RESULT(yes)
-     AC_DEFINE([HAVE_TMMINTRIN_H], [1], [ssse3 is available])],
+     AC_DEFINE([HAVE_TMMINTRIN_H], [1], [ssse3 is available])
+     AX_CHECK_COMPILE_FLAG([-mssse3], [CFLAGS_SSSE3="-mssse3"])],
     [AC_MSG_RESULT(no)])
+  CFLAGS="$oldcflags"
+
+  oldcflags="$CFLAGS"
+  AX_CHECK_COMPILE_FLAG([-msse4.1], [CFLAGS="$CFLAGS -msse4.1"])
+  AC_MSG_CHECKING(for SSE4.1 instructions set)
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#pragma GCC target("sse4.1")
+#include <smmintrin.h>
+]], [[ __m128i x = _mm_minpos_epu16(_mm_setzero_si128()); ]])],
+    [AC_MSG_RESULT(yes)
+     AC_DEFINE([HAVE_SMMINTRIN_H], [1], [sse4.1 is available])
+     AX_CHECK_COMPILE_FLAG([-msse4.1], [CFLAGS_SSE41="-msse4.1"])],
+    [AC_MSG_RESULT(no)])
+  CFLAGS="$oldcflags"
+
+  oldcflags="$CFLAGS"
+  AX_CHECK_COMPILE_FLAG([-mavx], [CFLAGS="$CFLAGS -mavx"])
+  AC_MSG_CHECKING(for AVX instructions set)
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#pragma GCC target("avx")
+#include <immintrin.h>
+]], [[ _mm256_zeroall(); ]])],
+    [AC_MSG_RESULT(yes)
+     AC_DEFINE([HAVE_AVXINTRIN_H], [1], [AVX is available])
+     AX_CHECK_COMPILE_FLAG([-mavx], [CFLAGS_AVX="-mavx"])],
+    [AC_MSG_RESULT(no)])
+  CFLAGS="$oldcflags"
+
+  oldcflags="$CFLAGS"
+  AX_CHECK_COMPILE_FLAG([-maes], [CFLAGS="$CFLAGS -maes"])
+  AX_CHECK_COMPILE_FLAG([-mpclmul], [CFLAGS="$CFLAGS -mpclmul"])
+  AC_MSG_CHECKING(for AESNI instructions set and PCLMULQDQ)
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#pragma GCC target("aes")
+#pragma GCC target("pclmul")
+#include <wmmintrin.h>
+]], [[ __m128i x = _mm_aesimc_si128(_mm_setzero_si128());
+       __m128i y = _mm_clmulepi64_si128(_mm_setzero_si128(), _mm_setzero_si128(), 0);]])],
+    [AC_MSG_RESULT(yes)
+     AC_DEFINE([HAVE_WMMINTRIN_H], [1], [aesni is available])
+     AX_CHECK_COMPILE_FLAG([-maes], [CFLAGS_AESNI="-maes"])
+     AX_CHECK_COMPILE_FLAG([-mpclmul], [CFLAGS_PCLMUL="-mpclmul"])
+     ],
+    [AC_MSG_RESULT(no)])
+  CFLAGS="$oldcflags"
+
 ])
+
+AC_SUBST(CFLAGS_MMX)
+AC_SUBST(CFLAGS_SSE2)
+AC_SUBST(CFLAGS_SSE3)
+AC_SUBST(CFLAGS_SSSE3)
+AC_SUBST(CFLAGS_SSE41)
+AC_SUBST(CFLAGS_AESNI)
+AC_SUBST(CFLAGS_PCLMUL)
 
 AC_CHECK_HEADERS([sys/mman.h])
 
@@ -319,7 +407,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 
 HAVE_AMD64_ASM_V=0
 AS_IF([test "$enable_asm" != "no"],[
-  AC_MSG_CHECKING(whether we should use x86_64 asm code)
+  AC_MSG_CHECKING(whether we can use x86_64 asm code)
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
   ]], [[
 #if defined(__amd64) || defined(__amd64__) || defined(__x86_64__)
@@ -330,34 +418,68 @@ AS_IF([test "$enable_asm" != "no"],[
 #else
 # error !x86_64
 #endif
-__asm__("pxor %xmm12,%xmm6");
+unsigned char i = 0, o = 0, t;
+__asm__ __volatile__ ("pxor %%xmm12, %%xmm6 \n"
+                      "movb (%[i]), %[t] \n"
+                      "addb %[t], (%[o]) \n"
+                      : [t] "=&r"(t)
+                      : [o] "D"(&o), [i] "S"(&i)
+                      : "memory", "flags", "cc");
 ]])],
   [AC_MSG_RESULT(yes)
-   AC_DEFINE([HAVE_AMD64_ASM], [1], [x86_64 asm code should be used])
+   AC_DEFINE([HAVE_AMD64_ASM], [1], [x86_64 asm code can be used])
    HAVE_AMD64_ASM_V=1],
   [AC_MSG_RESULT(no)])
 ])
 AM_CONDITIONAL([HAVE_AMD64_ASM], [test $HAVE_AMD64_ASM_V = 1])
 AC_SUBST(HAVE_AMD64_ASM_V)
 
+HAVE_AVX_ASM_V=0
+AS_IF([test "$enable_asm" != "no"],[
+  AC_MSG_CHECKING(whether we can assemble AVX opcodes)
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+  ]], [[
+#if defined(__amd64) || defined(__amd64__) || defined(__x86_64__)
+# if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(_WIN32) || defined(_WIN64)
+#  error Windows x86_64 calling conventions are not supported yet
+# endif
+/* neat */
+#else
+# error !x86_64
+#endif
+__asm__ __volatile__ ("vpunpcklqdq %xmm0,%xmm13,%xmm0");
+]])],
+  [AC_MSG_RESULT(yes)
+   AC_DEFINE([HAVE_AVX_ASM], [1], [AVX opcodes are supported])
+   HAVE_AVX_ASM_V=1],
+  [AC_MSG_RESULT(no)])
+])
+AM_CONDITIONAL([HAVE_AVX_ASM], [test $HAVE_AVX_ASM_V = 1])
+AC_SUBST(HAVE_AVX_ASM_V)
+
 AC_MSG_CHECKING(for 128-bit arithmetic)
 HAVE_TI_MODE_V=0
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#ifndef __GNUC__
-# error mode(TI) is a gcc extension
+#if !defined(__GNUC__) && !defined(__SIZEOF_INT128__)
+# error mode(TI) is a gcc extension, and __int128 is not available
 #endif
 #if defined(__clang__) && !defined(__x86_64__)
-# error clang doesn't properly compile smult_curve25519_donna_c64.c
+# error clang does not properly handle the 128-bit type on 32-bit systems
 #endif
 #ifndef NATIVE_LITTLE_ENDIAN
-# error donna_c64 currently requires a little endian CPU
+# error libsodium currently expects a little endian CPU for the 128-bit type
 #endif
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 # error emscripten currently supports only shift operations on integers \
 #       larger than 64 bits
 #endif
+#include <stddef.h>
 #include <stdint.h>
+#if defined(__SIZEOF_INT128__)
+typedef unsigned __int128 uint128_t;
+#else
 typedef unsigned uint128_t __attribute__((mode(TI)));
+#endif
 void fcontract(uint128_t *t) {
   *t += 0x8000000000000 - 1;
 }
@@ -398,22 +520,42 @@ void f(void *x) { __dummy(x); }
  AC_DEFINE([HAVE_WEAK_SYMBOLS], [1], [weak symbols are supported])],
 [AC_MSG_RESULT(no)])
 
+AC_MSG_CHECKING(if data alignment is required)
+aligned_access_required=yes
 AS_CASE([$host_cpu],
   [i*86 | x86_64 | powerpc* | s390*],
-    [AC_MSG_NOTICE([data alignment is not required on this target])],
-  [*],
-    [AC_MSG_NOTICE([data alignment is required on this target])
-     AC_DEFINE([CPU_ALIGNED_ACCESS_REQUIRED], [1], [data alignment is required])]
+    [aligned_access_required=no],
+  [arm*],
+    [AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#ifndef __ARM_FEATURE_UNALIGNED
+# error data alignment is required
+#endif
+      ]], [[]])], [aligned_access_required=no], [])]
 )
+AS_IF([test "x$aligned_access_required" = "xyes"],
+  [AC_MSG_RESULT(yes)],
+  [AC_MSG_RESULT(no)
+   AC_DEFINE([CPU_UNALIGNED_ACCESS], [1], [unaligned memory access is supported])])
 
 dnl Checks for functions and headers
 
 AS_IF([test "x$EMSCRIPTEN" = "x"],[
   AC_CHECK_FUNCS([arc4random arc4random_buf])
+  AC_CHECK_FUNCS([mmap mlock madvise mprotect explicit_bzero])
 ])
-AC_CHECK_FUNCS([mlock mprotect explicit_bzero posix_memalign])
+AC_CHECK_FUNCS([posix_memalign getpid])
 
 AC_SUBST([LIBTOOL_EXTRA_FLAGS])
+
+TEST_LDFLAGS=''
+AS_IF([test "x$EMSCRIPTEN" != "x"],[
+  EXEEXT=.js
+  TEST_LDFLAGS='--memory-init-file 0 --pre-js pre.js.inc -s NO_BROWSER=1 -s RESERVED_FUNCTION_POINTERS=8'
+])
+AC_SUBST(TEST_LDFLAGS)
+AM_CONDITIONAL([EMSCRIPTEN], [test "x$EMSCRIPTEN" != "x"])
+
+AM_CONDITIONAL([NATIVECLIENT], [test "x$NATIVECLIENT" != "x"])
 
 dnl Libtool.
 
@@ -428,12 +570,7 @@ AH_VERBATIM([NDEBUG], [/* Always evaluate assert() calls */
 #/**/undef/**/ NDEBUG
 #endif])
 
-AS_IF([test "x$PKG_CONFIG" != "x"], [
-  AC_CONFIG_FILES([libsodium.pc])
-])
 AC_CONFIG_FILES([Makefile
-                 dist-build/Makefile
-                 msvc-scripts/Makefile
                  src/Makefile
                  src/libsodium/Makefile
                  src/libsodium/include/Makefile

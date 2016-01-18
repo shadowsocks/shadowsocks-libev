@@ -35,7 +35,7 @@ ss-tunnel \- shadowsocks tools for local port forwarding, libev port
     [\fB\-s\fR \fIserver_host\fR] [\fB\-p\fR \fIserver_port\fR]    [\fB\-l\fR \fIlocal_port\fR]
     [\fB\-k\fR \fIpassword\fR]    [\fB\-m\fR \fIencrypt_method\fR] [\fB\-f\fR \fIpid_file\fR]
     [\fB\-t\fR \fItimeout\fR]     [\fB\-c\fR \fIconfig_file\fR]    [\fB\-i\fR \fIinterface\fR]
-    [\fB\-b\fR \fIlocal_addr\fR]  [\fB\-a\fR \fIuser_name\fR]
+    [\fB\-b\fR \fIlocal_addr\fR]  [\fB\-a\fR \fIuser_name\fR]      [\fB\-n\fR \fInofile\fR]
     [\fB\-L\fR \fIaddr\fR:\fIport\fR]
 
 .SH DESCRIPTION
@@ -64,10 +64,10 @@ Set the password. The server and the client should use the same password.
 .B \-m \fIencrypt_method\fP
 Set the cipher.
 
-Shadowsocks accepts 16 different ciphers: table, rc4, rc4-md5,
+\*(Me accepts 18 different ciphers: table, rc4, rc4-md5,
 aes-128-cfb, aes-192-cfb, aes-256-cfb, bf-cfb, camellia-128-cfb,
 camellia-192-cfb, camellia-256-cfb, cast5-cfb, des-cfb, idea-cfb, rc2-cfb,
-seed-cfb, salsa20 and chacha20. The default cipher is \fItable\fP.
+seed-cfb, salsa20, chacha20 and chacha20-ietf. The default cipher is \fItable\fP.
 
 If built with PolarSSL or custom OpenSSL libraries, some of these ciphers may
 not work.
@@ -80,6 +80,11 @@ Set the socket timeout in seconds. The default value is 10.
 .TP
 .B \-c \fIconfig_file\fP
 Use a configuration file.
+.TP
+.B \-n \fInofile\fP
+Specify max number of open files.
+
+Only avaliable on Linux.
 .TP
 .B \-i \fIinterface\fP
 Specify network interface to bind.

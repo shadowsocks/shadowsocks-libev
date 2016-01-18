@@ -36,7 +36,8 @@ typedef struct {
     char *acl;            // file path to acl
     char *log;            // file path to log
     int fast_open;        // enable tcp fast open
-    int mode;        // enable udp relay
+    int mode;             // enable udp relay
+    int auth;             // enable one-time authentication
     int verbose;          // verbose mode
 } profile_t;
 
@@ -54,6 +55,7 @@ typedef struct {
  *  .log = NULL,
  *  .fast_open = 0,
  *  .mode = 0,
+ *  .auth = 0,
  *  .verbose = 0
  * };
  */

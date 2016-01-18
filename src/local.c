@@ -170,6 +170,10 @@ int create_and_bind(const char *addr, const char *port)
 #ifdef SO_NOSIGPIPE
         setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
+        int err = set_reuseport(listen_sock);
+        if (err == 0) {
+            LOGI("tcp port reuse enabled");
+        }
 
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
         if (s == 0) {
@@ -194,10 +198,8 @@ int create_and_bind(const char *addr, const char *port)
 
 static void free_connections(struct ev_loop *loop)
 {
-    struct cork_dllist_item *curr;
-    for (curr = cork_dllist_start(&connections);
-         !cork_dllist_is_end(&connections, curr);
-         curr = curr->next) {
+    struct cork_dllist_item *curr, *next;
+    cork_dllist_foreach_void (&connections, curr, next) {
         server_t *server = cork_container_of(curr, server_t, entries);
         remote_t *remote = server->remote;
         close_and_free_server(loop, server);
@@ -233,7 +235,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             // continue to wait for recv
             return;
         } else {
-            ERROR("server_recv_cb_recv");
+            if (verbose) ERROR("server_recv_cb_recv");
             close_and_free_remote(EV_A_ remote);
             close_and_free_server(EV_A_ server);
             return;
@@ -252,7 +254,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             }
 
             if (!remote->direct && remote->send_ctx->connected && auth) {
-                ss_gen_hash(remote->buf, &remote->counter, server->e_ctx);
+                ss_gen_hash(remote->buf, &remote->counter, server->e_ctx, BUF_SIZE);
             }
 
             // insert shadowsocks header
@@ -260,7 +262,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef ANDROID
                 tx += remote->buf->len;
 #endif
-                int err = ss_encrypt(remote->buf, server->e_ctx);
+                int err = ss_encrypt(remote->buf, server->e_ctx, BUF_SIZE);
 
                 if (err) {
                     LOGE("invalid password or cipher");
@@ -294,8 +296,23 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                 } else {
 #ifdef TCP_FASTOPEN
+#ifdef __APPLE__
+                    ((struct sockaddr_in*)&(remote->addr))->sin_len = sizeof(struct sockaddr_in);
+                    sa_endpoints_t endpoints;
+                    bzero((char*)&endpoints, sizeof(endpoints));
+                    endpoints.sae_dstaddr = (struct sockaddr*)&(remote->addr);
+                    endpoints.sae_dstaddrlen = remote->addr_len;
+
+                    int s = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
+                            CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
+                            NULL, 0, NULL, NULL);
+                    if (s == 0) {
+                        s = send(remote->fd, remote->buf->array, remote->buf->len, 0);
+                    }
+#else
                     int s = sendto(remote->fd, remote->buf->array, remote->buf->len, MSG_FASTOPEN,
                                    (struct sockaddr *)&(remote->addr), remote->addr_len);
+#endif
                     if (s == -1) {
                         if (errno == EINPROGRESS) {
                             // in progress, wait until connected
@@ -306,8 +323,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                         } else {
                             ERROR("sendto");
                             if (errno == ENOTCONN) {
-                                LOGE(
-                                    "fast open is not supported on this platform");
+                                LOGE( "fast open is not supported on this platform");
                                 // just turn it off
                                 fast_open = 0;
                             }
@@ -315,7 +331,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                             close_and_free_server(EV_A_ server);
                             return;
                         }
-                    } else if (s < remote->buf->len) {
+                    } else if (s <= remote->buf->len) {
                         remote->buf->len -= s;
                         remote->buf->idx  = s;
                     }
@@ -491,7 +507,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (!remote->direct) {
                     if (auth) {
                         abuf->array[0] |= ONETIMEAUTH_FLAG;
-                        ss_onetimeauth(abuf, server->e_ctx->evp.iv);
+                        ss_onetimeauth(abuf, server->e_ctx->evp.iv, BUF_SIZE);
                     }
 
                     brealloc(remote->buf, buf->len + abuf->len, BUF_SIZE);
@@ -500,7 +516,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 
                     if (buf->len > 0) {
                         if (auth) {
-                            ss_gen_hash(buf, &remote->counter, server->e_ctx);
+                            ss_gen_hash(buf, &remote->counter, server->e_ctx, BUF_SIZE);
                         }
                         memcpy(remote->buf->array + abuf->len, buf->array, buf->len);
                     }
@@ -653,7 +669,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef ANDROID
         rx += server->buf->len;
 #endif
-        int err = ss_decrypt(server->buf, server->d_ctx);
+        int err = ss_decrypt(server->buf, server->d_ctx, BUF_SIZE);
         if (err) {
             LOGE("invalid password or cipher");
             close_and_free_remote(EV_A_ remote);
@@ -978,10 +994,10 @@ int main(int argc, char **argv)
     USE_TTY();
 
 #ifdef ANDROID
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:uvVA",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:uvVA",
                             long_options, &option_index)) != -1) {
 #else
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:uvA",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:uvA",
                             long_options, &option_index)) != -1) {
 #endif
         switch (c) {
@@ -1030,6 +1046,11 @@ int main(int argc, char **argv)
         case 'a':
             user = optarg;
             break;
+#ifdef HAVE_SETRLIMIT
+        case 'n':
+            nofile = atoi(optarg);
+            break;
+#endif
         case 'u':
             mode = TCP_AND_UDP;
             break;
@@ -1096,7 +1117,7 @@ int main(int argc, char **argv)
          * no need to check the return value here since we will show
          * the user an error message if setrlimit(2) fails
          */
-        if (nofile) {
+        if (nofile > 1024) {
             if (verbose) {
                 LOGI("setting NOFILE to %d", nofile);
             }
@@ -1254,6 +1275,7 @@ int start_ss_local_server(profile_t profile)
     int local_port    = profile.local_port;
     int timeout       = profile.timeout;
 
+    auth      = profile.auth;
     mode      = profile.mode;
     fast_open = profile.fast_open;
     verbose   = profile.verbose;

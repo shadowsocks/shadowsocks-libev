@@ -121,11 +121,9 @@ int send_traffic_stat(uint64_t tx, uint64_t rx)
         return -1;
     }
 
-    char stat[256] = { 0 };
-    snprintf(stat, 256, "%llu|%llu", tx, rx);
-    size_t len = strlen(stat);
+    uint64_t stat[2] = { tx, rx };
 
-    if (send(sock, stat, len, 0) == -1) {
+    if (send(sock, stat, sizeof(stat), 0) == -1) {
         ERROR("[android] send");
         close(sock);
         return -1;

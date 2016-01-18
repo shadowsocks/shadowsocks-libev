@@ -84,6 +84,9 @@ int verbose = 0;
 
 static int mode = TCP_ONLY;
 static int auth = 0;
+#ifdef HAVE_SETRLIMIT
+static int nofile = 0;
+#endif
 
 int getdestaddr(int fd, struct sockaddr_storage *destaddr)
 {
@@ -136,6 +139,10 @@ int create_and_bind(const char *addr, const char *port)
 #ifdef SO_NOSIGPIPE
         setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
+        int err = set_reuseport(listen_sock);
+        if (err == 0) {
+            LOGI("tcp port reuse enabled");
+        }
 
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
         if (s == 0) {
@@ -187,10 +194,10 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     remote->buf->len = r;
 
     if (auth) {
-        ss_gen_hash(remote->buf, &remote->counter, server->e_ctx);
+        ss_gen_hash(remote->buf, &remote->counter, server->e_ctx, BUF_SIZE);
     }
 
-    int err = ss_encrypt(remote->buf, server->e_ctx);
+    int err = ss_encrypt(remote->buf, server->e_ctx, BUF_SIZE);
 
     if (err) {
         LOGE("invalid password or cipher");
@@ -300,7 +307,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     server->buf->len = r;
 
-    int err = ss_decrypt(server->buf, server->d_ctx);
+    int err = ss_decrypt(server->buf, server->d_ctx, BUF_SIZE);
     if (err) {
         LOGE("invalid password or cipher");
         close_and_free_remote(EV_A_ remote);
@@ -376,10 +383,10 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
 
             if (auth) {
                 abuf->array[0] |= ONETIMEAUTH_FLAG;
-                ss_onetimeauth(abuf, server->e_ctx->evp.iv);
+                ss_onetimeauth(abuf, server->e_ctx->evp.iv, BUF_SIZE);
             }
 
-            int err = ss_encrypt(abuf, server->e_ctx);
+            int err = ss_encrypt(abuf, server->e_ctx, BUF_SIZE);
             if (err) {
                 bfree(abuf);
                 LOGE("invalid password or cipher");
@@ -636,7 +643,7 @@ int main(int argc, char **argv)
 
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:c:b:a:uUvA")) != -1)
+    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:uUvA")) != -1)
         switch (c) {
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
@@ -672,6 +679,11 @@ int main(int argc, char **argv)
         case 'a':
             user = optarg;
             break;
+#ifdef HAVE_SETRLIMIT
+        case 'n':
+            nofile = atoi(optarg);
+            break;
+#endif
         case 'u':
             mode = TCP_AND_UDP;
             break;
@@ -725,6 +737,21 @@ int main(int argc, char **argv)
         if (auth == 0) {
             auth = conf->auth;
         }
+#ifdef HAVE_SETRLIMIT
+        if (nofile == 0) {
+            nofile = conf->nofile;
+        }
+        /*
+         * no need to check the return value here since we will show
+         * the user an error message if setrlimit(2) fails
+         */
+        if (nofile > 1024) {
+            if (verbose) {
+                LOGI("setting NOFILE to %d", nofile);
+            }
+            set_nofile(nofile);
+        }
+#endif
     }
 
     if (remote_num == 0 || remote_port == NULL ||

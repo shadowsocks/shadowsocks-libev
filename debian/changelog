@@ -1,3 +1,16 @@
+shadowsocks-libev (2.4.4-1) unstable; urgency=low
+
+  * Fix a potential memory leak.
+  * Fix some compiler related issues.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 13 Jan 2016 11:50:12 +0800
+
+shadowsocks-libev (2.4.3-1) unstable; urgency=high
+
+  * Refine the buffer allocation.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 19 Dec 2015 12:30:21 +0900
+
 shadowsocks-libev (2.4.1-1) unstable; urgency=high
 
   * Fix a security bug.

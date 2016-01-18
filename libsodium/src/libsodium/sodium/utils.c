@@ -19,13 +19,12 @@
 #ifdef _WIN32
 # include <windows.h>
 # include <wincrypt.h>
-#ifdef __MINGW32__
-#ifndef SecureZeroMemory
-#define SecureZeroMemory(p,s) RtlFillMemory((p),(s),0)
-#endif
-#endif
 #else
 # include <unistd.h>
+#endif
+
+#if defined(_WIN32) && (!defined(WINAPI_FAMILY) || WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP)
+# define WINAPI_DESKTOP
 #endif
 
 #define CANARY_SIZE 16U
@@ -37,13 +36,13 @@
 #if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
 # define MAP_ANON MAP_ANONYMOUS
 #endif
-#if defined(_WIN32) || defined(MAP_ANON) || defined(HAVE_POSIX_MEMALIGN)
+#if defined(WINAPI_DESKTOP) || (defined(MAP_ANON) && defined(HAVE_MMAP)) || defined(HAVE_POSIX_MEMALIGN)
 # define HAVE_ALIGNED_MALLOC
 #endif
 #if defined(HAVE_MPROTECT) && !(defined(PROT_NONE) && defined(PROT_READ) && defined(PROT_WRITE))
 # undef HAVE_MPROTECT
 #endif
-#if defined(HAVE_ALIGNED_MALLOC) && (defined(_WIN32) || defined(HAVE_MPROTECT))
+#if defined(HAVE_ALIGNED_MALLOC) && (defined(WINAPI_DESKTOP) || defined(HAVE_MPROTECT))
 # define HAVE_PAGE_PROTECTION
 #endif
 
@@ -52,7 +51,7 @@ static unsigned char canary[CANARY_SIZE];
 
 #ifdef HAVE_WEAK_SYMBOLS
 __attribute__((weak)) void
-_sodium_dummy_symbol_to_prevent_lto(void * const pnt, const size_t len)
+_sodium_dummy_symbol_to_prevent_memzero_lto(void * const pnt, const size_t len)
 {
     (void) pnt;
     (void) len;
@@ -72,7 +71,7 @@ sodium_memzero(void * const pnt, const size_t len)
     explicit_bzero(pnt, len);
 #elif HAVE_WEAK_SYMBOLS
     memset(pnt, 0, len);
-    _sodium_dummy_symbol_to_prevent_lto(pnt, len);
+    _sodium_dummy_symbol_to_prevent_memzero_lto(pnt, len);
 #else
     volatile unsigned char *pnt_ = (volatile unsigned char *) pnt;
     size_t                     i = (size_t) 0U;
@@ -83,18 +82,179 @@ sodium_memzero(void * const pnt, const size_t len)
 #endif
 }
 
+#ifdef HAVE_WEAK_SYMBOLS
+__attribute__((weak)) void
+_sodium_dummy_symbol_to_prevent_memcmp_lto(const unsigned char *b1,
+                                           const unsigned char *b2,
+                                           const size_t len)
+{
+    (void) b1;
+    (void) b2;
+    (void) len;
+}
+#endif
+
 int
 sodium_memcmp(const void * const b1_, const void * const b2_, size_t len)
 {
+#ifdef HAVE_WEAK_SYMBOLS
     const unsigned char *b1 = (const unsigned char *) b1_;
     const unsigned char *b2 = (const unsigned char *) b2_;
+#else
+    const volatile unsigned char *b1 = (const volatile unsigned char *) b1_;
+    const volatile unsigned char *b2 = (const volatile unsigned char *) b2_;
+#endif
     size_t               i;
     unsigned char        d = (unsigned char) 0U;
 
+#if HAVE_WEAK_SYMBOLS
+    _sodium_dummy_symbol_to_prevent_memcmp_lto(b1, b2, len);
+#endif
     for (i = 0U; i < len; i++) {
         d |= b1[i] ^ b2[i];
     }
-    return (int) ((1 & ((d - 1) >> 8)) - 1);
+    return (1 & ((d - 1) >> 8)) - 1;
+}
+
+#ifdef HAVE_WEAK_SYMBOLS
+__attribute__((weak)) void
+_sodium_dummy_symbol_to_prevent_compare_lto(const unsigned char *b1,
+                                            const unsigned char *b2,
+                                            const size_t len)
+{
+    (void) b1;
+    (void) b2;
+    (void) len;
+}
+#endif
+
+int
+sodium_compare(const unsigned char *b1_, const unsigned char *b2_, size_t len)
+{
+#ifdef HAVE_WEAK_SYMBOLS
+    const unsigned char *b1 = b1_;
+    const unsigned char *b2 = b2_;
+#else
+    const volatile unsigned char *b1 = (const volatile unsigned char *) b1_;
+    const volatile unsigned char *b2 = (const volatile unsigned char *) b2_;
+#endif
+    unsigned char gt = 0U;
+    unsigned char eq = 1U;
+    size_t        i;
+
+#if HAVE_WEAK_SYMBOLS
+    _sodium_dummy_symbol_to_prevent_compare_lto(b1, b2, len);
+#endif
+    i = len;
+    while (i != 0U) {
+        i--;
+        gt |= ((b2[i] - b1[i]) >> 8) & eq;
+        eq &= ((b2[i] ^ b1[i]) - 1) >> 8;
+    }
+    return (int) (gt + gt + eq) - 1;
+}
+
+int
+sodium_is_zero(const unsigned char *n, const size_t nlen)
+{
+    size_t        i;
+    unsigned char d = 0U;
+
+    for (i = 0U; i < nlen; i++) {
+        d |= n[i];
+    }
+    return 1 & ((d - 1) >> 8);
+}
+
+void
+sodium_increment(unsigned char *n, const size_t nlen)
+{
+    size_t        i = 0U;
+    uint_fast16_t c = 1U;
+
+#ifdef HAVE_AMD64_ASM
+    uint64_t      t64, t64_2;
+    uint32_t      t32;
+
+    if (nlen == 12U) {
+        __asm__ __volatile__("xorq %[t64], %[t64] \n"
+                             "xorl %[t32], %[t32] \n"
+                             "stc \n"
+                             "adcq %[t64], (%[out]) \n"
+                             "adcl %[t32], 8(%[out]) \n"
+                             : [t64] "=&r"(t64), [t32] "=&r" (t32)
+                             : [out] "D"(n)
+                             : "memory", "flags", "cc");
+        return;
+    } else if (nlen == 24U) {
+        __asm__ __volatile__("movq $1, %[t64] \n"
+                             "xorq %[t64_2], %[t64_2] \n"
+                             "addq %[t64], (%[out]) \n"
+                             "adcq %[t64_2], 8(%[out]) \n"
+                             "adcq %[t64_2], 16(%[out]) \n"
+                             : [t64] "=&r"(t64), [t64_2] "=&r" (t64_2)
+                             : [out] "D"(n)
+                             : "memory", "flags", "cc");
+        return;
+    } else if (nlen == 8U) {
+        __asm__ __volatile__("incq (%[out]) \n"
+                             :
+                             : [out] "D"(n)
+                             : "memory", "flags", "cc");
+        return;
+    }
+#endif
+    for (; i < nlen; i++) {
+        c += (uint_fast16_t) n[i];
+        n[i] = (unsigned char) c;
+        c >>= 8;
+    }
+}
+
+void
+sodium_add(unsigned char *a, const unsigned char *b, const size_t len)
+{
+    size_t        i = 0U;
+    uint_fast16_t c = 0U;
+
+#ifdef HAVE_AMD64_ASM
+    uint64_t      t64, t64_2, t64_3;
+    uint32_t      t32;
+
+    if (len == 12U) {
+        __asm__ __volatile__("movq (%[in]), %[t64] \n"
+                             "movl 8(%[in]), %[t32] \n"
+                             "addq %[t64], (%[out]) \n"
+                             "adcl %[t32], 8(%[out]) \n"
+                             : [t64] "=&r"(t64), [t32] "=&r" (t32)
+                             : [in] "S"(b), [out] "D"(a)
+                             : "memory", "flags", "cc");
+        return;
+    } else if (len == 24U) {
+        __asm__ __volatile__("movq (%[in]), %[t64] \n"
+                             "movq 8(%[in]), %[t64_2] \n"
+                             "movq 16(%[in]), %[t64_3] \n"
+                             "addq %[t64], (%[out]) \n"
+                             "adcq %[t64_2], 8(%[out]) \n"
+                             "adcq %[t64_3], 16(%[out]) \n"
+                             : [t64] "=&r"(t64), [t64_2] "=&r"(t64_2), [t64_3] "=&r"(t64_3)
+                             : [in] "S"(b), [out] "D"(a)
+                             : "memory", "flags", "cc");
+        return;
+    } else if (len == 8U) {
+        __asm__ __volatile__("movq (%[in]), %[t64] \n"
+                             "addq %[t64], (%[out]) \n"
+                             : [t64] "=&r"(t64)
+                             : [in] "S"(b), [out] "D"(a)
+                             : "memory", "flags", "cc");
+        return;
+    }
+#endif
+    for (; i < len; i++) {
+        c += (uint_fast16_t) a[i] + (uint_fast16_t) b[i];
+        a[i] = (unsigned char) c;
+        c >>= 8;
+    }
 }
 
 /* Derived from original code by CodesInChaos */
@@ -107,20 +267,20 @@ sodium_bin2hex(char * const hex, const size_t hex_maxlen,
     int          b;
     int          c;
 
-    if (bin_len >= SIZE_MAX / 2 || hex_maxlen < bin_len * 2U) {
+    if (bin_len >= SIZE_MAX / 2 || hex_maxlen <= bin_len * 2U) {
         abort(); /* LCOV_EXCL_LINE */
     }
     while (i < bin_len) {
         c = bin[i] & 0xf;
         b = bin[i] >> 4;
-        x = (unsigned char) (87 + c + (((c - 10) >> 31) & -39)) << 8 |
-            (unsigned char) (87 + b + (((b - 10) >> 31) & -39));
+        x = (unsigned char) (87U + c + (((c - 10U) >> 8) & ~38U)) << 8 |
+            (unsigned char) (87U + b + (((b - 10U) >> 8) & ~38U));
         hex[i * 2U] = (char) x;
         x >>= 8;
         hex[i * 2U + 1U] = (char) x;
         i++;
     }
-    hex[i * 2U] = 0;
+    hex[i * 2U] = 0U;
 
     return hex;
 }
@@ -136,22 +296,25 @@ sodium_hex2bin(unsigned char * const bin, const size_t bin_maxlen,
     int           ret = 0;
     unsigned char c;
     unsigned char c_acc = 0U;
-    unsigned char c_num;
+    unsigned char c_alpha0, c_alpha;
+    unsigned char c_num0, c_num;
     unsigned char c_val;
     unsigned char state = 0U;
 
     while (hex_pos < hex_len) {
         c = (unsigned char) hex[hex_pos];
-        if ((c_num = c ^ 48U) < 10U) {
-            c_val = c_num;
-        } else if ((c_num = (c & ~32U)) > 64 && c_num < 71U) {
-            c_val = c_num - 55U;
-        } else if (ignore != NULL && strchr(ignore, c) != NULL && state == 0U) {
-            hex_pos++;
-            continue;
-        } else {
+        c_num = c ^ 48U;
+        c_num0 = (c_num - 10U) >> 8;
+        c_alpha = (c & ~32U) - 55U;
+        c_alpha0 = ((c_alpha - 10U) ^ (c_alpha - 16U)) >> 8;
+        if ((c_num0 | c_alpha0) == 0U) {
+            if (ignore != NULL && state == 0U && strchr(ignore, c) != NULL) {
+                hex_pos++;
+                continue;
+            }
             break;
         }
+        c_val = (c_num0 & c_num) | (c_alpha0 & c_alpha);
         if (bin_pos >= bin_maxlen) {
             ret = -1;
             errno = ERANGE;
@@ -178,14 +341,37 @@ sodium_hex2bin(unsigned char * const bin, const size_t bin_maxlen,
 }
 
 int
+_sodium_alloc_init(void)
+{
+#ifdef HAVE_ALIGNED_MALLOC
+# if defined(_SC_PAGESIZE)
+    long page_size_ = sysconf(_SC_PAGESIZE);
+    if (page_size_ > 0L) {
+        page_size = (size_t) page_size_;
+    }
+# elif defined(WINAPI_DESKTOP)
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+    page_size = (size_t) si.dwPageSize;
+# endif
+    if (page_size < CANARY_SIZE || page_size < sizeof(size_t)) {
+        abort(); /* LCOV_EXCL_LINE */
+    }
+#endif
+    randombytes_buf(canary, sizeof canary);
+
+    return 0;
+}
+
+int
 sodium_mlock(void * const addr, const size_t len)
 {
-#ifdef MADV_DONTDUMP
+#if defined(MADV_DONTDUMP) && defined(HAVE_MADVISE)
     (void) madvise(addr, len, MADV_DONTDUMP);
 #endif
 #ifdef HAVE_MLOCK
     return mlock(addr, len);
-#elif defined(_WIN32)
+#elif defined(WINAPI_DESKTOP)
     return -(VirtualLock(addr, len) == 0);
 #else
     errno = ENOSYS;
@@ -197,12 +383,12 @@ int
 sodium_munlock(void * const addr, const size_t len)
 {
     sodium_memzero(addr, len);
-#ifdef MADV_DODUMP
+#if defined(MADV_DODUMP) && defined(HAVE_MADVISE)
     (void) madvise(addr, len, MADV_DODUMP);
 #endif
 #ifdef HAVE_MLOCK
     return munlock(addr, len);
-#elif defined(_WIN32)
+#elif defined(WINAPI_DESKTOP)
     return -(VirtualUnlock(addr, len) == 0);
 #else
     errno = ENOSYS;
@@ -210,45 +396,14 @@ sodium_munlock(void * const addr, const size_t len)
 #endif
 }
 
-int
-_sodium_alloc_init(void)
-{
-#if defined(_SC_PAGESIZE)
-    long page_size_ = sysconf(_SC_PAGESIZE);
-    if (page_size_ > 0L) {
-        page_size = (size_t) page_size_;
-    }
-#elif defined(_WIN32)
-    SYSTEM_INFO si;
-    GetSystemInfo(&si);
-    page_size = (size_t) si.dwPageSize;
-#endif
-    if (page_size < CANARY_SIZE) {
-        abort(); /* LCOV_EXCL_LINE */
-    }
-    randombytes_buf(canary, sizeof canary);
-
-    return 0;
-}
-
-static inline size_t
-_page_round(const size_t size)
-{
-    const size_t page_mask = page_size - 1U;
-
-    return (size + page_mask) & ~page_mask;
-}
-
 static int
 _mprotect_noaccess(void *ptr, size_t size)
 {
-#if defined(HAVE_MPROTECT) && defined(HAVE_PAGE_PROTECTION)
+#ifdef HAVE_MPROTECT
     return mprotect(ptr, size, PROT_NONE);
-#elif defined(_WIN32)
-    {
-        DWORD old;
-        return -(VirtualProtect(ptr, size, PAGE_NOACCESS, &old) == 0);
-    }
+#elif defined(WINAPI_DESKTOP)
+    DWORD old;
+    return -(VirtualProtect(ptr, size, PAGE_NOACCESS, &old) == 0);
 #else
     errno = ENOSYS;
     return -1;
@@ -258,13 +413,11 @@ _mprotect_noaccess(void *ptr, size_t size)
 static int
 _mprotect_readonly(void *ptr, size_t size)
 {
-#if defined(HAVE_MPROTECT) && defined(HAVE_PAGE_PROTECTION)
+#ifdef HAVE_MPROTECT
     return mprotect(ptr, size, PROT_READ);
-#elif defined(_WIN32)
-    {
-        DWORD old;
-        return -(VirtualProtect(ptr, size, PAGE_READONLY, &old) == 0);
-    }
+#elif defined(WINAPI_DESKTOP)
+    DWORD old;
+    return -(VirtualProtect(ptr, size, PAGE_READONLY, &old) == 0);
 #else
     errno = ENOSYS;
     return -1;
@@ -274,70 +427,76 @@ _mprotect_readonly(void *ptr, size_t size)
 static int
 _mprotect_readwrite(void *ptr, size_t size)
 {
-#if defined(HAVE_MPROTECT) && defined(HAVE_PAGE_PROTECTION)
+#ifdef HAVE_MPROTECT
     return mprotect(ptr, size, PROT_READ | PROT_WRITE);
-#elif defined(_WIN32)
-    {
-        DWORD old;
-        return -(VirtualProtect(ptr, size, PAGE_READWRITE, &old) == 0);
-    }
+#elif defined(WINAPI_DESKTOP)
+    DWORD old;
+    return -(VirtualProtect(ptr, size, PAGE_READWRITE, &old) == 0);
 #else
     errno = ENOSYS;
     return -1;
 #endif
 }
 
+#ifdef HAVE_ALIGNED_MALLOC
+
 static void
 _out_of_bounds(void)
 {
-#ifdef SIGSEGV
+# ifdef SIGSEGV
     raise(SIGSEGV);
-#elif defined(SIGKILL)
+# elif defined(SIGKILL)
     raise(SIGKILL);
-#endif
+# endif
     abort();
-}  /* LCOV_EXCL_LINE */
+} /* LCOV_EXCL_LINE */
+
+static inline size_t
+_page_round(const size_t size)
+{
+    const size_t page_mask = page_size - 1U;
+
+    return (size + page_mask) & ~page_mask;
+}
 
 static __attribute__((malloc)) unsigned char *
 _alloc_aligned(const size_t size)
 {
     void *ptr;
 
-#ifdef MAP_ANON
+# if defined(MAP_ANON) && defined(HAVE_MMAP)
     if ((ptr = mmap(NULL, size, PROT_READ | PROT_WRITE,
                     MAP_ANON | MAP_PRIVATE | MAP_NOCORE, -1, 0)) == MAP_FAILED) {
         ptr = NULL; /* LCOV_EXCL_LINE */
     } /* LCOV_EXCL_LINE */
-#elif defined(HAVE_POSIX_MEMALIGN)
+# elif defined(HAVE_POSIX_MEMALIGN)
     if (posix_memalign(&ptr, page_size, size) != 0) {
         ptr = NULL; /* LCOV_EXCL_LINE */
     } /* LCOV_EXCL_LINE */
-#elif defined(_WIN32)
+# elif defined(WINAPI_DESKTOP)
     ptr = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-#elif !defined(HAVE_ALIGNED_MALLOC)
-    ptr = malloc(size);
-#else
-# error Bug
-#endif
+# else
+#  error Bug
+# endif
     return (unsigned char *) ptr;
 }
 
 static void
 _free_aligned(unsigned char * const ptr, const size_t size)
 {
-#ifdef MAP_ANON
+# if defined(MAP_ANON) && defined(HAVE_MMAP)
     (void) munmap(ptr, size);
-#elif defined(HAVE_POSIX_MEMALIGN)
+# elif defined(HAVE_POSIX_MEMALIGN)
     free(ptr);
-#elif defined(_WIN32)
+# elif defined(WINAPI_DESKTOP)
     VirtualFree(ptr, 0U, MEM_RELEASE);
-#else
-    free(ptr);
-#endif
+# else
+#  error Bug
+# endif
 }
 
 static unsigned char *
-_unprotected_ptr_from_user_ptr(const void *ptr)
+_unprotected_ptr_from_user_ptr(void * const ptr)
 {
     uintptr_t      unprotected_ptr_u;
     unsigned char *canary_ptr;
@@ -352,6 +511,15 @@ _unprotected_ptr_from_user_ptr(const void *ptr)
     return (unsigned char *) unprotected_ptr_u;
 }
 
+#endif /* HAVE_ALIGNED_MALLOC */
+
+#ifndef HAVE_ALIGNED_MALLOC
+static __attribute__((malloc)) void *
+_sodium_malloc(const size_t size)
+{
+    return malloc(size);
+}
+#else
 static __attribute__((malloc)) void *
 _sodium_malloc(const size_t size)
 {
@@ -378,9 +546,9 @@ _sodium_malloc(const size_t size)
     }
     unprotected_ptr = base_ptr + page_size * 2U;
     _mprotect_noaccess(base_ptr + page_size, page_size);
-#ifndef HAVE_PAGE_PROTECTION
+# ifndef HAVE_PAGE_PROTECTION
     memcpy(unprotected_ptr + unprotected_size, canary, sizeof canary);
-#endif
+# endif
     _mprotect_noaccess(unprotected_ptr + unprotected_size, page_size);
     sodium_mlock(unprotected_ptr, unprotected_size);
     canary_ptr = unprotected_ptr + _page_round(size_with_canary) -
@@ -393,6 +561,7 @@ _sodium_malloc(const size_t size)
 
     return user_ptr;
 }
+#endif /* !HAVE_ALIGNED_MALLOC */
 
 __attribute__((malloc)) void *
 sodium_malloc(const size_t size)
@@ -412,7 +581,7 @@ sodium_allocarray(size_t count, size_t size)
 {
     size_t total_size;
 
-    if (size >= (size_t) SIZE_MAX / count) {
+    if (count > (size_t) 0U && size >= (size_t) SIZE_MAX / count) {
         errno = ENOMEM;
         return NULL;
     }
@@ -421,6 +590,13 @@ sodium_allocarray(size_t count, size_t size)
     return sodium_malloc(total_size);
 }
 
+#ifndef HAVE_ALIGNED_MALLOC
+void
+sodium_free(void *ptr)
+{
+    free(ptr);
+}
+#else
 void
 sodium_free(void *ptr)
 {
@@ -434,24 +610,35 @@ sodium_free(void *ptr)
         return;
     }
     canary_ptr = ((unsigned char *) ptr) - sizeof canary;
-    if (sodium_memcmp(canary_ptr, canary, sizeof canary) != 0) {
-        _out_of_bounds();
-    }
     unprotected_ptr = _unprotected_ptr_from_user_ptr(ptr);
     base_ptr = unprotected_ptr - page_size * 2U;
     memcpy(&unprotected_size, base_ptr, sizeof unprotected_size);
     total_size = page_size + page_size + unprotected_size + page_size;
     _mprotect_readwrite(base_ptr, total_size);
-#ifndef HAVE_PAGE_PROTECTION
+    if (sodium_memcmp(canary_ptr, canary, sizeof canary) != 0) {
+        _out_of_bounds();
+    }
+# ifndef HAVE_PAGE_PROTECTION
     if (sodium_memcmp(unprotected_ptr + unprotected_size,
                       canary, sizeof canary) != 0) {
         _out_of_bounds();
     }
-#endif
+# endif
     sodium_munlock(unprotected_ptr, unprotected_size);
     _free_aligned(base_ptr, total_size);
 }
+#endif /* HAVE_ALIGNED_MALLOC */
 
+#ifndef HAVE_PAGE_PROTECTION
+static int
+_sodium_mprotect(void *ptr, int (*cb)(void *ptr, size_t size))
+{
+    (void) ptr;
+    (void) cb;
+    errno = ENOSYS;
+    return -1;
+}
+#else
 static int
 _sodium_mprotect(void *ptr, int (*cb)(void *ptr, size_t size))
 {
@@ -465,6 +652,7 @@ _sodium_mprotect(void *ptr, int (*cb)(void *ptr, size_t size))
 
     return cb(unprotected_ptr, unprotected_size);
 }
+#endif
 
 int
 sodium_mprotect_noaccess(void *ptr)

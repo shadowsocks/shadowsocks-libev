@@ -224,11 +224,17 @@ void usage()
         "                                  rc2-cfb, seed-cfb, salsa20 and chacha20.\n");
     printf("\n");
     printf(
+        "       [-a <user>]                Run as another user.\n");
+    printf(
         "       [-f <pid_file>]            The file path to store pid.\n");
     printf(
         "       [-t <timeout>]             Socket timeout in seconds.\n");
     printf(
         "       [-c <config_file>]         The path to config file.\n");
+#ifdef HAVE_SETRLIMIT
+    printf(
+        "       [-n <number>]              Max number of open files.\n");
+#endif
 #ifndef MODULE_REDIR
     printf(
         "       [-i <interface>]           Network interface to bind.\n");

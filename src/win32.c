@@ -64,7 +64,7 @@ void ss_error(const char *s)
 
 int setnonblocking(int fd)
 {
-    u_long iMode = 0;
+    u_long iMode = 1;
     long int iResult;
     iResult = ioctlsocket(fd, FIONBIO, &iMode);
     if (iResult != NO_ERROR) {
