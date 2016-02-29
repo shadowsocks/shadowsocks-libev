@@ -124,18 +124,18 @@ void sc_reduce(unsigned char *s)
   s11 -= s18 * 683901;
 
 
-  carry6 = (s6 + (1<<20)) >> 21; s7 += carry6; s6 -= carry6 << 21;
-  carry8 = (s8 + (1<<20)) >> 21; s9 += carry8; s8 -= carry8 << 21;
-  carry10 = (s10 + (1<<20)) >> 21; s11 += carry10; s10 -= carry10 << 21;
-  carry12 = (s12 + (1<<20)) >> 21; s13 += carry12; s12 -= carry12 << 21;
-  carry14 = (s14 + (1<<20)) >> 21; s15 += carry14; s14 -= carry14 << 21;
-  carry16 = (s16 + (1<<20)) >> 21; s17 += carry16; s16 -= carry16 << 21;
+  carry6 = (s6 + (1L << 20)) >> 21; s7 += carry6; s6 -= carry6 * (1L << 21);
+  carry8 = (s8 + (1L << 20)) >> 21; s9 += carry8; s8 -= carry8 * (1L << 21);
+  carry10 = (s10 + (1L << 20)) >> 21; s11 += carry10; s10 -= carry10 * (1L << 21);
+  carry12 = (s12 + (1L << 20)) >> 21; s13 += carry12; s12 -= carry12 * (1L << 21);
+  carry14 = (s14 + (1L << 20)) >> 21; s15 += carry14; s14 -= carry14 * (1L << 21);
+  carry16 = (s16 + (1L << 20)) >> 21; s17 += carry16; s16 -= carry16 * (1L << 21);
 
-  carry7 = (s7 + (1<<20)) >> 21; s8 += carry7; s7 -= carry7 << 21;
-  carry9 = (s9 + (1<<20)) >> 21; s10 += carry9; s9 -= carry9 << 21;
-  carry11 = (s11 + (1<<20)) >> 21; s12 += carry11; s11 -= carry11 << 21;
-  carry13 = (s13 + (1<<20)) >> 21; s14 += carry13; s13 -= carry13 << 21;
-  carry15 = (s15 + (1<<20)) >> 21; s16 += carry15; s15 -= carry15 << 21;
+  carry7 = (s7 + (1L << 20)) >> 21; s8 += carry7; s7 -= carry7 * (1L << 21);
+  carry9 = (s9 + (1L << 20)) >> 21; s10 += carry9; s9 -= carry9 * (1L << 21);
+  carry11 = (s11 + (1L << 20)) >> 21; s12 += carry11; s11 -= carry11 * (1L << 21);
+  carry13 = (s13 + (1L << 20)) >> 21; s14 += carry13; s13 -= carry13 * (1L << 21);
+  carry15 = (s15 + (1L << 20)) >> 21; s16 += carry15; s15 -= carry15 * (1L << 21);
 
   s5 += s17 * 666643;
   s6 += s17 * 470296;
@@ -185,19 +185,19 @@ void sc_reduce(unsigned char *s)
   s5 -= s12 * 683901;
   s12 = 0;
 
-  carry0 = (s0 + (1<<20)) >> 21; s1 += carry0; s0 -= carry0 << 21;
-  carry2 = (s2 + (1<<20)) >> 21; s3 += carry2; s2 -= carry2 << 21;
-  carry4 = (s4 + (1<<20)) >> 21; s5 += carry4; s4 -= carry4 << 21;
-  carry6 = (s6 + (1<<20)) >> 21; s7 += carry6; s6 -= carry6 << 21;
-  carry8 = (s8 + (1<<20)) >> 21; s9 += carry8; s8 -= carry8 << 21;
-  carry10 = (s10 + (1<<20)) >> 21; s11 += carry10; s10 -= carry10 << 21;
+  carry0 = (s0 + (1L << 20)) >> 21; s1 += carry0; s0 -= carry0 * (1L << 21);
+  carry2 = (s2 + (1L << 20)) >> 21; s3 += carry2; s2 -= carry2 * (1L << 21);
+  carry4 = (s4 + (1L << 20)) >> 21; s5 += carry4; s4 -= carry4 * (1L << 21);
+  carry6 = (s6 + (1L << 20)) >> 21; s7 += carry6; s6 -= carry6 * (1L << 21);
+  carry8 = (s8 + (1L << 20)) >> 21; s9 += carry8; s8 -= carry8 * (1L << 21);
+  carry10 = (s10 + (1L << 20)) >> 21; s11 += carry10; s10 -= carry10 * (1L << 21);
 
-  carry1 = (s1 + (1<<20)) >> 21; s2 += carry1; s1 -= carry1 << 21;
-  carry3 = (s3 + (1<<20)) >> 21; s4 += carry3; s3 -= carry3 << 21;
-  carry5 = (s5 + (1<<20)) >> 21; s6 += carry5; s5 -= carry5 << 21;
-  carry7 = (s7 + (1<<20)) >> 21; s8 += carry7; s7 -= carry7 << 21;
-  carry9 = (s9 + (1<<20)) >> 21; s10 += carry9; s9 -= carry9 << 21;
-  carry11 = (s11 + (1<<20)) >> 21; s12 += carry11; s11 -= carry11 << 21;
+  carry1 = (s1 + (1L << 20)) >> 21; s2 += carry1; s1 -= carry1 * (1L << 21);
+  carry3 = (s3 + (1L << 20)) >> 21; s4 += carry3; s3 -= carry3 * (1L << 21);
+  carry5 = (s5 + (1L << 20)) >> 21; s6 += carry5; s5 -= carry5 * (1L << 21);
+  carry7 = (s7 + (1L << 20)) >> 21; s8 += carry7; s7 -= carry7 * (1L << 21);
+  carry9 = (s9 + (1L << 20)) >> 21; s10 += carry9; s9 -= carry9 * (1L << 21);
+  carry11 = (s11 + (1L << 20)) >> 21; s12 += carry11; s11 -= carry11 * (1L << 21);
 
   s0 += s12 * 666643;
   s1 += s12 * 470296;
@@ -207,18 +207,18 @@ void sc_reduce(unsigned char *s)
   s5 -= s12 * 683901;
   s12 = 0;
 
-  carry0 = s0 >> 21; s1 += carry0; s0 -= carry0 << 21;
-  carry1 = s1 >> 21; s2 += carry1; s1 -= carry1 << 21;
-  carry2 = s2 >> 21; s3 += carry2; s2 -= carry2 << 21;
-  carry3 = s3 >> 21; s4 += carry3; s3 -= carry3 << 21;
-  carry4 = s4 >> 21; s5 += carry4; s4 -= carry4 << 21;
-  carry5 = s5 >> 21; s6 += carry5; s5 -= carry5 << 21;
-  carry6 = s6 >> 21; s7 += carry6; s6 -= carry6 << 21;
-  carry7 = s7 >> 21; s8 += carry7; s7 -= carry7 << 21;
-  carry8 = s8 >> 21; s9 += carry8; s8 -= carry8 << 21;
-  carry9 = s9 >> 21; s10 += carry9; s9 -= carry9 << 21;
-  carry10 = s10 >> 21; s11 += carry10; s10 -= carry10 << 21;
-  carry11 = s11 >> 21; s12 += carry11; s11 -= carry11 << 21;
+  carry0 = s0 >> 21; s1 += carry0; s0 -= carry0 * (1L << 21);
+  carry1 = s1 >> 21; s2 += carry1; s1 -= carry1 * (1L << 21);
+  carry2 = s2 >> 21; s3 += carry2; s2 -= carry2 * (1L << 21);
+  carry3 = s3 >> 21; s4 += carry3; s3 -= carry3 * (1L << 21);
+  carry4 = s4 >> 21; s5 += carry4; s4 -= carry4 * (1L << 21);
+  carry5 = s5 >> 21; s6 += carry5; s5 -= carry5 * (1L << 21);
+  carry6 = s6 >> 21; s7 += carry6; s6 -= carry6 * (1L << 21);
+  carry7 = s7 >> 21; s8 += carry7; s7 -= carry7 * (1L << 21);
+  carry8 = s8 >> 21; s9 += carry8; s8 -= carry8 * (1L << 21);
+  carry9 = s9 >> 21; s10 += carry9; s9 -= carry9 * (1L << 21);
+  carry10 = s10 >> 21; s11 += carry10; s10 -= carry10 * (1L << 21);
+  carry11 = s11 >> 21; s12 += carry11; s11 -= carry11 * (1L << 21);
 
   s0 += s12 * 666643;
   s1 += s12 * 470296;
@@ -228,17 +228,17 @@ void sc_reduce(unsigned char *s)
   s5 -= s12 * 683901;
 
 
-  carry0 = s0 >> 21; s1 += carry0; s0 -= carry0 << 21;
-  carry1 = s1 >> 21; s2 += carry1; s1 -= carry1 << 21;
-  carry2 = s2 >> 21; s3 += carry2; s2 -= carry2 << 21;
-  carry3 = s3 >> 21; s4 += carry3; s3 -= carry3 << 21;
-  carry4 = s4 >> 21; s5 += carry4; s4 -= carry4 << 21;
-  carry5 = s5 >> 21; s6 += carry5; s5 -= carry5 << 21;
-  carry6 = s6 >> 21; s7 += carry6; s6 -= carry6 << 21;
-  carry7 = s7 >> 21; s8 += carry7; s7 -= carry7 << 21;
-  carry8 = s8 >> 21; s9 += carry8; s8 -= carry8 << 21;
-  carry9 = s9 >> 21; s10 += carry9; s9 -= carry9 << 21;
-  carry10 = s10 >> 21; s11 += carry10; s10 -= carry10 << 21;
+  carry0 = s0 >> 21; s1 += carry0; s0 -= carry0 * (1L << 21);
+  carry1 = s1 >> 21; s2 += carry1; s1 -= carry1 * (1L << 21);
+  carry2 = s2 >> 21; s3 += carry2; s2 -= carry2 * (1L << 21);
+  carry3 = s3 >> 21; s4 += carry3; s3 -= carry3 * (1L << 21);
+  carry4 = s4 >> 21; s5 += carry4; s4 -= carry4 * (1L << 21);
+  carry5 = s5 >> 21; s6 += carry5; s5 -= carry5 * (1L << 21);
+  carry6 = s6 >> 21; s7 += carry6; s6 -= carry6 * (1L << 21);
+  carry7 = s7 >> 21; s8 += carry7; s7 -= carry7 * (1L << 21);
+  carry8 = s8 >> 21; s9 += carry8; s8 -= carry8 * (1L << 21);
+  carry9 = s9 >> 21; s10 += carry9; s9 -= carry9 * (1L << 21);
+  carry10 = s10 >> 21; s11 += carry10; s10 -= carry10 * (1L << 21);
 
   s[0] = s0 >> 0;
   s[1] = s0 >> 8;

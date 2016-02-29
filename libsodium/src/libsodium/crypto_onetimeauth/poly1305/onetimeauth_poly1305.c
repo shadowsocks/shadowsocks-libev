@@ -1,25 +1,14 @@
 
 #include "crypto_onetimeauth_poly1305.h"
+#include "onetimeauth_poly1305.h"
+#include "runtime.h"
 #include "donna/poly1305_donna.h"
+#if defined(HAVE_TI_MODE) && defined(HAVE_EMMINTRIN_H)
+# include "sse2/poly1305_sse2.h"
+#endif
 
-/* LCOV_EXCL_START */
 static const crypto_onetimeauth_poly1305_implementation *implementation =
     &crypto_onetimeauth_poly1305_donna_implementation;
-
-int
-crypto_onetimeauth_poly1305_set_implementation(crypto_onetimeauth_poly1305_implementation *impl)
-{
-    implementation = impl;
-
-    return 0;
-}
-
-const char *
-crypto_onetimeauth_poly1305_implementation_name(void)
-{
-    return implementation->implementation_name();
-}
-/* LCOV_EXCL_STOP */
 
 int
 crypto_onetimeauth_poly1305(unsigned char *out, const unsigned char *in,
@@ -57,4 +46,26 @@ crypto_onetimeauth_poly1305_final(crypto_onetimeauth_poly1305_state *state,
                                   unsigned char *out)
 {
     return implementation->onetimeauth_final(state, out);
+}
+
+size_t
+crypto_onetimeauth_poly1305_bytes(void) {
+    return crypto_onetimeauth_poly1305_BYTES;
+}
+
+size_t
+crypto_onetimeauth_poly1305_keybytes(void) {
+    return crypto_onetimeauth_poly1305_KEYBYTES;
+}
+
+int
+_crypto_onetimeauth_poly1305_pick_best_implementation(void)
+{
+    implementation = &crypto_onetimeauth_poly1305_donna_implementation;
+#if defined(HAVE_TI_MODE) && defined(HAVE_EMMINTRIN_H)
+    if (sodium_runtime_has_sse2()) {
+        implementation = &crypto_onetimeauth_poly1305_sse2_implementation;
+    }
+#endif
+    return 0;
 }

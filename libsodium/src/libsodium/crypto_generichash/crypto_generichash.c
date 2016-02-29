@@ -37,9 +37,16 @@ crypto_generichash_keybytes(void)
     return crypto_generichash_KEYBYTES;
 }
 
-const char *crypto_generichash_primitive(void)
+const char *
+crypto_generichash_primitive(void)
 {
     return crypto_generichash_PRIMITIVE;
+}
+
+size_t
+crypto_generichash_statebytes(void)
+{
+    return (sizeof(crypto_generichash_state) + (size_t) 63U) & ~(size_t) 63U;
 }
 
 int
@@ -56,8 +63,7 @@ crypto_generichash_init(crypto_generichash_state *state,
                         const size_t keylen, const size_t outlen)
 {
     return crypto_generichash_blake2b_init
-        ((crypto_generichash_blake2b_state *) state,
-            key, keylen, outlen);
+        ((crypto_generichash_blake2b_state *) state, key, keylen, outlen);
 }
 
 int

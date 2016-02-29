@@ -7,12 +7,12 @@ show_help()
     echo
     echo -e "Options:"
     echo -e "  -h    show this help."
-    echo -e "  -v    with argument version(2.1.4 by default)."
-    echo -e "  -f    with argument format(tar.xz by default) used by git archive."
+    echo -e "  -v    with argument version (2.4.1 by default)."
+    echo -e "  -f    with argument format (tar.xz by default) used by git archive."
     echo
     echo -e "Examples:"
-    echo -e "  to build base on version \`2.1.4' with format \`tar.xz', run:"
-    echo -e "    `basename $0` -f tar.xz -v 2.1.4"
+    echo -e "  to build base on version \`2.4.1' with format \`tar.xz', run:"
+    echo -e "    `basename $0` -f tar.xz -v 2.4.1"
 }
 
 while getopts "hv:f:" opt
@@ -48,8 +48,8 @@ get_att_val()
     fi
 }
 
-get_att_val version "2.1.4"
-get_att_val format "tar.xz"
+get_att_val version "2.4.5"
+get_att_val format "tar.gz"
 
 name="shadowsocks-libev"
 spec_name="shadowsocks-libev.spec"
@@ -58,8 +58,8 @@ pushd `git rev-parse --show-toplevel`
 git archive v${version} --format=${format} --prefix=${name}-${version}/ -o rpm/SOURCES/${name}-${version}.${format}
 pushd rpm
 
-sed -i -e "s/^\(Version:        \).*$/\1${version}/" \
-       -e "s/^\(Source0:        %{name}-%{version}\.\).*$/\1${format}/" \
+sed -i -e "s/^\(Version:	\).*$/\1${version}/" \
+       -e "s/^\(Source0:	\).*$/\1${name}-${version}.${format}/" \
     SPECS/${spec_name}
 
 rpmbuild -bb SPECS/${spec_name} --define "%_topdir `pwd`"

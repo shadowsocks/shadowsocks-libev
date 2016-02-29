@@ -30,7 +30,8 @@ int crypto_hash(unsigned char *out, const unsigned char *in,
 
 #define crypto_hash_PRIMITIVE "sha512"
 SODIUM_EXPORT
-const char *crypto_hash_primitive(void);
+const char *crypto_hash_primitive(void)
+            __attribute__ ((warn_unused_result));
 
 #ifdef __cplusplus
 }

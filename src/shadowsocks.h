@@ -36,26 +36,28 @@ typedef struct {
     char *acl;            // file path to acl
     char *log;            // file path to log
     int fast_open;        // enable tcp fast open
-    int mode;        // enable udp relay
+    int mode;             // enable udp relay
+    int auth;             // enable one-time authentication
     int verbose;          // verbose mode
 } profile_t;
 
 /* An example profile
-
-   const profile_t EXAMPLE_PROFILE = {
-    .remote_host = "example.com",
-    .local_addr = "127.0.0.1",
-    .method = "bf-cfb",
-    .password = "barfoo!",
-    .remote_port = 8338,
-    .local_port = 1080,
-    .timeout = 600;
-    .acl = NULL,
-    .log = NULL,
-    .fast_open = 0,
-    .mode = 0,
-    .verbose = 0
-   };
+ *
+ * const profile_t EXAMPLE_PROFILE = {
+ *  .remote_host = "example.com",
+ *  .local_addr = "127.0.0.1",
+ *  .method = "bf-cfb",
+ *  .password = "barfoo!",
+ *  .remote_port = 8338,
+ *  .local_port = 1080,
+ *  .timeout = 600;
+ *  .acl = NULL,
+ *  .log = NULL,
+ *  .fast_open = 0,
+ *  .mode = 0,
+ *  .auth = 0,
+ *  .verbose = 0
+ * };
  */
 
 #ifdef __cplusplus

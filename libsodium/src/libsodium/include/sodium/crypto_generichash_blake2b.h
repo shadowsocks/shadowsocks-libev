@@ -7,12 +7,6 @@
 
 #include "export.h"
 
-#if defined(_MSC_VER)
-# define CRYPTO_ALIGN(x) __declspec(align(x))
-#else
-# define CRYPTO_ALIGN(x) __attribute__((aligned(x)))
-#endif
-
 #ifdef __cplusplus
 # if __GNUC__
 #  pragma GCC diagnostic ignored "-Wlong-long"
@@ -20,8 +14,13 @@
 extern "C" {
 #endif
 
-#pragma pack(push, 1)
-CRYPTO_ALIGN(64) typedef struct crypto_generichash_blake2b_state {
+#if defined(__IBMC__) || defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+# pragma pack(1)
+#else
+# pragma pack(push, 1)
+#endif
+
+typedef CRYPTO_ALIGN(64) struct crypto_generichash_blake2b_state {
     uint64_t h[8];
     uint64_t t[2];
     uint64_t f[2];
@@ -29,7 +28,12 @@ CRYPTO_ALIGN(64) typedef struct crypto_generichash_blake2b_state {
     size_t   buflen;
     uint8_t  last_node;
 } crypto_generichash_blake2b_state;
-#pragma pack(pop)
+
+#if defined(__IBMC__) || defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+# pragma pack()
+#else
+# pragma pack(pop)
+#endif
 
 #define crypto_generichash_blake2b_BYTES_MIN     16U
 SODIUM_EXPORT
@@ -99,6 +103,10 @@ SODIUM_EXPORT
 int crypto_generichash_blake2b_final(crypto_generichash_blake2b_state *state,
                                      unsigned char *out,
                                      const size_t outlen);
+
+/* ------------------------------------------------------------------------- */
+
+int _crypto_generichash_blake2b_pick_best_implementation(void);
 
 #ifdef __cplusplus
 }

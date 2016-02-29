@@ -1,0 +1,8 @@
+shadowsocks:
+  image: shadowsocks-libev
+  ports:
+    - "8388:8388"
+  environment:
+    - METHOD=aes-256-cfb
+    - PASSWORD=9MLSpPmNt
+  restart: always

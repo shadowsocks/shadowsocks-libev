@@ -1,4 +1,5 @@
 #include "fe.h"
+#include "crypto_int32.h"
 #include "crypto_int64.h"
 #include "crypto_uint64.h"
 
@@ -58,16 +59,16 @@ void fe_frombytes(fe h,const unsigned char *s)
   carry6 = (h6 + (crypto_int64) (1<<25)) >> 26; h7 += carry6; h6 -= carry6 << 26;
   carry8 = (h8 + (crypto_int64) (1<<25)) >> 26; h9 += carry8; h8 -= carry8 << 26;
 
-  h[0] = h0;
-  h[1] = h1;
-  h[2] = h2;
-  h[3] = h3;
-  h[4] = h4;
-  h[5] = h5;
-  h[6] = h6;
-  h[7] = h7;
-  h[8] = h8;
-  h[9] = h9;
+  h[0] = (crypto_int32) h0;
+  h[1] = (crypto_int32) h1;
+  h[2] = (crypto_int32) h2;
+  h[3] = (crypto_int32) h3;
+  h[4] = (crypto_int32) h4;
+  h[5] = (crypto_int32) h5;
+  h[6] = (crypto_int32) h6;
+  h[7] = (crypto_int32) h7;
+  h[8] = (crypto_int32) h8;
+  h[9] = (crypto_int32) h9;
 }
 
 #endif

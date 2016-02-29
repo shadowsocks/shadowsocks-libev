@@ -33,7 +33,7 @@ void winsock_init(void)
     WSADATA wsaData;
     int ret;
     wVersionRequested = MAKEWORD(1, 1);
-    ret = WSAStartup(wVersionRequested, &wsaData);
+    ret               = WSAStartup(wVersionRequested, &wsaData);
     if (ret != 0) {
         FATAL("Could not initialize winsock");
     }
@@ -64,7 +64,7 @@ void ss_error(const char *s)
 
 int setnonblocking(int fd)
 {
-    u_long iMode = 0;
+    u_long iMode = 1;
     long int iResult;
     iResult = ioctlsocket(fd, FIONBIO, &iMode);
     if (iResult != NO_ERROR) {

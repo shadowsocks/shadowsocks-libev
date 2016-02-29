@@ -42,6 +42,16 @@
 #include "netutils.h"
 #include "utils.h"
 
+#ifndef SO_REUSEPORT
+#define SO_REUSEPORT 15
+#endif
+
+int set_reuseport(int socket)
+{
+    int opt = 1;
+    return setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
+}
+
 size_t get_sockaddr_len(struct sockaddr *addr)
 {
     if (addr->sa_family == AF_INET) {
@@ -77,7 +87,7 @@ size_t get_sockaddr(char *host, char *port, struct sockaddr_storage *storage, in
         struct addrinfo *result, *rp;
 
         memset(&hints, 0, sizeof(struct addrinfo));
-        hints.ai_family = AF_UNSPEC;     /* Return IPv4 and IPv6 choices */
+        hints.ai_family   = AF_UNSPEC;   /* Return IPv4 and IPv6 choices */
         hints.ai_socktype = SOCK_STREAM; /* We want a TCP socket */
 
         int err, i;
@@ -97,20 +107,18 @@ size_t get_sockaddr(char *host, char *port, struct sockaddr_storage *storage, in
             return -1;
         }
 
-        for (rp = result; rp != NULL; rp = rp->ai_next) {
+        for (rp = result; rp != NULL; rp = rp->ai_next)
             if (rp->ai_family == AF_INET) {
                 memcpy(storage, rp->ai_addr, sizeof(struct sockaddr_in));
                 break;
             }
-        }
 
         if (rp == NULL) {
-            for (rp = result; rp != NULL; rp = rp->ai_next) {
+            for (rp = result; rp != NULL; rp = rp->ai_next)
                 if (rp->ai_family == AF_INET6) {
                     memcpy(storage, rp->ai_addr, sizeof(struct sockaddr_in6));
                     break;
                 }
-            }
         }
 
         if (rp == NULL) {

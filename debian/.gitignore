@@ -1,0 +1,5 @@
+*.substvars
+libshadowsocks1/
+libshadowsocks-dbg/
+libshadowsocks-dev/
+tmp/

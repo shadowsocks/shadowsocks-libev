@@ -1,8 +1,8 @@
-#include "api.h"
 #include "crypto_onetimeauth_poly1305.h"
+#include "crypto_secretbox_xsalsa20poly1305.h"
 #include "crypto_stream_xsalsa20.h"
 
-int crypto_secretbox(
+int crypto_secretbox_xsalsa20poly1305(
   unsigned char *c,
   const unsigned char *m,unsigned long long mlen,
   const unsigned char *n,
@@ -17,7 +17,7 @@ int crypto_secretbox(
   return 0;
 }
 
-int crypto_secretbox_open(
+int crypto_secretbox_xsalsa20poly1305_open(
   unsigned char *m,
   const unsigned char *c,unsigned long long clen,
   const unsigned char *n,

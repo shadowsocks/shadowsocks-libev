@@ -2,6 +2,19 @@ dnl Check to find the OpenSSL headers/libraries
 
 AC_DEFUN([ss_OPENSSL],
 [
+  case $host_os in
+    *mingw*)
+    ;;
+    *)
+      AC_CHECK_FUNC(dlopen,
+        [],
+        [AC_CHECK_LIB(dl, dlopen,
+          [LIBS="$LIBS -ldl"],
+          [AC_MSG_ERROR([OpenSSL depends on libdl.]); break]
+        )]
+      )
+    ;;
+  esac
 
   AC_ARG_WITH(openssl,
     AS_HELP_STRING([--with-openssl=DIR], [OpenSSL base directory, or:]),
