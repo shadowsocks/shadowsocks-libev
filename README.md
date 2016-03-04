@@ -93,6 +93,8 @@ in the system during compilation and linking.
 
 #### Install from repository
 
+**Note: The repository doesn't always contain the latest version. Please build from source if you want the latest version (see below)**
+
 Add GPG public key:
 
 ```bash
@@ -160,7 +162,7 @@ sudo vim /etc/default/shadowsocks-libev
 
 # Start the service
 sudo /etc/init.d/shadowsocks-libev start    # for sysvinit, or
-sudo systemctl start shasowsocks-libev      # for systemd
+sudo systemctl start shadowsocks-libev      # for systemd
 ```
 
 ### Fedora & RHEL
