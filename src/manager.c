@@ -576,7 +576,8 @@ int main(int argc, char **argv)
         { "acl",             required_argument, 0, 0 },
         { "manager-address", required_argument, 0, 0 },
         { "executable",      required_argument, 0, 0 },
-        {                 0,                 0, 0, 0 }
+        { "help",            no_argument,       0, 0 },
+        { 0,                 0,                 0, 0 }
     };
 
     opterr = 0;
@@ -595,6 +596,9 @@ int main(int argc, char **argv)
                 manager_address = optarg;
             } else if (option_index == 3) {
                 executable = optarg;
+            } else if (option_index == 4) {
+                usage();
+                exit(EXIT_SUCCESS);
             }
             break;
         case 's':

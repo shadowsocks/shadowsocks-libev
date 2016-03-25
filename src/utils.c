@@ -204,8 +204,7 @@ void usage()
     printf("    ss-manager\n");
 #endif
     printf("\n");
-    printf(
-        "       -h                         Print this message.\n");
+    printf("       [-h, --help]               Print this message.\n");
     printf(
         "       -s <server_host>           Host name or ip address of your remote server.\n");
     printf(

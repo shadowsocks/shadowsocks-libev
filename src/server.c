@@ -1320,7 +1320,8 @@ int main(int argc, char **argv)
         { "fast-open",       no_argument,       0, 0 },
         { "acl",             required_argument, 0, 0 },
         { "manager-address", required_argument, 0, 0 },
-        {                 0,                 0, 0, 0 }
+        { "help",            no_argument,       0, 0 },
+        { 0,                 0,                 0, 0 }
     };
 
     opterr = 0;
@@ -1339,6 +1340,9 @@ int main(int argc, char **argv)
                 acl_path = optarg;
             } else if (option_index == 2) {
                 manager_address = optarg;
+            } else if (option_index == 3) {
+                usage();
+                exit(EXIT_SUCCESS);
             }
             break;
         case 's':

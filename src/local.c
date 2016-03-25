@@ -988,7 +988,8 @@ int main(int argc, char **argv)
     static struct option long_options[] = {
         { "fast-open", no_argument,       0, 0 },
         { "acl",       required_argument, 0, 0 },
-        {           0,                 0, 0, 0 }
+        { "help",      no_argument,       0, 0 },
+        { 0,           0,                 0, 0 }
     };
 
     opterr = 0;
@@ -1009,6 +1010,9 @@ int main(int argc, char **argv)
             } else if (option_index == 1) {
                 LOGI("initialize acl...");
                 acl = !init_acl(optarg, BLACK_LIST);
+            } else if (option_index == 2) {
+                usage();
+                exit(EXIT_SUCCESS);
             }
             break;
         case 's':
