@@ -1327,7 +1327,7 @@ int main(int argc, char **argv)
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:i:d:a:n:uUvAw",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:i:d:a:n:huUvAw",
                             long_options, &option_index)) != -1)
         switch (c) {
         case 0:
@@ -1395,6 +1395,12 @@ int main(int argc, char **argv)
             break;
         case 'w':
             white_list = 1;
+            break;
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
+        case '?':
+            opterr = 1;
             break;
         }
 

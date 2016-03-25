@@ -671,7 +671,7 @@ int main(int argc, char **argv)
 
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:uUvA")) != -1)
+    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:huUvA")) != -1)
         switch (c) {
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
@@ -723,6 +723,12 @@ int main(int argc, char **argv)
             break;
         case 'A':
             auth = 1;
+            break;
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
+        case '?':
+            opterr = 1;
             break;
         }
 

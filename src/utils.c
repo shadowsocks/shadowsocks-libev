@@ -205,6 +205,8 @@ void usage()
 #endif
     printf("\n");
     printf(
+        "       -h                         Print this message.\n");
+    printf(
         "       -s <server_host>           Host name or ip address of your remote server.\n");
     printf(
         "       -p <server_port>           Port number of your remote server.\n");

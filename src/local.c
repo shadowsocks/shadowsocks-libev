@@ -999,7 +999,7 @@ int main(int argc, char **argv)
     while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:P:uvVA",
                             long_options, &option_index)) != -1) {
 #else
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:uvA",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huvA",
                             long_options, &option_index)) != -1) {
 #endif
         switch (c) {
@@ -1070,6 +1070,12 @@ int main(int argc, char **argv)
             prefix = optarg;
             break;
 #endif
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
+        case '?':
+            opterr = 1;
+            break;
         }
     }
 
