@@ -160,7 +160,7 @@ sudo vim /etc/default/shadowsocks-libev
 
 # Start the service
 sudo /etc/init.d/shadowsocks-libev start    # for sysvinit, or
-sudo systemctl start shasowsocks-libev      # for systemd
+sudo systemctl start shadowsocks-libev      # for systemd
 ```
 
 ### Fedora & RHEL
