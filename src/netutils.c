@@ -62,7 +62,7 @@ size_t get_sockaddr_len(struct sockaddr *addr)
     return 0;
 }
 
-size_t get_sockaddr(char *host, char *port, struct sockaddr_storage *storage, int block)
+ssize_t get_sockaddr(char *host, char *port, struct sockaddr_storage *storage, int block)
 {
     struct cork_ip ip;
     if (cork_ip_init(&ip, host) != -1) {
