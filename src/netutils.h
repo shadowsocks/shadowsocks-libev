@@ -23,8 +23,34 @@
 #ifndef _NETUTILS_H
 #define _NETUTILS_H
 
+/** byte size of ip4 address */
+#define INET_SIZE 4
+/** byte size of ip6 address */
+#define INET6_SIZE 16
+
 size_t get_sockaddr_len(struct sockaddr *addr);
 ssize_t get_sockaddr(char *host, char *port, struct sockaddr_storage *storage, int block);
 int set_reuseport(int socket);
+
+/**
+ * Compare two sockaddrs. Imposes an ordering on the addresses.
+ * Compares address and port.
+ * @param addr1: address 1.
+ * @param addr2: address 2.
+ * @param len: lengths of addr.
+ * @return: 0 if addr1 == addr2. -1 if addr1 is smaller, +1 if larger.
+ */
+int sockaddr_cmp(struct sockaddr_storage* addr1,
+    struct sockaddr_storage* addr2, socklen_t len);
+
+/**
+ * Compare two sockaddrs. Compares address, not the port.
+ * @param addr1: address 1.
+ * @param addr2: address 2.
+ * @param len: lengths of addr.
+ * @return: 0 if addr1 == addr2. -1 if addr1 is smaller, +1 if larger.
+ */
+int sockaddr_cmp_addr(struct sockaddr_storage* addr1,
+    struct sockaddr_storage* addr2, socklen_t len);
 
 #endif
