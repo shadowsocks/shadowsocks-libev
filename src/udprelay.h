@@ -1,4 +1,4 @@
- /*
+/*
  * udprelay.h - Define UDP relay's buffers and callbacks
  *
  * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
@@ -81,7 +81,7 @@ typedef struct remote_ctx {
     int addr_header_len;
     char addr_header[384];
     struct sockaddr_storage src_addr;
-#ifdef UDPRELAY_REMOTE
+#ifdef MODULE_REMOTE
     struct sockaddr_storage dst_addr;
 #endif
     struct server_ctx *server_ctx;
