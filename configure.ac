@@ -2,11 +2,12 @@ dnl                                               -*- Autoconf -*-
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([shadowsocks-libev], [2.3.0], [max.c.lv@gmail.com])
+AC_INIT([shadowsocks-libev], [2.4.5], [max.c.lv@gmail.com])
 AC_CONFIG_SRCDIR([src/encrypt.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR(auto)
 AC_CONFIG_MACRO_DIR([m4])
+AC_USE_SYSTEM_EXTENSIONS
 
 AM_INIT_AUTOMAKE([subdir-objects foreign -Wall -Werror])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
@@ -18,6 +19,18 @@ dnl Checks for lib
 AC_DISABLE_STATIC
 AC_DISABLE_SHARED
 LT_INIT([dlopen])
+
+dnl Checks for using shared libraries from system
+AC_ARG_ENABLE(
+  [system-shared-lib],
+  AS_HELP_STRING([--enable-system-shared-lib], [build against shared libraries when possible]),
+  [
+    case "${enableval}" in
+      yes) enable_system_shared_lib=true ;;
+      no) enable_system_shared_lib=false ;;
+      *) AC_MSG_ERROR([bad value ${enableval} for --enable-system-shared-lib]) ;;
+    esac], [enable_system_shared_lib=false])
+AM_CONDITIONAL([USE_SYSTEM_SHARED_LIB], [test x$enable_system_shared_lib = xtrue])
 
 dnl Checks for crypto library
 AC_ARG_WITH(
@@ -59,6 +72,7 @@ AX_TLS([:], [:])
 dnl Checks for crypto library
 case "${with_crypto_library}" in
   openssl)
+    ss_ZLIB
     ss_OPENSSL
     AC_DEFINE([USE_CRYPTO_OPENSSL], [1], [Use OpenSSL library])
     ;;
@@ -111,6 +125,43 @@ case $host in
     AC_MSG_RESULT(transparent proxy does not support for $host)
     ;;
 esac
+
+dnl Checks for pthread
+AX_PTHREAD([LIBS="$PTHREAD_LIBS $LIBS"
+            CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+            CC="$PTHREAD_CC"], AC_MSG_ERROR(Can not find pthreads.  This is required.))
+
+dnl Checks for stack protector
+GGL_CHECK_STACK_PROTECTOR([has_stack_protector=yes], [has_stack_protector=no])
+# XXX - disable -fstack-protector due to missing libssp_nonshared
+case "$host_os" in
+     *aix*)
+	AC_MSG_NOTICE([-fstack-protector disabled on AIX])
+	has_stack_protector=no
+	;;
+     *sunos*)
+	AC_MSG_NOTICE([-fstack-protector disabled on SunOS])
+	has_stack_protector=no
+	;;
+     *solaris*)
+	AC_MSG_NOTICE([-fstack-protector disabled on Solaris])
+	has_stack_protector=no
+	;;
+esac
+
+AC_ARG_ENABLE(ssp,
+[AS_HELP_STRING(--disable-ssp,Do not compile with -fstack-protector)],
+[
+  enable_ssp="no"
+],
+[
+  enable_ssp="yes"
+])
+
+if test x$has_stack_protector = xyes && test x$enable_ssp = xyes; then
+   CFLAGS="$CFLAGS -fstack-protector"
+   AC_MSG_NOTICE([-fstack-protector enabled in CFLAGS])
+fi
 
 AM_CONDITIONAL(BUILD_REDIRECTOR, test "$os_support" = "linux")
 AM_CONDITIONAL(BUILD_WINCOMPAT, test "$os_support" = "mingw")
@@ -208,7 +259,7 @@ if test "$ac_cv_func_select" != "yes"; then
       AC_MSG_RESULT([yes])
       HAVE_SELECT="1"
       AC_DEFINE_UNQUOTED(HAVE_SELECT, 1,
-        [Define to 1 if you have the `select' function.])
+        [Define to 1 if you have the 'select' function.])
       HAVE_SYS_SELECT_H="1"
       AC_DEFINE_UNQUOTED(HAVE_SYS_SELECT_H, 1,
         [Define to 1 if you have the <sys/select.h> header file.])
@@ -217,16 +268,14 @@ if test "$ac_cv_func_select" != "yes"; then
   ])
 fi
 
-AC_SYS_LARGEFILE
-
 AC_CHECK_LIB(socket, connect)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS([malloc memset socket])
 
-ACX_PTHREAD
-
-AC_CONFIG_SUBDIRS([libsodium])
+AM_COND_IF([USE_SYSTEM_SHARED_LIB],
+  [],
+  [AC_CONFIG_SUBDIRS([libsodium])])
 
 AC_CONFIG_FILES([ shadowsocks-libev.pc
                  Makefile

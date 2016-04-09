@@ -60,7 +60,6 @@
 #define IPV6_V6ONLY 27 // Treat wildcard bind as AF_INET6-only.
 #endif
 
-
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #define errno WSAGetLastError()
 #define close(fd) closesocket(fd)

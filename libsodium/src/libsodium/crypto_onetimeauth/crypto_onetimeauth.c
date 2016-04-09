@@ -2,6 +2,12 @@
 #include "crypto_onetimeauth.h"
 
 size_t
+crypto_onetimeauth_statebytes(void)
+{
+    return sizeof(crypto_onetimeauth_state);
+}
+
+size_t
 crypto_onetimeauth_bytes(void)
 {
     return crypto_onetimeauth_BYTES;
@@ -11,12 +17,6 @@ size_t
 crypto_onetimeauth_keybytes(void)
 {
     return crypto_onetimeauth_KEYBYTES;
-}
-
-const char *
-crypto_onetimeauth_primitive(void)
-{
-    return crypto_onetimeauth_PRIMITIVE;
 }
 
 int
@@ -56,4 +56,10 @@ crypto_onetimeauth_final(crypto_onetimeauth_state *state,
 {
     return crypto_onetimeauth_poly1305_final
         ((crypto_onetimeauth_poly1305_state *) state, out);
+}
+
+const char *
+crypto_onetimeauth_primitive(void)
+{
+    return crypto_onetimeauth_PRIMITIVE;
 }

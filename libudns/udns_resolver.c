@@ -126,12 +126,14 @@ qlist_insert_after(struct dns_qlist *list,
     qlist_add_head(list, q);
 }
 
-union sockaddr_ns {
-  struct sockaddr sa;
-  struct sockaddr_in sin;
+struct sockaddr_ns {
+  union {
+    struct sockaddr sa;
+    struct sockaddr_in sin;
 #ifdef HAVE_IPv6
-  struct sockaddr_in6 sin6;
+    struct sockaddr_in6 sin6;
 #endif
+  };
 };
 
 #define sin_eq(a,b) \
@@ -150,7 +152,7 @@ struct dns_ctx {		/* resolver context */
   unsigned dnsc_port;			/* default port (DNS_PORT) */
   unsigned dnsc_udpbuf;			/* size of UDP buffer */
   /* array of nameserver addresses */
-  union sockaddr_ns dnsc_serv[DNS_MAXSERV];
+  struct sockaddr_ns dnsc_serv[DNS_MAXSERV];
   unsigned dnsc_nserv;			/* number of nameservers */
   unsigned dnsc_salen;			/* length of socket addresses */
   dnsc_t dnsc_srchbuf[1024];		/* buffer for searchlist */
@@ -230,7 +232,7 @@ enum {
 };
 
 int dns_add_serv(struct dns_ctx *ctx, const char *serv) {
-  union sockaddr_ns *sns;
+  struct sockaddr_ns *sns;
   SETCTXFRESH(ctx);
   if (!serv)
     return (ctx->dnsc_nserv = 0);
@@ -483,7 +485,7 @@ int dns_open(struct dns_ctx *ctx) {
   int sock;
   unsigned i;
   int port;
-  union sockaddr_ns *sns;
+  struct sockaddr_ns *sns;
 #ifdef HAVE_IPv6
   unsigned have_inet6 = 0;
 #endif
@@ -814,7 +816,7 @@ dns_send_this(struct dns_ctx *ctx, struct dns_query *q,
     return -1;
   }
   DNS_DBGQ(ctx, q, 1,
-           &ctx->dnsc_serv[servi].sa, sizeof(union sockaddr_ns),
+           &ctx->dnsc_serv[servi].sa, sizeof(struct sockaddr_ns),
            ctx->dnsc_pbuf, qlen);
   q->dnsq_servwait |= 1 << servi;	/* expect reply from this ns */
 
@@ -965,7 +967,7 @@ void dns_ioevent(struct dns_ctx *ctx, time_t now) {
   dnsc_t *pbuf;
   dnscc_t *pend, *pcur;
   void *result;
-  union sockaddr_ns sns;
+  struct sockaddr_ns sns;
   socklen_t slen;
 
   SETCTX(ctx);

@@ -1,3 +1,55 @@
+shadowsocks-libev (2.4.5-1) unstable; urgency=low
+
+  * Fix build issues on OpenWRT.
+  * Reduce the latency of redir mode.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 01 Feb 2016 13:22:50 +0800
+
+shadowsocks-libev (2.4.4-1) unstable; urgency=low
+
+  * Fix a potential memory leak.
+  * Fix some compiler related issues.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 13 Jan 2016 11:50:12 +0800
+
+shadowsocks-libev (2.4.3-1) unstable; urgency=high
+
+  * Refine the buffer allocation.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 19 Dec 2015 12:30:21 +0900
+
+shadowsocks-libev (2.4.1-1) unstable; urgency=high
+
+  * Fix a security bug.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 29 Oct 2015 15:42:47 +0900
+
+shadowsocks-libev (2.4.0-1) unstable; urgency=low
+
+  * Update the one-time authentication
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 24 Sep 2015 14:11:05 +0900
+
+shadowsocks-libev (2.3.3-1) unstable; urgency=low
+
+  * Refine the onetime authentication of header.
+  * Enforce CRC16 on the payload.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 18 Sep 2015 10:38:21 +0900
+
+shadowsocks-libev (2.3.2-1) unstable; urgency=low
+
+  * Fix minor issues of build scripts.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 13 Sep 2015 15:22:28 +0900
+
+shadowsocks-libev (2.3.1-1) unstable; urgency=low
+
+  * Fix an issue of connection cache of UDP relay.
+  * Add support of onetime authentication for header verification.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 04 Sep 2015 07:54:02 +0900
+
 shadowsocks-libev (2.3.0-1) unstable; urgency=low
 
   * Add manager mode to support multi-user and traffic stat.

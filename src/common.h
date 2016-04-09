@@ -35,7 +35,7 @@
 #define MSG_FASTOPEN   0x20000000
 #endif
 
-#else
+#elif !defined(__APPLE__)
 
 #ifdef TCP_FASTOPEN
 #undef TCP_FASTOPEN
@@ -43,7 +43,7 @@
 
 #endif
 
-#define DEFAULT_CONF_PATH "/etc/shadowsocks/config.json"
+#define DEFAULT_CONF_PATH "/etc/shadowsocks-libev/config.json"
 
 #ifndef SOL_TCP
 #define SOL_TCP IPPROTO_TCP
@@ -53,19 +53,24 @@
 #define TCP_AND_UDP  1
 #define UDP_ONLY     3
 
+#if defined(MODULE_TUNNEL) || defined(MODULE_REDIR)
+#define MODULE_LOCAL
+#endif
+
 int init_udprelay(const char *server_host, const char *server_port,
-#ifdef UDPRELAY_LOCAL
+#ifdef MODULE_LOCAL
                   const struct sockaddr *remote_addr, const int remote_addr_len,
-#ifdef UDPRELAY_TUNNEL
+#ifdef MODULE_TUNNEL
                   const ss_addr_t tunnel_addr,
 #endif
 #endif
-                  int method, int timeout, const char *iface);
+                  int method, int auth, int timeout, const char *iface);
 
 void free_udprelay(void);
 
 #ifdef ANDROID
 int protect_socket(int fd);
+int send_traffic_stat(uint64_t tx, uint64_t rx);
 #endif
 
 #endif // _COMMON_H

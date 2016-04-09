@@ -8,5 +8,5 @@ Description: a lightweight secured socks5 proxy
 URL: http://shadowsocks.org
 Version: @VERSION@
 Requires:
-Libs: -I${includedir}
-Cflags: -L${libdir} -lshadowsocks -lcrypto
+Cflags: -I${includedir}
+Libs: -L${libdir} -lshadowsocks -lcrypto

@@ -1,16 +1,16 @@
 
 #include <string.h>
 
-#include "api.h"
+#include "crypto_sign_ed25519.h"
 #include "crypto_hash_sha512.h"
 #include "crypto_scalarmult_curve25519.h"
-#include "randombytes.h"
-#include "utils.h"
 #include "fe.h"
 #include "ge.h"
+#include "randombytes.h"
+#include "utils.h"
 
-int crypto_sign_seed_keypair(unsigned char *pk, unsigned char *sk,
-                             const unsigned char *seed)
+int crypto_sign_ed25519_seed_keypair(unsigned char *pk, unsigned char *sk,
+                                     const unsigned char *seed)
 {
     ge_p3 A;
 
@@ -27,13 +27,13 @@ int crypto_sign_seed_keypair(unsigned char *pk, unsigned char *sk,
     return 0;
 }
 
-int crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
+int crypto_sign_ed25519_keypair(unsigned char *pk, unsigned char *sk)
 {
     unsigned char seed[32];
     int           ret;
 
     randombytes_buf(seed, sizeof seed);
-    ret = crypto_sign_seed_keypair(pk, sk, seed);
+    ret = crypto_sign_ed25519_seed_keypair(pk, sk, seed);
     sodium_memzero(seed, sizeof seed);
 
     return ret;
@@ -46,7 +46,9 @@ int crypto_sign_ed25519_pk_to_curve25519(unsigned char *curve25519_pk,
     fe    x;
     fe    one_minus_y;
 
-    ge_frombytes_negate_vartime(&A, ed25519_pk);
+    if (ge_frombytes_negate_vartime(&A, ed25519_pk) != 0) {
+        return -1;
+    }
     fe_1(one_minus_y);
     fe_sub(one_minus_y, one_minus_y, A.Y);
     fe_invert(one_minus_y, one_minus_y);

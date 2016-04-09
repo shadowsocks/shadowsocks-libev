@@ -56,6 +56,10 @@
 /* Do some mingw32 autodetection. */
 #include <libcork/config/mingw32.h>
 
+#elif defined(__sun)
+/* Do some Solaris autodetection. */
+#include <libcork/config/solaris.h>
+
 #endif  /* platforms */
 
 

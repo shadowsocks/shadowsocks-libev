@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/jedisct1/libsodium.png?branch=master)](https://travis-ci.org/jedisct1/libsodium?branch=master)
+[![Build Status](https://travis-ci.org/jedisct1/libsodium.svg?branch=master)](https://travis-ci.org/jedisct1/libsodium?branch=master)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/2397/badge.svg)](https://scan.coverity.com/projects/2397)
 
 ![libsodium](https://raw.github.com/jedisct1/libsodium/master/logo.png)
@@ -22,7 +22,7 @@ including Windows (with MingW or Visual Studio, x86 and x64), iOS and Android.
 The documentation is a work-in-progress, and is being written using
 Gitbook:
 
-[libsodium documentation](http://doc.libsodium.org)
+[libsodium documentation](https://download.libsodium.org/doc/)
 
 ## Community
 
@@ -33,4 +33,4 @@ In order to join, just send a random mail to `sodium-subscribe` {at}
 
 ## License
 
-[ISC license](http://en.wikipedia.org/wiki/ISC_license).
+[ISC license](https://en.wikipedia.org/wiki/ISC_license).

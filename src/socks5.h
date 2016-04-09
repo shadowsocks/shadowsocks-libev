@@ -60,5 +60,4 @@ struct socks5_response {
 
 #pragma pack(pop)
 
-#endif //_SOCKS5_H
-
+#endif // _SOCKS5_H

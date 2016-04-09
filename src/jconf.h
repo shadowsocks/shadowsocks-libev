@@ -27,7 +27,7 @@
 #define MAX_CONF_SIZE 128 * 1024
 #define MAX_DNS_NUM 4
 #define MAX_CONNECT_TIMEOUT 10
-#define MIN_UDP_TIMEOUT 60
+#define MIN_UDP_TIMEOUT 10
 
 typedef struct {
     char *host;
@@ -50,12 +50,13 @@ typedef struct {
     char *password;
     char *method;
     char *timeout;
+    int auth;
     int fast_open;
     int nofile;
     char *nameserver;
 } jconf_t;
 
-jconf_t *read_jconf(const char * file);
+jconf_t *read_jconf(const char *file);
 void parse_addr(const char *str, ss_addr_t *addr);
 void free_addr(ss_addr_t *addr);
 

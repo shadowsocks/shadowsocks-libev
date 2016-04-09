@@ -16,9 +16,23 @@
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
+# Enable Multi-Arch support.
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
+override_dh_strip:
+	dh_strip --dbg-package=libshadowsocks-dbg
+	sed -i "/dependency_libs/ s/'.*'/''/" `find . -name '*.la'`
+
 override_dh_auto_configure:
 	dh_auto_configure -- \
         --enable-shared
 
+override_dh_installinit:
+	dh_installinit
+	dh_installinit --no-start --name=shadowsocks-libev-server@
+	dh_installinit --no-start --name=shadowsocks-libev-tunnel@
+	dh_installinit --no-start --name=shadowsocks-libev-redir@
+	dh_installinit --no-start --name=shadowsocks-libev-local@
+
 %:
-	dh $@ 
+	dh $@  --with systemd

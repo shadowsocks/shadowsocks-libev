@@ -8,7 +8,8 @@ blake2                                 Jean-Philippe Aumasson
                                        Zooko Wilcox-O'Hearn
 
 chacha20                               Daniel J. Bernstein
-salsa20
+
+salsa20                                Daniel J. Bernstein
 
 chacha20poly1305                       Adam Langley
 
@@ -32,6 +33,9 @@ scrypt                                 Colin Percival
 Implementors
 ============
 
+crypto_aead/aes256gcm/aesni            Romain Dolbeau
+                                       Frank Denis
+
 crypto_aead/chacha20poly1305           Frank Denis
 
 crypto_box/curve25519xsalsa20poly1305  Daniel J. Bernstein
@@ -53,6 +57,8 @@ crypto_scalarmult/curve25519/ref10     Daniel J. Bernstein
 
 crypto_scalarmult/curve25519/donna_c64 Adam Langley
 
+crypto_scalarmult/curve25519/sandy2x   Tung Chou
+
 crypto_secretbox/xsalsa20poly1305      Daniel J. Bernstein
 
 crypto_sign/ed25519                    Peter Schwabe
@@ -63,7 +69,9 @@ crypto_sign/ed25519                    Peter Schwabe
 
 crypto_stream/aes128ctr                Peter Schwabe
 
-crypto_stream/chacha20                 Daniel J. Bernstein
+crypto_stream/chacha20/ref             Daniel J. Bernstein
+
+crypto_stream/chacha20/vec             Ted Krovetz
 
 crypto_stream/salsa20                  Daniel J. Bernstein
 crypto_stream/salsa2012
@@ -78,7 +86,9 @@ crypto_generichash/blake2b             Jean-Philippe Aumasson
                                        Samuel Neves
                                        Zooko Wilcox-O'Hearn
 
-crypto_onetimeauth/poly1305/donna      Andrew "floodyberry" Moon.
+crypto_onetimeauth/poly1305/donna      Andrew "floodyberry" Moon
+
+crypto_onetimeauth/poly1305/sse2       Andrew "floodyberry" Moon
 
 crypto_pwhash/scryptsalsa208sha256     Colin Percival
                                        Alexander Peslyak

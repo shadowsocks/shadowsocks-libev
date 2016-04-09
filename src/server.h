@@ -33,28 +33,30 @@
 
 #include "common.h"
 
-struct listen_ctx {
+typedef struct listen_ctx {
     ev_io io;
     int fd;
     int timeout;
     int method;
     char *iface;
     struct ev_loop *loop;
-};
+} listen_ctx_t;
 
-struct server_ctx {
+typedef struct server_ctx {
     ev_io io;
     ev_timer watcher;
     int connected;
     struct server *server;
-};
+} server_ctx_t;
 
-struct server {
+typedef struct server {
     int fd;
     int stage;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // server send from, remote recv into
+    buffer_t *buf;
+
+    int auth;
+    struct chunk *chunk;
+
     struct enc_ctx *e_ctx;
     struct enc_ctx *d_ctx;
     struct server_ctx *recv_ctx;
@@ -65,22 +67,20 @@ struct server {
     struct ResolvQuery *query;
 
     struct cork_dllist_item entries;
-};
+} server_t;
 
-struct remote_ctx {
+typedef struct remote_ctx {
     ev_io io;
     int connected;
     struct remote *remote;
-};
+} remote_ctx_t;
 
-struct remote {
+typedef struct remote {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // remote send from, server recv into
+    buffer_t *buf;
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
-};
+} remote_t;
 
 #endif // _SERVER_H

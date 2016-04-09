@@ -35,7 +35,7 @@ void *
 alloc_region(escrypt_region_t * region, size_t size)
 {
 	uint8_t * base, * aligned;
-#ifdef MAP_ANON
+#if defined(MAP_ANON) && defined(HAVE_MMAP)
 	if ((base = (uint8_t *) mmap(NULL, size, PROT_READ | PROT_WRITE,
 #ifdef MAP_NOCORE
 	    MAP_ANON | MAP_PRIVATE | MAP_NOCORE,
@@ -75,7 +75,7 @@ int
 free_region(escrypt_region_t * region)
 {
 	if (region->base) {
-#ifdef MAP_ANON
+#if defined(MAP_ANON) && defined(HAVE_MMAP)
 		if (munmap(region->base, region->size))
 			return -1; /* LCOV_EXCL_LINE */
 #else

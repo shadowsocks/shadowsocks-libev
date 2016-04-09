@@ -2,8 +2,8 @@ Source: shadowsocks-libev
 Section: net
 Priority: extra
 Maintainer: Max Lv <max.c.lv@gmail.com>
-Build-Depends: debhelper (>= 7.0.50~), libssl-dev (>= 0.9.8), autotools-dev, mime-support, gawk
-Standards-Version: 3.8.4
+Build-Depends: debhelper (>= 9), dh-systemd (>= 1.5), pkg-config, libssl-dev (>= 0.9.8), autotools-dev, mime-support, gawk
+Standards-Version: 3.9.6
 Homepage: http://www.shadowsocks.org
 Vcs-Git: https://github.com/shadowsocks/shadowsocks-libev.git
 Vcs-Browser: https://github.com/shadowsocks/shadowsocks-libev
@@ -13,5 +13,44 @@ Replaces: shadowsocks (<< 1.5.3-2)
 Breaks: shadowsocks (<< 1.5.3-2)
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: A lightweight and secure socks5 proxy.
-    Shadowsocks-libev is a lightweight and secure socks5 proxy for embedded devices and low end boxes.
+Description: lightweight and secure socks5 proxy
+ Shadowsocks-libev is a lightweight and secure socks5 proxy for
+ embedded devices and low end boxes.
+
+Package: libshadowsocks1
+Architecture: any
+Multi-Arch: same
+Section: libs
+Priority: extra
+Breaks: shadowsocks-libev (<< 2.4.0)
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: lightweight and secure socks5 proxy (shared library)
+ Shadowsocks-libev is a lightweight and secure socks5 proxy for
+ embedded devices and low end boxes.
+ .
+ This package provides shared libraries.
+
+Package: libshadowsocks-dev
+Architecture: any
+Section: libdevel
+Priority: extra
+Breaks: shadowsocks-libev (<< 2.4.0)
+Depends: libshadowsocks1 (= ${binary:Version}), ${misc:Depends}
+Description: lightweight and secure socks5 proxy (development files)
+ Shadowsocks-libev is a lightweight and secure socks5 proxy for
+ embedded devices and low end boxes.
+ .
+ This package provides C header files for the libraries.
+
+Package: libshadowsocks-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Breaks: shadowsocks-libev (<< 2.4.0)
+Depends: libshadowsocks1 (= ${binary:Version}), ${misc:Depends}
+Description: debugging symbols for the libshadowsocks1 library
+ Shadowsocks-libev is a lightweight and secure socks5 proxy for
+ embedded devices and low end boxes.
+ .
+ This package contains the debugging symbols for libshadowsocks1.

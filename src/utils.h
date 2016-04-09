@@ -44,12 +44,12 @@
 
 #else
 
-#define STR(x) #x
+#define STR(x) # x
 #define TOSTR(x) STR(x)
 
 #ifdef LIB_ONLY
 
-extern FILE * logfile;
+extern FILE *logfile;
 
 #define TIME_FORMAT "%Y-%m-%d %H:%M:%S"
 
@@ -196,7 +196,7 @@ char *ss_itoa(int i);
 int run_as(const char *user);
 void FATAL(const char *msg);
 void usage(void);
-void daemonize(const char * path);
+void daemonize(const char *path);
 char *ss_strndup(const char *s, size_t n);
 #ifdef HAVE_SETRLIMIT
 int set_nofile(int nofile);

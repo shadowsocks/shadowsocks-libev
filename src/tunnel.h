@@ -29,7 +29,7 @@
 
 #include "common.h"
 
-struct listen_ctx {
+typedef struct listen_ctx {
     ev_io io;
     ss_addr_t tunnel_addr;
     char *iface;
@@ -38,42 +38,39 @@ struct listen_ctx {
     int timeout;
     int fd;
     struct sockaddr **remote_addr;
-};
+} listen_ctx_t;
 
-struct server_ctx {
+typedef struct server_ctx {
     ev_io io;
     int connected;
     struct server *server;
-};
+} server_ctx_t;
 
-struct server {
+typedef struct server {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // server send from, remote recv into
+    buffer_t *buf;
     struct enc_ctx *e_ctx;
     struct enc_ctx *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
     ss_addr_t destaddr;
-};
+} server_t;
 
-struct remote_ctx {
+typedef struct remote_ctx {
     ev_io io;
     ev_timer watcher;
     int connected;
     struct remote *remote;
-};
+} remote_ctx_t;
 
-struct remote {
+typedef struct remote {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // remote send from, server recv into
+    buffer_t *buf;
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
-};
+    uint32_t counter;
+} remote_t;
 
 #endif // _TUNNEL_H

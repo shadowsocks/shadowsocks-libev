@@ -1,4 +1,4 @@
-#if defined(__amd64) || defined(__amd64__) || defined(__x86_64__)
+#ifdef HAVE_AMD64_ASM
 
 .text
 .p2align 5
