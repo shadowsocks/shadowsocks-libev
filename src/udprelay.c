@@ -1176,6 +1176,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 remote_ctx->server_ctx      = server_ctx;
                 remote_ctx->addr_header_len = addr_header_len;
                 memcpy(remote_ctx->addr_header, addr_header, addr_header_len);
+                memcpy(&remote_ctx->dst_addr, &dst_addr, sizeof(struct sockaddr_storage));
             } else {
                 ERROR("[udp] bind() error");
                 goto CLEAN_UP;
