@@ -81,6 +81,9 @@ typedef struct remote_ctx {
     int addr_header_len;
     char addr_header[384];
     struct sockaddr_storage src_addr;
+#ifdef MODULE_REMOTE
+    struct sockaddr_storage dst_addr;
+#endif
     struct server_ctx *server_ctx;
 } remote_ctx_t;
 

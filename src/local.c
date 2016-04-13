@@ -333,7 +333,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                             close_and_free_server(EV_A_ server);
                             return;
                         }
-                    } else if (s <= remote->buf->len) {
+                    } else if (s <= (int)(remote->buf->len)) {
                         remote->buf->len -= s;
                         remote->buf->idx  = s;
                     }
@@ -363,7 +363,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                         close_and_free_server(EV_A_ server);
                         return;
                     }
-                } else if (s < remote->buf->len) {
+                } else if (s < (int)(remote->buf->len)) {
                     remote->buf->len -= s;
                     remote->buf->idx  = s;
                     ev_io_stop(EV_A_ & server_recv_ctx->io);
@@ -383,7 +383,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             server->stage = 1;
 
             int off = (buf->array[1] & 0xff) + 2;
-            if (buf->array[0] == 0x05 && off < buf->len) {
+            if (buf->array[0] == 0x05 && off < (int)(buf->len)) {
                 memmove(buf->array, buf->array + off, buf->len - off);
                 buf->len -= off;
                 continue;
@@ -590,7 +590,7 @@ static void server_send_cb(EV_P_ ev_io *w, int revents)
                 close_and_free_server(EV_A_ server);
             }
             return;
-        } else if (s < server->buf->len) {
+        } else if (s < (ssize_t)(server->buf->len)) {
             // partly sent, move memory, wait for the next time to send
             server->buf->len -= s;
             server->buf->idx += s;
@@ -695,7 +695,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
             close_and_free_server(EV_A_ server);
             return;
         }
-    } else if (s < server->buf->len) {
+    } else if (s < (int)(server->buf->len)) {
         server->buf->len -= s;
         server->buf->idx  = s;
         ev_io_stop(EV_A_ & remote_recv_ctx->io);
@@ -752,7 +752,7 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
                 close_and_free_server(EV_A_ server);
             }
             return;
-        } else if (s < remote->buf->len) {
+        } else if (s < (ssize_t)(remote->buf->len)) {
             // partly sent, move memory, wait for the next time to send
             remote->buf->len -= s;
             remote->buf->idx += s;

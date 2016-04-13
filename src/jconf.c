@@ -130,7 +130,7 @@ jconf_t *read_jconf(const char *file)
 
     buf[pos] = '\0'; // end of string
 
-    json_settings settings = { 0 };
+    json_settings settings = { 0UL, 0, NULL, NULL, NULL };
     char error_buf[512];
     obj = json_parse_ex(&settings, buf, pos, error_buf);
 
@@ -139,7 +139,7 @@ jconf_t *read_jconf(const char *file)
     }
 
     if (obj->type == json_object) {
-        int i, j;
+        unsigned int i, j;
         for (i = 0; i < obj->u.object.length; i++) {
             char *name        = obj->u.object.values[i].name;
             json_value *value = obj->u.object.values[i].value;

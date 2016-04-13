@@ -220,7 +220,7 @@ static int construct_udprealy_header(const struct sockaddr_storage *in_addr,
 
 #endif
 
-static int parse_udprealy_header(const char *buf, const int buf_len,
+static int parse_udprealy_header(const char *buf, const size_t buf_len,
                                  int *auth, char *host, char *port,
                                  struct sockaddr_storage *storage)
 {
@@ -605,6 +605,8 @@ static void query_resolve_cb(struct sockaddr *addr, void *data)
         }
 
         if (remote_ctx != NULL) {
+            memcpy(&remote_ctx->dst_addr, addr, sizeof(struct sockaddr_storage));
+            
             size_t addr_len = get_sockaddr_len(addr);
             int s           = sendto(remote_ctx->fd, query_ctx->buf->array, query_ctx->buf->len,
                                      0, addr, addr_len);
@@ -634,6 +636,7 @@ static void query_resolve_cb(struct sockaddr *addr, void *data)
 
 static void remote_recv_cb(EV_P_ ev_io *w, int revents)
 {
+    ssize_t r;
     remote_ctx_t *remote_ctx = (remote_ctx_t *)w;
     server_ctx_t *server_ctx = remote_ctx->server_ctx;
 
@@ -656,14 +659,16 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
     balloc(buf, BUF_SIZE);
 
     // recv
-    buf->len = recvfrom(remote_ctx->fd, buf->array, BUF_SIZE, 0, (struct sockaddr *)&src_addr, &src_addr_len);
+    r = recvfrom(remote_ctx->fd, buf->array, BUF_SIZE, 0, (struct sockaddr *)&src_addr, &src_addr_len);
 
-    if (buf->len == -1) {
+    if (r == -1) {
         // error on recv
         // simply drop that packet
         ERROR("[udp] remote_recvfrom");
         goto CLEAN_UP;
     }
+
+    buf->len = r;
 
     // packet size > default MTU
     if (verbose && buf->len > MTU) {
@@ -835,15 +840,18 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 
     src_addr_len = msg.msg_namelen;
 #else
-    buf->len = recvfrom(server_ctx->fd, buf->array, BUF_SIZE,
+    ssize_t r;
+    r = recvfrom(server_ctx->fd, buf->array, BUF_SIZE,
                         0, (struct sockaddr *)&src_addr, &src_addr_len);
 
-    if (buf->len == -1) {
+    if (r == -1) {
         // error on recv
         // simply drop that packet
         ERROR("[udp] server_recvfrom");
         goto CLEAN_UP;
     }
+
+    buf->len = r;
 #endif
 
     if (verbose) {
@@ -1016,7 +1024,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     cache_lookup(conn_cache, key, HASH_KEY_LEN, (void *)&remote_ctx);
 
     if (remote_ctx != NULL) {
-        if (memcmp(&src_addr, &remote_ctx->src_addr, sizeof(src_addr))) {
+        if (sockaddr_cmp_addr(&src_addr, &remote_ctx->src_addr, sizeof(src_addr))) {
             remote_ctx = NULL;
         }
     }
@@ -1144,6 +1152,8 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             if (dst_addr.ss_family != AF_INET && dst_addr.ss_family != AF_INET6) {
                 need_query = 1;
             }
+        } else {
+            memcpy(&dst_addr,&remote_ctx->dst_addr,sizeof(struct sockaddr_storage));
         }
     } else {
         if (dst_addr.ss_family == AF_INET || dst_addr.ss_family == AF_INET6) {
@@ -1166,6 +1176,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 remote_ctx->server_ctx      = server_ctx;
                 remote_ctx->addr_header_len = addr_header_len;
                 memcpy(remote_ctx->addr_header, addr_header, addr_header_len);
+                memcpy(&remote_ctx->dst_addr, &dst_addr, sizeof(struct sockaddr_storage));
             } else {
                 ERROR("[udp] bind() error");
                 goto CLEAN_UP;

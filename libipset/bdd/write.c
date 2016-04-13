@@ -541,7 +541,8 @@ ipset_node_cache_save_dot(struct cork_stream_consumer *stream,
                           struct ipset_node_cache *cache, ipset_node_id node)
 {
     struct dot_data  dot_data = {
-        0                       /* default value */
+        0,                       /* default value */
+        {NULL, 0, 0}
     };
 
     struct save_data  save_data;
