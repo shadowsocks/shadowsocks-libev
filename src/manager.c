@@ -66,6 +66,7 @@
 #include "json.h"
 #include "utils.h"
 #include "manager.h"
+#include "mm-wrapper.h"
 
 #ifndef BUF_SIZE
 #define BUF_SIZE 65535
@@ -323,7 +324,7 @@ static void remove_server(char *prefix, char *port)
     cork_hash_table_delete(server_table, (void *)port, (void **)&old_port, (void **)&old_server);
 
     if (old_server != NULL) {
-        free(old_server);
+        SS_SAFEFREE(old_server);
     }
 
     stop_server(prefix, port);
@@ -371,7 +372,7 @@ static void manager_recv_cb(EV_P_ ev_io *w, int revents)
         if (server == NULL || server->port[0] == 0 || server->password[0] == 0) {
             LOGE("invalid command: %s:%s", buf, get_data(buf, r));
             if (server != NULL) {
-                free(server);
+                SS_SAFEFREE(server);
             }
             goto ERROR_MSG;
         }
@@ -389,13 +390,13 @@ static void manager_recv_cb(EV_P_ ev_io *w, int revents)
         if (server == NULL || server->port[0] == 0) {
             LOGE("invalid command: %s:%s", buf, get_data(buf, r));
             if (server != NULL) {
-                free(server);
+                SS_SAFEFREE(server);
             }
             goto ERROR_MSG;
         }
 
         remove_server(working_dir, server->port);
-        free(server);
+        SS_SAFEFREE(server);
 
         char msg[3] = "ok";
         if (sendto(manager->fd, msg, 3, 0, (struct sockaddr *)&claddr, len) != 3) {

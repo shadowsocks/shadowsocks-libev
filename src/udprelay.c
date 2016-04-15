@@ -60,6 +60,7 @@
 #include "netutils.h"
 #include "cache.h"
 #include "udprelay.h"
+#include "mm-wrapper.h"
 
 #ifdef MODULE_REMOTE
 #define MAX_UDP_CONN_NUM 512
@@ -475,7 +476,7 @@ int create_server_socket(const char *host, const char *port)
 
 remote_ctx_t *new_remote(int fd, server_ctx_t *server_ctx)
 {
-    remote_ctx_t *ctx = malloc(sizeof(remote_ctx_t));
+    remote_ctx_t *ctx = SS_SAFEMALLOC(sizeof(remote_ctx_t));
     memset(ctx, 0, sizeof(remote_ctx_t));
 
     ctx->fd         = fd;
@@ -490,7 +491,7 @@ remote_ctx_t *new_remote(int fd, server_ctx_t *server_ctx)
 
 server_ctx_t *new_server_ctx(int fd)
 {
-    server_ctx_t *ctx = malloc(sizeof(server_ctx_t));
+    server_ctx_t *ctx = SS_SAFEMALLOC(sizeof(server_ctx_t));
     memset(ctx, 0, sizeof(server_ctx_t));
 
     ctx->fd = fd;
@@ -503,9 +504,9 @@ server_ctx_t *new_server_ctx(int fd)
 #ifdef MODULE_REMOTE
 struct query_ctx *new_query_ctx(char *buf, size_t len)
 {
-    struct query_ctx *ctx = malloc(sizeof(struct query_ctx));
+    struct query_ctx *ctx = SS_SAFEMALLOC(sizeof(struct query_ctx));
     memset(ctx, 0, sizeof(struct query_ctx));
-    ctx->buf = malloc(sizeof(buffer_t));
+    ctx->buf = SS_SAFEMALLOC(sizeof(buffer_t));
     balloc(ctx->buf, len);
     memcpy(ctx->buf->array, buf, len);
     ctx->buf->len = len;
@@ -521,9 +522,9 @@ void close_and_free_query(EV_P_ struct query_ctx *ctx)
         }
         if (ctx->buf != NULL) {
             bfree(ctx->buf);
-            free(ctx->buf);
+            SS_SAFEFREE(ctx->buf);
         }
-        free(ctx);
+        SS_SAFEFREE(ctx);
     }
 }
 
@@ -535,7 +536,7 @@ void close_and_free_remote(EV_P_ remote_ctx_t *ctx)
         ev_timer_stop(EV_A_ & ctx->watcher);
         ev_io_stop(EV_A_ & ctx->io);
         close(ctx->fd);
-        free(ctx);
+        SS_SAFEFREE(ctx);
     }
 }
 
@@ -655,7 +656,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
     socklen_t src_addr_len = sizeof(src_addr);
     memset(&src_addr, 0, src_addr_len);
 
-    buffer_t *buf = malloc(sizeof(buffer_t));
+    buffer_t *buf = SS_SAFEMALLOC(sizeof(buffer_t));
     balloc(buf, BUF_SIZE);
 
     // recv
@@ -795,7 +796,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
 CLEAN_UP:
 
     bfree(buf);
-    free(buf);
+    SS_SAFEFREE(buf);
 }
 
 static void server_recv_cb(EV_P_ ev_io *w, int revents)
@@ -804,7 +805,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     struct sockaddr_storage src_addr;
     memset(&src_addr, 0, sizeof(struct sockaddr_storage));
 
-    buffer_t *buf = malloc(sizeof(buffer_t));
+    buffer_t *buf = SS_SAFEMALLOC(sizeof(buffer_t));
     balloc(buf, BUF_SIZE);
 
     socklen_t src_addr_len = sizeof(struct sockaddr_storage);
@@ -1237,7 +1238,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 
 CLEAN_UP:
     bfree(buf);
-    free(buf);
+    SS_SAFEFREE(buf);
 }
 
 void free_cb(void *element)
@@ -1309,7 +1310,7 @@ void free_udprelay()
         ev_io_stop(loop, &server_ctx->io);
         close(server_ctx->fd);
         cache_delete(server_ctx->conn_cache, 0);
-        free(server_ctx);
+        SS_SAFEFREE(server_ctx);
         server_ctx_list[server_num] = NULL;
     }
 }

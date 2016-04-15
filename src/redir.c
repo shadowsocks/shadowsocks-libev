@@ -49,6 +49,7 @@
 #include "utils.h"
 #include "common.h"
 #include "redir.h"
+#include "mm-wrapper.h"
 
 #ifndef EAGAIN
 #define EAGAIN EWOULDBLOCK
@@ -452,13 +453,13 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
 static remote_t *new_remote(int fd, int timeout)
 {
     remote_t *remote;
-    remote = malloc(sizeof(remote_t));
+    remote = SS_SAFEMALLOC(sizeof(remote_t));
 
     memset(remote, 0, sizeof(remote_t));
 
-    remote->recv_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->send_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->buf                 = malloc(sizeof(buffer_t));
+    remote->recv_ctx            = SS_SAFEMALLOC(sizeof(remote_ctx_t));
+    remote->send_ctx            = SS_SAFEMALLOC(sizeof(remote_ctx_t));
+    remote->buf                 = SS_SAFEMALLOC(sizeof(buffer_t));
     remote->fd                  = fd;
     remote->recv_ctx->remote    = remote;
     remote->recv_ctx->connected = 0;
@@ -483,11 +484,11 @@ static void free_remote(remote_t *remote)
         }
         if (remote->buf != NULL) {
             bfree(remote->buf);
-            free(remote->buf);
+            SS_SAFEFREE(remote->buf);
         }
-        free(remote->recv_ctx);
-        free(remote->send_ctx);
-        free(remote);
+        SS_SAFEFREE(remote->recv_ctx);
+        SS_SAFEFREE(remote->send_ctx);
+        SS_SAFEFREE(remote);
     }
 }
 
@@ -505,11 +506,11 @@ static void close_and_free_remote(EV_P_ remote_t *remote)
 static server_t *new_server(int fd, int method)
 {
     server_t *server;
-    server = malloc(sizeof(server_t));
+    server = SS_SAFEMALLOC(sizeof(server_t));
 
-    server->recv_ctx            = malloc(sizeof(server_ctx_t));
-    server->send_ctx            = malloc(sizeof(server_ctx_t));
-    server->buf                 = malloc(sizeof(buffer_t));
+    server->recv_ctx            = SS_SAFEMALLOC(sizeof(server_ctx_t));
+    server->send_ctx            = SS_SAFEMALLOC(sizeof(server_ctx_t));
+    server->buf                 = SS_SAFEMALLOC(sizeof(buffer_t));
     server->fd                  = fd;
     server->recv_ctx->server    = server;
     server->recv_ctx->connected = 0;
@@ -517,8 +518,8 @@ static server_t *new_server(int fd, int method)
     server->send_ctx->connected = 0;
 
     if (method) {
-        server->e_ctx = malloc(sizeof(enc_ctx_t));
-        server->d_ctx = malloc(sizeof(enc_ctx_t));
+        server->e_ctx = SS_SAFEMALLOC(sizeof(enc_ctx_t));
+        server->d_ctx = SS_SAFEMALLOC(sizeof(enc_ctx_t));
         enc_ctx_init(method, server->e_ctx, 1);
         enc_ctx_init(method, server->d_ctx, 0);
     } else {
@@ -542,19 +543,19 @@ static void free_server(server_t *server)
         }
         if (server->e_ctx != NULL) {
             cipher_context_release(&server->e_ctx->evp);
-            free(server->e_ctx);
+            SS_SAFEFREE(server->e_ctx);
         }
         if (server->d_ctx != NULL) {
             cipher_context_release(&server->d_ctx->evp);
-            free(server->d_ctx);
+            SS_SAFEFREE(server->d_ctx);
         }
         if (server->buf != NULL) {
             bfree(server->buf);
-            free(server->buf);
+            SS_SAFEFREE(server->buf);
         }
-        free(server->recv_ctx);
-        free(server->send_ctx);
-        free(server);
+        SS_SAFEFREE(server->recv_ctx);
+        SS_SAFEFREE(server->send_ctx);
+        SS_SAFEFREE(server);
     }
 }
 
@@ -797,12 +798,12 @@ int main(int argc, char **argv)
     // Setup proxy context
     listen_ctx_t listen_ctx;
     listen_ctx.remote_num  = remote_num;
-    listen_ctx.remote_addr = malloc(sizeof(struct sockaddr *) * remote_num);
+    listen_ctx.remote_addr = SS_SAFEMALLOC(sizeof(struct sockaddr *) * remote_num);
     for (int i = 0; i < remote_num; i++) {
         char *host = remote_addr[i].host;
         char *port = remote_addr[i].port == NULL ? remote_port :
                      remote_addr[i].port;
-        struct sockaddr_storage *storage = malloc(sizeof(struct sockaddr_storage));
+        struct sockaddr_storage *storage = SS_SAFEMALLOC(sizeof(struct sockaddr_storage));
         memset(storage, 0, sizeof(struct sockaddr_storage));
         if (get_sockaddr(host, port, storage, 1) == -1) {
             FATAL("failed to resolve the provided hostname");
