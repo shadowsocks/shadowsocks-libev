@@ -273,6 +273,10 @@ AC_CHECK_LIB(socket, connect)
 dnl Checks for library functions.
 AC_CHECK_FUNCS([malloc memset socket])
 
+dnl Add define for libudns to enable IPv6 support
+dnl This is an option defined in the origin configure script
+AC_DEFINE([HAVE_IPv6], [1], [Enable IPv6 support in libudns])
+
 AM_COND_IF([USE_SYSTEM_SHARED_LIB],
   [],
   [AC_CONFIG_SUBDIRS([libsodium])])
