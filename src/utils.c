@@ -102,16 +102,19 @@ int run_as(const char *user)
             /* Note that we use getpwnam_r() instead of getpwnam(),
              * which returns its result in a statically allocated buffer and
              * cannot be considered thread safe. */
+            errno = 0;
             err = getpwnam_r(user, &pwdbuf, buf, buflen, &pwd);
 
             if (err == 0 && pwd) {
                 /* setgid first, because we may not be allowed to do it anymore after setuid */
+                errno = 0;
                 if (setgid(pwd->pw_gid) != 0) {
                     LOGE(
                         "Could not change group id to that of run_as user '%s': %s",
                         user, strerror(errno));
                     return 0;
                 }
+                errno = 0;
 
                 if (setuid(pwd->pw_uid) != 0) {
                     LOGE(
@@ -147,11 +150,13 @@ int run_as(const char *user)
             return 0;
         }
         /* setgid first, because we may not allowed to do it anymore after setuid */
+        errno = 0;
         if (setgid(pwd->pw_gid) != 0) {
             LOGE("Could not change group id to that of run_as user '%s': %s",
                  user, strerror(errno));
             return 0;
         }
+        errno = 0;
         if (setuid(pwd->pw_uid) != 0) {
             LOGE("Could not change user id to that of run_as user '%s': %s",
                  user, strerror(errno));
@@ -351,6 +356,7 @@ int set_nofile(int nofile)
     if (nofile <= 0) {
         FATAL("nofile must be greater than 0\n");
     }
+    errno = 0;
 
     if (setrlimit(RLIMIT_NOFILE, &limit) < 0) {
         if (errno == EPERM) {
