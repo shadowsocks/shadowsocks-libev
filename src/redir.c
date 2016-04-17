@@ -171,6 +171,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     server_t *server              = server_recv_ctx->server;
     remote_t *remote              = server->remote;
 
+    errno = 0;
     ssize_t r = recv(server->fd, remote->buf->array, BUF_SIZE, 0);
 
     if (r == 0) {
@@ -231,6 +232,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
+    errno = 0;
     int s = send(remote->fd, remote->buf->array, remote->buf->len, 0);
 
     if (s == -1) {
@@ -267,6 +269,7 @@ static void server_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
+        errno = 0;
         ssize_t s = send(server->fd, server->buf->array + server->buf->idx,
                          server->buf->len, 0);
         if (s < 0) {
@@ -310,6 +313,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = remote_recv_ctx->remote;
     server_t *server              = remote->server;
 
+    errno = 0;
     ssize_t r = recv(remote->fd, server->buf->array, BUF_SIZE, 0);
 
     if (r == 0) {
@@ -339,6 +343,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
         close_and_free_server(EV_A_ server);
         return;
     }
+    errno = 0;
     int s = send(server->fd, server->buf->array, server->buf->len, 0);
 
     if (s == -1) {
@@ -443,6 +448,7 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
+        errno = 0;
         ssize_t s = send(remote->fd, remote->buf->array + remote->buf->idx,
                          remote->buf->len, 0);
         if (s < 0) {
@@ -471,13 +477,13 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
 static remote_t *new_remote(int fd, int timeout)
 {
     remote_t *remote;
-    remote = malloc(sizeof(remote_t));
+    remote = ss_malloc(sizeof(remote_t));
 
     memset(remote, 0, sizeof(remote_t));
 
-    remote->recv_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->send_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->buf                 = malloc(sizeof(buffer_t));
+    remote->recv_ctx            = ss_malloc(sizeof(remote_ctx_t));
+    remote->send_ctx            = ss_malloc(sizeof(remote_ctx_t));
+    remote->buf                 = ss_malloc(sizeof(buffer_t));
     remote->fd                  = fd;
     remote->recv_ctx->remote    = remote;
     remote->recv_ctx->connected = 0;
@@ -502,11 +508,11 @@ static void free_remote(remote_t *remote)
         }
         if (remote->buf != NULL) {
             bfree(remote->buf);
-            free(remote->buf);
+            ss_free(remote->buf);
         }
-        free(remote->recv_ctx);
-        free(remote->send_ctx);
-        free(remote);
+        ss_free(remote->recv_ctx);
+        ss_free(remote->send_ctx);
+        ss_free(remote);
     }
 }
 
@@ -524,11 +530,11 @@ static void close_and_free_remote(EV_P_ remote_t *remote)
 static server_t *new_server(int fd, int method)
 {
     server_t *server;
-    server = malloc(sizeof(server_t));
+    server = ss_malloc(sizeof(server_t));
 
-    server->recv_ctx            = malloc(sizeof(server_ctx_t));
-    server->send_ctx            = malloc(sizeof(server_ctx_t));
-    server->buf                 = malloc(sizeof(buffer_t));
+    server->recv_ctx            = ss_malloc(sizeof(server_ctx_t));
+    server->send_ctx            = ss_malloc(sizeof(server_ctx_t));
+    server->buf                 = ss_malloc(sizeof(buffer_t));
     server->fd                  = fd;
     server->recv_ctx->server    = server;
     server->recv_ctx->connected = 0;
@@ -536,8 +542,8 @@ static server_t *new_server(int fd, int method)
     server->send_ctx->connected = 0;
 
     if (method) {
-        server->e_ctx = malloc(sizeof(enc_ctx_t));
-        server->d_ctx = malloc(sizeof(enc_ctx_t));
+        server->e_ctx = ss_malloc(sizeof(enc_ctx_t));
+        server->d_ctx = ss_malloc(sizeof(enc_ctx_t));
         enc_ctx_init(method, server->e_ctx, 1);
         enc_ctx_init(method, server->d_ctx, 0);
     } else {
@@ -561,19 +567,19 @@ static void free_server(server_t *server)
         }
         if (server->e_ctx != NULL) {
             cipher_context_release(&server->e_ctx->evp);
-            free(server->e_ctx);
+            ss_free(server->e_ctx);
         }
         if (server->d_ctx != NULL) {
             cipher_context_release(&server->d_ctx->evp);
-            free(server->d_ctx);
+            ss_free(server->d_ctx);
         }
         if (server->buf != NULL) {
             bfree(server->buf);
-            free(server->buf);
+            ss_free(server->buf);
         }
-        free(server->recv_ctx);
-        free(server->send_ctx);
-        free(server);
+        ss_free(server->recv_ctx);
+        ss_free(server->send_ctx);
+        ss_free(server);
     }
 }
 
@@ -626,15 +632,15 @@ static void accept_cb(EV_P_ ev_io *w, int revents)
     setsockopt(remotefd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
 
-    //Enable TCP keepalive feature
-    int keepAlive = 1;
-    int keepIdle = 40;
+    // Enable TCP keepalive feature
+    int keepAlive    = 1;
+    int keepIdle     = 40;
     int keepInterval = 20;
-    int keepCount = 5;
-    setsockopt(remotefd, SOL_SOCKET, SO_KEEPALIVE, (void*)&keepAlive, sizeof(keepAlive));
-    setsockopt(remotefd, SOL_TCP, TCP_KEEPIDLE, (void*)&keepIdle, sizeof(keepIdle));
-    setsockopt(remotefd, SOL_TCP, TCP_KEEPINTVL, (void*)&keepInterval, sizeof(keepInterval));
-    setsockopt(remotefd, SOL_TCP, TCP_KEEPCNT, (void*)&keepCount, sizeof(keepCount));
+    int keepCount    = 5;
+    setsockopt(remotefd, SOL_SOCKET, SO_KEEPALIVE, (void *)&keepAlive, sizeof(keepAlive));
+    setsockopt(remotefd, SOL_TCP, TCP_KEEPIDLE, (void *)&keepIdle, sizeof(keepIdle));
+    setsockopt(remotefd, SOL_TCP, TCP_KEEPINTVL, (void *)&keepInterval, sizeof(keepInterval));
+    setsockopt(remotefd, SOL_TCP, TCP_KEEPCNT, (void *)&keepCount, sizeof(keepCount));
 
     // Setup
     setnonblocking(remotefd);
@@ -822,12 +828,12 @@ int main(int argc, char **argv)
     // Setup proxy context
     listen_ctx_t listen_ctx;
     listen_ctx.remote_num  = remote_num;
-    listen_ctx.remote_addr = malloc(sizeof(struct sockaddr *) * remote_num);
+    listen_ctx.remote_addr = ss_malloc(sizeof(struct sockaddr *) * remote_num);
     for (int i = 0; i < remote_num; i++) {
         char *host = remote_addr[i].host;
         char *port = remote_addr[i].port == NULL ? remote_port :
                      remote_addr[i].port;
-        struct sockaddr_storage *storage = malloc(sizeof(struct sockaddr_storage));
+        struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
         memset(storage, 0, sizeof(struct sockaddr_storage));
         if (get_sockaddr(host, port, storage, 1) == -1) {
             FATAL("failed to resolve the provided hostname");

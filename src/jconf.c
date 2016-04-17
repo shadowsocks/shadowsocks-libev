@@ -49,10 +49,8 @@ static char *to_string(const json_value *value)
 
 void free_addr(ss_addr_t *addr)
 {
-    free(addr->host);
-    free(addr->port);
-    addr->host = NULL;
-    addr->port = NULL;
+    ss_free(addr->host);
+    ss_free(addr->port);
 }
 
 void parse_addr(const char *str, ss_addr_t *addr)
@@ -117,7 +115,7 @@ jconf_t *read_jconf(const char *file)
         FATAL("Too large config file.");
     }
 
-    buf = malloc(pos + 1);
+    buf = ss_malloc(pos + 1);
     if (buf == NULL) {
         FATAL("No enough memory.");
     }
@@ -199,7 +197,7 @@ jconf_t *read_jconf(const char *file)
         FATAL("Invalid config file");
     }
 
-    free(buf);
+    ss_free(buf);
     json_value_free(obj);
     return &conf;
 }

@@ -40,8 +40,8 @@ int set_reuseport(int socket);
  * @param len: lengths of addr.
  * @return: 0 if addr1 == addr2. -1 if addr1 is smaller, +1 if larger.
  */
-int sockaddr_cmp(struct sockaddr_storage* addr1,
-    struct sockaddr_storage* addr2, socklen_t len);
+int sockaddr_cmp(struct sockaddr_storage *addr1,
+                 struct sockaddr_storage *addr2, socklen_t len);
 
 /**
  * Compare two sockaddrs. Compares address, not the port.
@@ -50,7 +50,7 @@ int sockaddr_cmp(struct sockaddr_storage* addr1,
  * @param len: lengths of addr.
  * @return: 0 if addr1 == addr2. -1 if addr1 is smaller, +1 if larger.
  */
-int sockaddr_cmp_addr(struct sockaddr_storage* addr1,
-    struct sockaddr_storage* addr2, socklen_t len);
+int sockaddr_cmp_addr(struct sockaddr_storage *addr1,
+                      struct sockaddr_storage *addr2, socklen_t len);
 
 #endif

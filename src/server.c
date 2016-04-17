@@ -273,7 +273,8 @@ int setfastopen(int fd)
 #else
         int opt = 5;
 #endif
-        s = setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(opt));
+        errno = 0;
+        s     = setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(opt));
         if (s == -1) {
             if (errno == EPROTONOSUPPORT || errno == ENOPROTOOPT) {
                 LOGE("fast open is not supported on this platform");
@@ -452,6 +453,7 @@ static remote_t *connect_to_remote(struct addrinfo *res,
             s = len;
         }
 #else
+        errno = 0;
         ssize_t s = sendto(sockfd, server->buf->array + server->buf->idx,
                            server->buf->len, MSG_FASTOPEN, res->ai_addr,
                            res->ai_addrlen);
@@ -501,6 +503,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         len    = 0;
     }
 
+    errno = 0;
     ssize_t r = recv(server->fd, buf->array + len, BUF_SIZE - len, 0);
 
     if (r == 0) {
@@ -563,6 +566,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             close_and_free_remote(EV_A_ remote);
             return;
         }
+        errno = 0;
         int s = send(remote->fd, remote->buf->array, remote->buf->len, 0);
         if (s == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -833,6 +837,7 @@ static void server_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
+        errno = 0;
         ssize_t s = send(server->fd, server->buf->array + server->buf->idx,
                          server->buf->len, 0);
         if (s < 0) {
@@ -948,6 +953,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     ev_timer_again(EV_A_ & server->recv_ctx->watcher);
 
+    errno = 0;
     ssize_t r = recv(remote->fd, server->buf->array, BUF_SIZE, 0);
 
     if (r == 0) {
@@ -983,6 +989,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
+    errno = 0;
     int s = send(server->fd, server->buf->array, server->buf->len, 0);
 
     if (s == -1) {
@@ -1055,6 +1062,7 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
+        errno = 0;
         ssize_t s = send(remote->fd, remote->buf->array + remote->buf->idx,
                          remote->buf->len, 0);
         if (s == -1) {
@@ -1099,10 +1107,10 @@ static remote_t *new_remote(int fd)
 
     remote_t *remote;
 
-    remote                      = malloc(sizeof(remote_t));
-    remote->recv_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->send_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->buf                 = malloc(sizeof(buffer_t));
+    remote                      = ss_malloc(sizeof(remote_t));
+    remote->recv_ctx            = ss_malloc(sizeof(remote_ctx_t));
+    remote->send_ctx            = ss_malloc(sizeof(remote_ctx_t));
+    remote->buf                 = ss_malloc(sizeof(buffer_t));
     remote->fd                  = fd;
     remote->recv_ctx->remote    = remote;
     remote->recv_ctx->connected = 0;
@@ -1125,11 +1133,11 @@ static void free_remote(remote_t *remote)
     }
     if (remote->buf != NULL) {
         bfree(remote->buf);
-        free(remote->buf);
+        ss_free(remote->buf);
     }
-    free(remote->recv_ctx);
-    free(remote->send_ctx);
-    free(remote);
+    ss_free(remote->recv_ctx);
+    ss_free(remote->send_ctx);
+    ss_free(remote);
 }
 
 static void close_and_free_remote(EV_P_ remote_t *remote)
@@ -1153,13 +1161,13 @@ static server_t *new_server(int fd, listen_ctx_t *listener)
     }
 
     server_t *server;
-    server = malloc(sizeof(server_t));
+    server = ss_malloc(sizeof(server_t));
 
     memset(server, 0, sizeof(server_t));
 
-    server->recv_ctx            = malloc(sizeof(server_ctx_t));
-    server->send_ctx            = malloc(sizeof(server_ctx_t));
-    server->buf                 = malloc(sizeof(buffer_t));
+    server->recv_ctx            = ss_malloc(sizeof(server_ctx_t));
+    server->send_ctx            = ss_malloc(sizeof(server_ctx_t));
+    server->buf                 = ss_malloc(sizeof(buffer_t));
     server->fd                  = fd;
     server->recv_ctx->server    = server;
     server->recv_ctx->connected = 0;
@@ -1171,8 +1179,8 @@ static server_t *new_server(int fd, listen_ctx_t *listener)
     server->remote              = NULL;
 
     if (listener->method) {
-        server->e_ctx = malloc(sizeof(enc_ctx_t));
-        server->d_ctx = malloc(sizeof(enc_ctx_t));
+        server->e_ctx = ss_malloc(sizeof(enc_ctx_t));
+        server->d_ctx = ss_malloc(sizeof(enc_ctx_t));
         enc_ctx_init(listener->method, server->e_ctx, 1);
         enc_ctx_init(listener->method, server->d_ctx, 0);
     } else {
@@ -1189,7 +1197,7 @@ static server_t *new_server(int fd, listen_ctx_t *listener)
 
     server->chunk = (chunk_t *)malloc(sizeof(chunk_t));
     memset(server->chunk, 0, sizeof(chunk_t));
-    server->chunk->buf = malloc(sizeof(buffer_t));
+    server->chunk->buf = ss_malloc(sizeof(buffer_t));
     memset(server->chunk->buf, 0, sizeof(buffer_t));
 
     cork_dllist_add(&connections, &server->entries);
@@ -1204,31 +1212,29 @@ static void free_server(server_t *server)
     if (server->chunk != NULL) {
         if (server->chunk->buf != NULL) {
             bfree(server->chunk->buf);
-            free(server->chunk->buf);
-            server->chunk->buf = NULL;
+            ss_free(server->chunk->buf);
         }
-        free(server->chunk);
-        server->chunk = NULL;
+        ss_free(server->chunk);
     }
     if (server->remote != NULL) {
         server->remote->server = NULL;
     }
     if (server->e_ctx != NULL) {
         cipher_context_release(&server->e_ctx->evp);
-        free(server->e_ctx);
+        ss_free(server->e_ctx);
     }
     if (server->d_ctx != NULL) {
         cipher_context_release(&server->d_ctx->evp);
-        free(server->d_ctx);
+        ss_free(server->d_ctx);
     }
     if (server->buf != NULL) {
         bfree(server->buf);
-        free(server->buf);
+        ss_free(server->buf);
     }
 
-    free(server->recv_ctx);
-    free(server->send_ctx);
-    free(server);
+    ss_free(server->recv_ctx);
+    ss_free(server->send_ctx);
+    ss_free(server);
 }
 
 static void close_and_free_server(EV_P_ server_t *server)

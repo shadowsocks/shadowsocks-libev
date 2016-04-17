@@ -23,6 +23,7 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -201,5 +202,30 @@ char *ss_strndup(const char *s, size_t n);
 #ifdef HAVE_SETRLIMIT
 int set_nofile(int nofile);
 #endif
+
+inline void ss_free(void *ptr)
+{
+    free(ptr);
+    ptr = NULL;
+}
+
+inline void *ss_malloc(size_t size)
+{
+    void *tmp = malloc(size);
+    if (tmp == NULL)
+        exit(EXIT_FAILURE);
+    return tmp;
+}
+
+inline void *ss_realloc(void *ptr, size_t new_size)
+{
+    void *new = realloc(ptr, new_size);
+    if (new == NULL) {
+        free(ptr);
+        ptr = NULL;
+        exit(EXIT_FAILURE);
+    }
+    return new;
+}
 
 #endif // _UTILS_H

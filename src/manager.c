@@ -323,7 +323,7 @@ static void remove_server(char *prefix, char *port)
     cork_hash_table_delete(server_table, (void *)port, (void **)&old_port, (void **)&old_server);
 
     if (old_server != NULL) {
-        free(old_server);
+        ss_free(old_server);
     }
 
     stop_server(prefix, port);
@@ -371,7 +371,7 @@ static void manager_recv_cb(EV_P_ ev_io *w, int revents)
         if (server == NULL || server->port[0] == 0 || server->password[0] == 0) {
             LOGE("invalid command: %s:%s", buf, get_data(buf, r));
             if (server != NULL) {
-                free(server);
+                ss_free(server);
             }
             goto ERROR_MSG;
         }
@@ -389,13 +389,13 @@ static void manager_recv_cb(EV_P_ ev_io *w, int revents)
         if (server == NULL || server->port[0] == 0) {
             LOGE("invalid command: %s:%s", buf, get_data(buf, r));
             if (server != NULL) {
-                free(server);
+                ss_free(server);
             }
             goto ERROR_MSG;
         }
 
         remove_server(working_dir, server->port);
-        free(server);
+        ss_free(server);
 
         char msg[3] = "ok";
         if (sendto(manager->fd, msg, 3, 0, (struct sockaddr *)&claddr, len) != 3) {
@@ -769,6 +769,7 @@ int main(int argc, char **argv)
     const char *homedir = pw->pw_dir;
     snprintf(working_dir, PATH_MAX, "%s/.shadowsocks", homedir);
 
+    errno = 0;
     int err = mkdir(working_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (err != 0 && errno != EEXIST) {
         ERROR("mkdir");
@@ -799,6 +800,7 @@ int main(int argc, char **argv)
 
         setnonblocking(sfd);
 
+        errno = 0;
         if (remove(manager_address) == -1 && errno != ENOENT) {
             ERROR("bind");
             exit(EXIT_FAILURE);

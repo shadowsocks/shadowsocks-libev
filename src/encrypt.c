@@ -213,16 +213,18 @@ static int safe_memcmp(const void *s1, const void *s2, size_t n)
 int balloc(buffer_t *ptr, size_t capacity)
 {
     memset(ptr, 0, sizeof(buffer_t));
-    ptr->array    = malloc(capacity);
+    ptr->array    = ss_malloc(capacity);
     ptr->capacity = capacity;
     return capacity;
 }
 
 int brealloc(buffer_t *ptr, size_t len, size_t capacity)
 {
+    if (ptr == NULL)
+        return -1;
     size_t real_capacity = max(len, capacity);
     if (ptr->capacity < real_capacity) {
-        ptr->array    = realloc(ptr->array, real_capacity);
+        ptr->array    = ss_realloc(ptr->array, real_capacity);
         ptr->capacity = real_capacity;
     }
     return real_capacity;
@@ -230,12 +232,13 @@ int brealloc(buffer_t *ptr, size_t len, size_t capacity)
 
 void bfree(buffer_t *ptr)
 {
+    if (ptr == NULL)
+        return;
     ptr->idx      = 0;
     ptr->len      = 0;
     ptr->capacity = 0;
     if (ptr->array != NULL) {
-        free(ptr->array);
-        ptr->array = NULL;
+        ss_free(ptr->array);
     }
 }
 
@@ -306,8 +309,8 @@ static void merge(uint8_t *left, int llength, uint8_t *right,
         }
     }
 
-    free(ltmp);
-    free(rtmp);
+    ss_free(ltmp);
+    ss_free(rtmp);
 }
 
 static void merge_sort(uint8_t array[], int length,
@@ -365,8 +368,8 @@ void enc_table_init(const char *pass)
     uint64_t key = 0;
     uint8_t *digest;
 
-    enc_table = malloc(256);
-    dec_table = malloc(256);
+    enc_table = ss_malloc(256);
+    dec_table = ss_malloc(256);
 
     digest = enc_md5((const uint8_t *)pass, strlen(pass), NULL);
 

@@ -15562,6 +15562,10 @@ done
 
 
 
+$as_echo "#define HAVE_IPv6 1" >>confdefs.h
+
+
+
 
 if test -z "$USE_SYSTEM_SHARED_LIB_TRUE"; then :
   else
