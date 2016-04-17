@@ -758,6 +758,7 @@ int main(int argc, char **argv)
     const char *homedir = pw->pw_dir;
     snprintf(working_dir, PATH_MAX, "%s/.shadowsocks", homedir);
 
+    ss_set_errno(0);
     int err = mkdir(working_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (err != 0 && errno != EEXIST) {
         ERROR("mkdir");
@@ -788,6 +789,7 @@ int main(int argc, char **argv)
 
         setnonblocking(sfd);
 
+        ss_set_errno(0);
         if (remove(manager_address) == -1 && errno != ENOENT) {
             ERROR("bind");
             exit(EXIT_FAILURE);

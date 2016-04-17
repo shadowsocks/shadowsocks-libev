@@ -228,4 +228,18 @@ inline void *ss_realloc(void *ptr, size_t new_size)
     return new;
 }
 
+/*
+ * errno handling
+ * Detect Win32/Win64
+ *
+ */
+#if defined(__CYGWIN__) || defined(__MINGW32__) \
+    || (!defined(SAG_COM) && (defined(WIN64) || defined(_WIN64) || defined(__WIN64__))) \
+    || (!defined(SAG_COM) && (defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__))) \
+    || (defined(__MWERKS__) && defined(__INTEL__))
+#define ss_set_errno(value) _set_errno(value)
+#else
+#define ss_set_errno(value) errno = value
+#endif
+
 #endif // _UTILS_H
