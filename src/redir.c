@@ -1,6 +1,6 @@
 /*
  * redir.c - Provide a transparent TCP proxy through remote shadowsocks
- *            server
+ *           server
  *
  * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
  *
@@ -189,6 +189,26 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             close_and_free_server(EV_A_ server);
             return;
         }
+    }
+
+    if (verbose) {
+        uint16_t port = 0;
+        char ipstr[max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)];
+        memset(&ipstr, 0, max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN));
+
+        if (AF_INET == server->destaddr.ss_family) {
+            struct sockaddr_in *sa = (struct sockaddr_in *)&(server->destaddr);
+            inet_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
+            port = ntohs(sa->sin_port);
+        } else {
+            // TODO: The code below need to be test on IPv6 envirment, which I
+            //       don't have.
+            struct sockaddr_in6 *sa = (struct sockaddr_in6 *)&(server->destaddr);
+            inet_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
+            port = ntohs(sa->sin6_port);
+        }
+
+        LOGI("redir to %s:%d, len=%ld", ipstr, port, r);
     }
 
     remote->buf->len = r;
@@ -770,7 +790,7 @@ int main(int argc, char **argv)
     }
 
     if (timeout == NULL) {
-        timeout = "60";
+        timeout = "10";
     }
 
     if (local_addr == NULL) {
