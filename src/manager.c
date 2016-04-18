@@ -576,14 +576,16 @@ int main(int argc, char **argv)
         { "acl",             required_argument, 0, 0 },
         { "manager-address", required_argument, 0, 0 },
         { "executable",      required_argument, 0, 0 },
-        {                 0,                 0, 0, 0 }
+        { "help",            no_argument,       0, 0 },
+        { 0,                 0,                 0, 0 }
     };
 
     opterr = 0;
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:l:k:t:m:c:i:d:a:uUvA",
+    // FIXME: Opts 'p', 'n', 'b' are found in help message, but not in code.
+    while ((c = getopt_long(argc, argv, "f:s:l:k:t:m:c:i:d:a:huUvA",
                             long_options, &option_index)) != -1)
         switch (c) {
         case 0:
@@ -595,6 +597,9 @@ int main(int argc, char **argv)
                 manager_address = optarg;
             } else if (option_index == 3) {
                 executable = optarg;
+            } else if (option_index == 4) {
+                usage();
+                exit(EXIT_SUCCESS);
             }
             break;
         case 's':
@@ -641,6 +646,12 @@ int main(int argc, char **argv)
         case 'A':
             auth = 1;
             break;
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
+        case '?':
+            opterr = 1;
+            break;
         }
 
     if (opterr) {
@@ -686,7 +697,7 @@ int main(int argc, char **argv)
     }
 
     if (timeout == NULL) {
-        timeout = "60";
+        timeout = "10";
     }
 
     if (pid_flags) {

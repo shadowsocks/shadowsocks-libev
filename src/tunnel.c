@@ -703,7 +703,7 @@ int main(int argc, char **argv)
 #ifdef ANDROID
     while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:P:uUvVA")) != -1) {
 #else
-    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:uUvA")) != -1) {
+    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:huUvA")) != -1) {
 #endif
         switch (c) {
         case 's':
@@ -771,6 +771,12 @@ int main(int argc, char **argv)
             prefix = optarg;
             break;
 #endif
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
+        case '?':
+            opterr = 1;
+            break;
         }
     }
 
@@ -837,7 +843,7 @@ int main(int argc, char **argv)
     }
 
     if (timeout == NULL) {
-        timeout = "60";
+        timeout = "10";
     }
 
     if (local_addr == NULL) {

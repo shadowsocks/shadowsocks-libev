@@ -1319,14 +1319,15 @@ int main(int argc, char **argv)
         { "fast-open",       no_argument,       0, 0 },
         { "acl",             required_argument, 0, 0 },
         { "manager-address", required_argument, 0, 0 },
-        {                 0,                 0, 0, 0 }
+        { "help",            no_argument,       0, 0 },
+        { 0,                 0,                 0, 0 }
     };
 
     opterr = 0;
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:i:d:a:n:uUvAw",
+    while ((c = getopt_long(argc, argv, "f:s:p:k:t:m:c:i:d:a:n:huUvAw",
                             long_options, &option_index)) != -1)
         switch (c) {
         case 0:
@@ -1338,6 +1339,9 @@ int main(int argc, char **argv)
                 acl_path = optarg;
             } else if (option_index == 2) {
                 manager_address = optarg;
+            } else if (option_index == 3) {
+                usage();
+                exit(EXIT_SUCCESS);
             }
             break;
         case 's':
@@ -1394,6 +1398,12 @@ int main(int argc, char **argv)
             break;
         case 'w':
             white_list = 1;
+            break;
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
+        case '?':
+            opterr = 1;
             break;
         }
 
@@ -1471,7 +1481,7 @@ int main(int argc, char **argv)
     }
 
     if (timeout == NULL) {
-        timeout = "60";
+        timeout = "10";
     }
 
     if (pid_flags) {

@@ -179,9 +179,10 @@ char *ss_strndup(const char *s, size_t n)
     return ret;
 }
 
-void FATAL(const char *msg)
+void FATAL(const char *s)
 {
-    LOGE("%s", msg);
+    char *msg = strerror(errno);
+    LOGE("%s: %s", s, msg);
     exit(-1);
 }
 
@@ -189,8 +190,7 @@ void usage()
 {
     printf("\n");
     printf("shadowsocks-libev %s\n\n", VERSION);
-    printf(
-        "  maintained by Max Lv <max.c.lv@gmail.com> and Linus Yang <laokongzi@gmail.com>\n\n");
+    printf("  maintained by Max Lv <max.c.lv@gmail.com> and Linus Yang <laokongzi@gmail.com>\n\n");
     printf("  usage:\n\n");
 #ifdef MODULE_LOCAL
     printf("    ss-local\n");
@@ -204,92 +204,68 @@ void usage()
     printf("    ss-manager\n");
 #endif
     printf("\n");
-    printf(
-        "       -s <server_host>           Host name or ip address of your remote server.\n");
-    printf(
-        "       -p <server_port>           Port number of your remote server.\n");
-    printf(
-        "       -l <local_port>            Port number of your local server.\n");
-    printf(
-        "       -k <password>              Password of your remote server.\n");
-    printf(
-        "       -m <encrypt_method>        Encrypt method: table, rc4, rc4-md5,\n");
-    printf(
-        "                                  aes-128-cfb, aes-192-cfb, aes-256-cfb,\n");
-    printf(
-        "                                  bf-cfb, camellia-128-cfb, camellia-192-cfb,\n");
-    printf(
-        "                                  camellia-256-cfb, cast5-cfb, des-cfb, idea-cfb,\n");
-    printf(
-        "                                  rc2-cfb, seed-cfb, salsa20 and chacha20.\n");
+    printf("       [-h, --help]               Print this message.\n");
+    printf("       -s <server_host>           Host name or ip address of your remote server.\n");
+    printf("       -p <server_port>           Port number of your remote server.\n");
+    printf("       -k <password>              Password of your remote server.\n");
+    printf("       -m <encrypt_method>        Encrypt method: table, rc4, rc4-md5,\n");
+    printf("                                  aes-128-cfb, aes-192-cfb, aes-256-cfb,\n");
+    printf("                                  bf-cfb, camellia-128-cfb, camellia-192-cfb,\n");
+    printf("                                  camellia-256-cfb, cast5-cfb, des-cfb,\n");
+    printf("                                  idea-cfb, rc2-cfb, seed-cfb, salsa20,\n");
+    printf("                                  and chacha20.\n");
+    printf("                                  The default cipher is table.\n");
     printf("\n");
-    printf(
-        "       [-a <user>]                Run as another user.\n");
-    printf(
-        "       [-f <pid_file>]            The file path to store pid.\n");
-    printf(
-        "       [-t <timeout>]             Socket timeout in seconds.\n");
-    printf(
-        "       [-c <config_file>]         The path to config file.\n");
+    printf("       [-a <user>]                Run as another user.\n");
+    printf("       [-f <pid_file>]            The file path to store pid.\n");
+    printf("       [-t <timeout>]             Socket timeout in seconds.\n");
+    printf("                                  The default value is 10.\n");
+    printf("       [-c <config_file>]         The path to config file.\n");
 #ifdef HAVE_SETRLIMIT
-    printf(
-        "       [-n <number>]              Max number of open files.\n");
+    printf("       [-n <number>]              Max number of open files.\n");
 #endif
 #ifndef MODULE_REDIR
-    printf(
-        "       [-i <interface>]           Network interface to bind.\n");
+    printf("       [-i <interface>]           Network interface to bind.\n");
 #endif
 #ifndef MODULE_REMOTE
-    printf(
-        "       [-b <local_address>]       Local address to bind.\n");
+    printf("       [-b <local_address>]       Local address to bind.\n");
 #endif
     printf("\n");
-    printf(
-        "       [-u]                       Enable UDP relay,\n");
+    printf("       [-u]                       Enable UDP relay,\n");
 #ifdef MODULE_REDIR
-    printf(
-        "                                  TPROXY is required in redir mode.\n");
+    printf("                                  TPROXY is required in redir mode.\n");
 #endif
 #ifndef MODULE_LOCAL
-    printf(
-        "       [-U]                       Enable UDP relay and disable TCP relay.\n");
+    // FIXME: '-l' should not be an ss-server opt
+    printf("       -l <local_port>            Port number of your local server.\n");
+    printf("       [-U]                       Enable UDP relay and disable TCP relay.\n");
 #endif
-    printf(
-        "       [-A]                       Enable onetime authentication.\n");
+    printf("       [-A]                       Enable onetime authentication.\n");
 #ifdef MODULE_REMOTE
-    printf(
-        "       [-w]                       Enable white list mode (when ACL enabled).\n");
+    printf("       [-w]                       Enable white list mode (when ACL enabled).\n");
 #endif
     printf("\n");
 #ifdef MODULE_TUNNEL
-    printf(
-        "       [-L <addr>:<port>]         Destination server address and port\n");
-    printf(
-        "                                  for local port forwarding.\n");
-#endif
-#ifdef MODULE_REMOTE
-    printf(
-        "       [-d <addr>]                Name servers for internal DNS resolver.\n");
-#endif
-#if defined(MODULE_REMOTE) || defined(MODULE_LOCAL)
-    printf(
-        "       [--fast-open]              Enable TCP fast open.\n");
-    printf(
-        "                                  with Linux kernel > 3.7.0.\n");
-    printf(
-        "       [--acl <acl_file>]         Path to ACL (Access Control List).\n");
+    printf("       [-L <addr>:<port>]         Destination server address and port\n");
+    printf("                                  for local port forwarding.\n");
 #endif
 #if defined(MODULE_REMOTE) || defined(MODULE_MANAGER)
-    printf(
-        "       [--manager-address <addr>] UNIX domain socket address.\n");
+    printf("       [-d <addr>]                Name servers for internal DNS resolver.\n");
+#endif
+#if defined(MODULE_REMOTE) || defined(MODULE_LOCAL) || defined(MODULE_MANAGER)
+    printf("       [--fast-open]              Enable TCP fast open.\n");
+    printf("                                  with Linux kernel > 3.7.0.\n");
+    printf("       [--acl <acl_file>]         Path to ACL (Access Control List).\n");
+#endif
+#if defined(MODULE_REMOTE) || defined(MODULE_MANAGER)
+    printf("       --manager-address <addr>   UNIX domain socket address.\n");
 #endif
 #ifdef MODULE_MANAGER
-    printf(
-        "       [--executable <path>]      Path to the executable of ss-server.\n");
+    printf("       [--executable <path>]      Path to the executable of ss-server.\n");
 #endif
+    // FIXME: duplicated new-line in 'ss-redir' help message
     printf("\n");
-    printf(
-        "       [-v]                       Verbose mode\n");
+    printf("       [-v]                       Verbose mode.\n");
     printf("\n");
 }
 
