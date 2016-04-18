@@ -583,6 +583,7 @@ int main(int argc, char **argv)
 
     USE_TTY();
 
+    // FIXME: Opts 'p', 'n', 'b' are found in help message, but not in code.
     while ((c = getopt_long(argc, argv, "f:s:l:k:t:m:c:i:d:a:uUvA",
                             long_options, &option_index)) != -1)
         switch (c) {
