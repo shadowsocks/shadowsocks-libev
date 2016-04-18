@@ -40,6 +40,7 @@
 #include <linux/if.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
+#include <udns.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -198,13 +199,13 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (AF_INET == server->destaddr.ss_family) {
             struct sockaddr_in *sa = (struct sockaddr_in *)&(server->destaddr);
-            inet_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
+            dns_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
             port = ntohs(sa->sin_port);
         } else {
             // TODO: The code below need to be test in IPv6 envirment, which I
             //       don't have.
             struct sockaddr_in6 *sa = (struct sockaddr_in6 *)&(server->destaddr);
-            inet_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
+            dns_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
             port = ntohs(sa->sin6_port);
         }
 
