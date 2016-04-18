@@ -203,11 +203,11 @@ char *ss_strndup(const char *s, size_t n);
 int set_nofile(int nofile);
 #endif
 
-inline void ss_free(void *ptr)
-{
-    free(ptr);
-    ptr = NULL;
-}
+#define ss_free(ptr)     \
+    do {                 \
+        free(ptr);       \
+        ptr = NULL;      \
+    } while(0)
 
 inline void *ss_malloc(size_t size)
 {

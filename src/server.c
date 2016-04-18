@@ -273,8 +273,8 @@ int setfastopen(int fd)
 #else
         int opt = 5;
 #endif
-        errno = 0;
-        s     = setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(opt));
+        s = setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(opt));
+
         if (s == -1) {
             if (errno == EPROTONOSUPPORT || errno == ENOPROTOOPT) {
                 LOGE("fast open is not supported on this platform");
@@ -453,7 +453,6 @@ static remote_t *connect_to_remote(struct addrinfo *res,
             s = len;
         }
 #else
-        errno = 0;
         ssize_t s = sendto(sockfd, server->buf->array + server->buf->idx,
                            server->buf->len, MSG_FASTOPEN, res->ai_addr,
                            res->ai_addrlen);
@@ -503,7 +502,6 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         len    = 0;
     }
 
-    errno = 0;
     ssize_t r = recv(server->fd, buf->array + len, BUF_SIZE - len, 0);
 
     if (r == 0) {
@@ -566,7 +564,6 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             close_and_free_remote(EV_A_ remote);
             return;
         }
-        errno = 0;
         int s = send(remote->fd, remote->buf->array, remote->buf->len, 0);
         if (s == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -837,7 +834,6 @@ static void server_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
-        errno = 0;
         ssize_t s = send(server->fd, server->buf->array + server->buf->idx,
                          server->buf->len, 0);
         if (s < 0) {
@@ -953,7 +949,6 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     ev_timer_again(EV_A_ & server->recv_ctx->watcher);
 
-    errno = 0;
     ssize_t r = recv(remote->fd, server->buf->array, BUF_SIZE, 0);
 
     if (r == 0) {
@@ -989,7 +984,6 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    errno = 0;
     int s = send(server->fd, server->buf->array, server->buf->len, 0);
 
     if (s == -1) {
@@ -1062,7 +1056,6 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
-        errno = 0;
         ssize_t s = send(remote->fd, remote->buf->array + remote->buf->idx,
                          remote->buf->len, 0);
         if (s == -1) {

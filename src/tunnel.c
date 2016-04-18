@@ -186,7 +186,6 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    errno = 0;
     ssize_t r = recv(server->fd, remote->buf->array, BUF_SIZE, 0);
 
     if (r == 0) {
@@ -222,7 +221,6 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    errno = 0;
     int s = send(remote->fd, remote->buf->array, remote->buf->len, 0);
 
     if (s == -1) {
@@ -259,7 +257,6 @@ static void server_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
-        errno = 0;
         ssize_t s = send(server->fd, server->buf->array + server->buf->idx,
                          server->buf->len, 0);
         if (s < 0) {
@@ -313,7 +310,6 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = remote_recv_ctx->remote;
     server_t *server              = remote->server;
 
-    errno = 0;
     ssize_t r = recv(remote->fd, server->buf->array, BUF_SIZE, 0);
 
     if (r == 0) {
@@ -345,7 +341,6 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    errno = 0;
     int s = send(server->fd, server->buf->array, server->buf->len, 0);
 
     if (s == -1) {
@@ -476,7 +471,6 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
             return;
         } else {
             // has data to send
-            errno = 0;
             ssize_t s = send(remote->fd, remote->buf->array + remote->buf->idx,
                              remote->buf->len, 0);
             if (s < 0) {

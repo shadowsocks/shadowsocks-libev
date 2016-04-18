@@ -214,6 +214,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     server_t *server              = server_recv_ctx->server;
     remote_t *remote              = server->remote;
     buffer_t *buf;
+    ssize_t r;
 
     if (remote == NULL) {
         buf = server->buf;
@@ -221,9 +222,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         buf = remote->buf;
     }
 
-    ssize_t r;
-    errno = 0;
-    r     = recv(server->fd, buf->array, BUF_SIZE, 0);
+    r = recv(server->fd, buf->array, BUF_SIZE, 0);
 
     if (r == 0) {
         // connection closed
@@ -312,7 +311,6 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                         s = send(remote->fd, remote->buf->array, remote->buf->len, 0);
                     }
 #else
-                    errno = 0;
                     int s = sendto(remote->fd, remote->buf->array, remote->buf->len, MSG_FASTOPEN,
                                    (struct sockaddr *)&(remote->addr), remote->addr_len);
 #endif
@@ -350,7 +348,6 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 #endif
                 }
             } else {
-                errno = 0;
                 int s = send(remote->fd, remote->buf->array, remote->buf->len, 0);
                 if (s == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -583,7 +580,6 @@ static void server_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
-        errno = 0;
         ssize_t s = send(server->fd, server->buf->array + server->buf->idx,
                          server->buf->len, 0);
         if (s < 0) {
@@ -647,7 +643,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef ANDROID
     stat_update_cb(loop);
 #endif
-    errno = 0;
+
     ssize_t r = recv(remote->fd, server->buf->array, BUF_SIZE, 0);
 
     if (r == 0) {
@@ -682,7 +678,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
             return;
         }
     }
-    errno = 0;
+
     int s = send(server->fd, server->buf->array, server->buf->len, 0);
 
     if (s == -1) {
@@ -745,7 +741,6 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
-        errno = 0;
         ssize_t s = send(remote->fd, remote->buf->array + remote->buf->idx,
                          remote->buf->len, 0);
         if (s < 0) {
