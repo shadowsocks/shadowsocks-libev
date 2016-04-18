@@ -201,7 +201,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             inet_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
             port = ntohs(sa->sin_port);
         } else {
-            // TODO: The code below need to be test on IPv6 envirment, which I
+            // TODO: The code below need to be test in IPv6 envirment, which I
             //       don't have.
             struct sockaddr_in6 *sa = (struct sockaddr_in6 *)&(server->destaddr);
             inet_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
