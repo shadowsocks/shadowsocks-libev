@@ -194,8 +194,8 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (verbose) {
         uint16_t port = 0;
-        char ipstr[max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN)];
-        memset(&ipstr, 0, max(INET_ADDRSTRLEN, INET6_ADDRSTRLEN));
+        char ipstr[INET6_ADDRSTRLEN];
+        memset(&ipstr, 0, INET6_ADDRSTRLEN);
 
         if (AF_INET == server->destaddr.ss_family) {
             struct sockaddr_in *sa = (struct sockaddr_in *)&(server->destaddr);
