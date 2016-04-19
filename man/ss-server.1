@@ -115,8 +115,8 @@ Only available with Linux kernel > 3.7.0.
 Enable ACL (Access Control List) and specify config file.
 .TP
 .B \--manager-address \fIpath_to_unix_domain\fP
-Specify UNIX domain socket address for the communication between ss-manager and
-ss-server.
+Specify UNIX domain socket address for the communication between \*(Ma(1) and
+\*(Se(1).
 
 Only available in server and manager mode.
 .TP
@@ -133,9 +133,9 @@ ALSO\fR section for the default path of config file.
     ss-server -c /etc/shadowsocks-libev/config.json
 
 .SH BUGS
-The config file of shadowsocks-libev is slightly different from original
-shadowsocks. In order to listen to both IPv4/IPv6 address, use the following
-grammar in your config json file:
+The config file of \fBshadowsocks-libev\fR(8) is slightly different from
+original shadowsocks. In order to listen to both IPv4/IPv6 address, use the
+following grammar in your config json file:
 
     {
         "server":["[::0]","0.0.0.0"],
