@@ -42,10 +42,10 @@ ss-redir \- shadowsocks client as transparent proxy, libev port
 shadowsocks created by clowwindy. \*(Me is written in pure C and takes advantage
 of \fBlibev\fP to achieve both high performance and low resource consumption.
 .PP
-\*(Me consists of five components. \*(Re(1) works as a transparent proxy on local
-machines to proxy TCP traffic and requires netfilter's NAT module. For more
-information, check out \fBshadowsocks-libev\fR(8) and the following \fBEXAMPLE\fR
-section.
+\*(Me consists of five components. \*(Re(1) works as a transparent proxy on
+local machines to proxy TCP traffic and requires netfilter's NAT module. For
+more information, check out \fBshadowsocks-libev\fR(8) and the following
+\fBEXAMPLE\fR section.
 
 .SH OPTIONS
 .TP
@@ -64,10 +64,10 @@ Set the password. The server and the client should use the same password.
 .B \-m \fIencrypt_method\fP
 Set the cipher.
 
-\*(Me accepts 18 different ciphers: table, rc4, rc4-md5,
-aes-128-cfb, aes-192-cfb, aes-256-cfb, bf-cfb, camellia-128-cfb,
-camellia-192-cfb, camellia-256-cfb, cast5-cfb, des-cfb, idea-cfb, rc2-cfb,
-seed-cfb, salsa20, chacha20 and chacha20-ietf. The default cipher is \fItable\fP.
+\*(Me accepts 18 different ciphers: table, rc4, rc4-md5, aes-128-cfb,
+aes-192-cfb, aes-256-cfb, bf-cfb, camellia-128-cfb, camellia-192-cfb,
+camellia-256-cfb, cast5-cfb, des-cfb, idea-cfb, rc2-cfb, seed-cfb, salsa20,
+chacha20 and chacha20-ietf. The default cipher is \fItable\fP.
 
 If built with PolarSSL or custom OpenSSL libraries, some of these ciphers may
 not work.
@@ -94,6 +94,7 @@ Run as a specific user.
 .TP
 .B \-u
 Enable UDP relay.
+
 TPROXY is required in redir mode.
 .TP
 .B \-U
@@ -108,6 +109,7 @@ Enable verbose mode.
 .SH EXAMPLE
 \*(Re requires netfilter's NAT function. Here is an example:
 
+.nf
     # Create new chain
     root@Wrt:~# iptables -t nat -N SHADOWSOCKS
 
@@ -141,6 +143,7 @@ Enable verbose mode.
 
     # Start the shadowsocks-redir
     root@Wrt:~# ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
+.fi
 
 .SH SEE ALSO
 .BR \*(Lo (1),
