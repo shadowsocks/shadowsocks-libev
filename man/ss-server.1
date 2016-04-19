@@ -73,6 +73,9 @@ chacha20 and chacha20-ietf. The default cipher is \fItable\fP.
 If built with PolarSSL or custom OpenSSL libraries, some of these ciphers may
 not work.
 .TP
+.B \-a \fIuser_name\fP
+Run as a specific user.
+.TP
 .B \-f \fIpid_file\fP
 Start shadowsocks as a daemon with specific pid file.
 .TP
@@ -89,9 +92,6 @@ Only avaliable on Linux.
 .TP
 .B \-i \fIinterface\fP
 Specify network interface to bind.
-.TP
-.B \-a \fIuser_name\fP
-Run as a specific user.
 .TP
 .B \-u
 Enable UDP relay.
