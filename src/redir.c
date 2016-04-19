@@ -209,7 +209,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             port = ntohs(sa->sin6_port);
         }
 
-        LOGI("redir to %s:%d, len=%ld", ipstr, port, r);
+        LOGI("redir to %s:%d, len=%zd", ipstr, port, r);
     }
 
     remote->buf->len = r;
