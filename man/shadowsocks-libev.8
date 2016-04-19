@@ -62,9 +62,13 @@ Set the server's hostname or IP.
 .TP
 .B \-p \fIserver_port\fP
 Set the server's port number.
+
+Not available in manager mode.
 .TP
 .B \-l \fIlocal_port\fP
 Set the local port number.
+
+Not available in server nor manager mode.
 .TP
 .B \-k \fIpassword\fP
 Set the password. The server and the client should use the same password.
@@ -107,7 +111,7 @@ Not available in redir mode.
 .B \-b \fIlocal_address\fP
 Specify local address to bind.
 
-Not available in server mode.
+Not available in server nor manager mode.
 .TP
 .B \-u
 Enable UDP relay.
@@ -134,17 +138,17 @@ Only available in tunnel mode.
 Setup name servers for internal DNS resolver (libudns). The default server is
 fetched from /etc/resolv.conf.
 
-Only available in server mode.
+Only available in server and manager mode.
 .TP
 .B \--fast-open
 Enable TCP fast open.
 
-Only available in local and server mode, with Linux kernel > 3.7.0.
+Not available in redir nor tunnel mode, with Linux kernel > 3.7.0.
 .TP
 .B \--acl \fIacl_config\fP
 Enable ACL (Access Control List) and specify config file.
 
-Only available in local and server mode.
+Not available in redir nor tunnel mode.
 .TP
 .B \--manager-address \fIpath_to_unix_domain\fP
 Specify UNIX domain socket address.

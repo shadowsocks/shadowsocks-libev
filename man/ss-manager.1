@@ -56,12 +56,6 @@ to the following \fBPROTOCOL\fR section.
 .B \-s \fIserver_host\fP
 Set the server's hostname or IP.
 .TP
-.B \-p \fIserver_port\fP
-Set the server's port number.
-.TP
-.B \-l \fIlocal_port\fP
-Set the local port number.
-.TP
 .B \-k \fIpassword\fP
 Set the password. The server and the client should use the same password.
 .TP
@@ -91,9 +85,6 @@ Use a configuration file.
 .B \-i \fIinterface\fP
 Specify network interface to bind.
 .TP
-.B \-b \fIlocal_address\fP
-Specify local address to bind.
-.TP
 .B \-u
 Enable UDP relay.
 .TP
@@ -102,6 +93,18 @@ Enable UDP relay and disable TCP relay.
 .TP
 .B \-A
 Enable onetime authentication.
+.TP
+.B \-d \fIaddr\fP
+Setup name servers for internal DNS resolver (libudns). The default server is
+fetched from /etc/resolv.conf.
+.TP
+.B \--fast-open
+Enable TCP fast open.
+
+Only available with Linux kernel > 3.7.0.
+.TP
+.B \--acl \fIacl_config\fP
+Enable ACL (Access Control List) and specify config file.
 .TP
 .B \--manager-address \fIpath_to_unix_domain\fP
 Specify UNIX domain socket address for the communication between \*(Ma(1) and
