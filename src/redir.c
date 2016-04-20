@@ -36,6 +36,7 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <limits.h>
 #include <linux/if.h>
 #include <linux/netfilter_ipv4.h>
@@ -671,10 +672,23 @@ int main(int argc, char **argv)
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
     char *remote_port = NULL;
 
+    int option_index                    = 0;
+    static struct option long_options[] = {
+        { "help", no_argument, 0, 0 },
+        {      0,           0, 0, 0 }
+    };
+
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:uUvA")) != -1)
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:huUvA",
+                            long_options, &option_index)) != -1) {
         switch (c) {
+        case 0:
+            if (option_index == 0) {
+                usage();
+                exit(EXIT_SUCCESS);
+            }
+            break;
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
                 remote_addr[remote_num].host   = optarg;
@@ -723,10 +737,18 @@ int main(int argc, char **argv)
         case 'v':
             verbose = 1;
             break;
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
         case 'A':
             auth = 1;
             break;
+        case '?':
+            // The option character is not recognized.
+            opterr = 1;
+            break;
         }
+    }
 
     if (opterr) {
         usage();

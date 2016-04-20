@@ -31,11 +31,11 @@ ss-local \- shadowsocks client as socks5 proxy, libev port
 
 .SH SYNOPSIS
 \*(Lo
-    [\fB\-Auhv\fR]
+    [\fB\-Auv\fR]           [\fB\-h\fR|\fB\--help\fR]
     [\fB\-s\fR \fIserver_host\fR] [\fB\-p\fR \fIserver_port\fR]    [\fB\-l\fR \fIlocal_port\fR]
     [\fB\-k\fR \fIpassword\fR]    [\fB\-m\fR \fIencrypt_method\fR] [\fB\-f\fR \fIpid_file\fR]   [\fB\-t\fR \fItimeout\fR]
     [\fB\-c\fR \fIconfig_file\fR] [\fB\-b\fR \fIinterface\fR]      [\fB\-a\fR \fIuser_name\fR]
-    [\fB\-n\fR \fInofile\fR]      [\fB\-\-fast\-open\fR]    [\fB\-\-acl\fR \fIacl_config\fR]
+    [\fB\-n\fR \fInofile\fR]      [\fB\-\-fast\-open\fR]       [\fB\-\-acl\fR \fIacl_config\fR]
 
 .SH DESCRIPTION
 \*(Me is a lightweight and secure socks5 proxy. It is a port of the original
@@ -110,6 +110,9 @@ Enable ACL (Access Control List) and specify config file.
 .TP
 .B \-v
 Enable verbose mode.
+.TP
+.B \-h, --help
+Print help message.
 
 .SH EXAMPLE
 \*(Lo(1) can be started from command line and run in foreground. Here is an

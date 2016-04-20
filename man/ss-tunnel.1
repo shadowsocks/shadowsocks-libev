@@ -31,7 +31,7 @@ ss-tunnel \- shadowsocks tools for local port forwarding, libev port
 
 .SH SYNOPSIS
 \*(Tu
-    [\fB-AhuUv\fR]
+    [\fB-AuUv\fR]          [\fB\-h\fR|\fB\--help\fR]
     [\fB\-s\fR \fIserver_host\fR] [\fB\-p\fR \fIserver_port\fR]    [\fB\-l\fR \fIlocal_port\fR]
     [\fB\-k\fR \fIpassword\fR]    [\fB\-m\fR \fIencrypt_method\fR] [\fB\-f\fR \fIpid_file\fR]
     [\fB\-t\fR \fItimeout\fR]     [\fB\-c\fR \fIconfig_file\fR]    [\fB\-i\fR \fIinterface\fR]
@@ -111,6 +111,9 @@ Only used and available in tunnel mode.
 .TP
 .B \-v
 Enable verbose mode.
+.TP
+.B \-h, --help
+Print help message.
 
 .SH SEE ALSO
 .BR \*(Lo (1),

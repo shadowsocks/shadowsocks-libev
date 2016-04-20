@@ -31,7 +31,7 @@ ss-redir \- shadowsocks client as transparent proxy, libev port
 
 .SH SYNOPSIS
 \*(Re
-    [\fB\-AhuUv\fR]
+    [\fB\-AuUv\fR]          [\fB\-h\fR|\fB\--help\fR]
     [\fB\-s\fR \fIserver_host\fR] [\fB\-p\fR \fIserver_port\fR]    [\fB\-l\fR \fIlocal_port\fR]
     [\fB\-k\fR \fIpassword\fR]    [\fB\-m\fR \fIencrypt_method\fR] [\fB\-f\fR \fIpid_file\fR]
     [\fB\-t\fR \fItimeout\fR]     [\fB\-c\fR \fIconfig_file\fR]    [\fB\-b\fR \fIlocal_address\fR]
@@ -105,6 +105,9 @@ Enable onetime authentication.
 .TP
 .B \-v
 Enable verbose mode.
+.TP
+.B \-h, --help
+Print help message.
 
 .SH EXAMPLE
 \*(Re requires netfilter's NAT function. Here is an example:

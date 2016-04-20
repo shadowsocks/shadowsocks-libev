@@ -1316,9 +1316,10 @@ int main(int argc, char **argv)
 
     int option_index                    = 0;
     static struct option long_options[] = {
-        { "fast-open",       no_argument,       0, 0 },
-        { "acl",             required_argument, 0, 0 },
+        { "fast-open"      , no_argument      , 0, 0 },
+        { "acl"            , required_argument, 0, 0 },
         { "manager-address", required_argument, 0, 0 },
+        { "help"           , no_argument      , 0, 0 },
         {                 0,                 0, 0, 0 }
     };
 
@@ -1326,8 +1327,8 @@ int main(int argc, char **argv)
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:i:d:a:n:uUvAw",
-                            long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:i:d:a:n:huUvAw",
+                            long_options, &option_index)) != -1) {
         switch (c) {
         case 0:
             if (option_index == 0) {
@@ -1338,6 +1339,9 @@ int main(int argc, char **argv)
                 acl_path = optarg;
             } else if (option_index == 2) {
                 manager_address = optarg;
+            } else if (option_index == 3) {
+                usage();
+                exit(EXIT_SUCCESS);
             }
             break;
         case 's':
@@ -1389,13 +1393,21 @@ int main(int argc, char **argv)
         case 'v':
             verbose = 1;
             break;
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
         case 'A':
             auth = 1;
             break;
         case 'w':
             white_list = 1;
             break;
+        case '?':
+            // The option character is not recognized.
+            opterr = 1;
+            break;
         }
+    }
 
     if (opterr) {
         usage();
