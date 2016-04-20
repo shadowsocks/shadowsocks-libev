@@ -179,9 +179,10 @@ char *ss_strndup(const char *s, size_t n)
     return ret;
 }
 
-void FATAL(const char *msg)
+void FATAL(const char *s)
 {
-    LOGE("%s", msg);
+    char *msg = strerror(errno);
+    LOGE("%s: %s", s, msg);
     exit(-1);
 }
 
