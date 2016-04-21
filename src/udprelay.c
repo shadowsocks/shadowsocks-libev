@@ -445,7 +445,8 @@ int create_server_socket(const char *host, const char *port)
 
 #ifdef MODULE_REDIR
         if (setsockopt(server_sock, SOL_IP, IP_TRANSPARENT, &opt, sizeof(opt))) {
-            FATAL("[udp] setsockopt IP_TRANSPARENT");
+            ERROR("[udp] setsockopt IP_TRANSPARENT");
+            exit(EXIT_FAILURE);
         }
         if (setsockopt(server_sock, IPPROTO_IP, IP_RECVORIGDSTADDR, &opt, sizeof(opt))) {
             FATAL("[udp] setsockopt IP_RECVORIGDSTADDR");
