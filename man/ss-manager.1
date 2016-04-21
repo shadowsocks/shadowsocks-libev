@@ -83,7 +83,13 @@ Set the socket timeout in seconds. The default value is 60.
 Use a configuration file.
 .TP
 .B \-i \fIinterface\fP
-Specify network interface to bind.
+Bind to a specific network interface. Which means, the traffic will send and
+receive through the interface that is bound.
+
+For example, there are three interfaces in your device, which is lo (127.0.0.1),
+eth0 (192.168.0.1) and eth1 (192.168.0.2). Meanwhile, you configure \*(Ma to
+listen on 0.0.0.0:8388 and bind to eth1. That results the traffic go through
+eth1, but not lo nor eth0. This option is useful in multi-interface enviornment.
 .TP
 .B \-u
 Enable UDP relay.
