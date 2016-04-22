@@ -90,13 +90,13 @@ Specify max number of open files.
 Only avaliable on Linux.
 .TP
 .B \-i \fIinterface\fP
-Bind to a specific network interface. Which means, the traffic will send and
-receive through the interface that is bound.
+Send traffic through specific network interface.
 
 For example, there are three interfaces in your device, which is lo (127.0.0.1),
 eth0 (192.168.0.1) and eth1 (192.168.0.2). Meanwhile, you configure \*(Tu to
-listen on 0.0.0.0:8388 and bind to eth1. That results the traffic go through
-eth1, but not lo nor eth0. This option is useful in multi-interface environment.
+listen on 0.0.0.0:8388 and bind to eth1. That results the traffic go out through
+eth1, but not lo nor eth0. This option is useful to control traffic in
+multi-interface environment.
 .TP
 .B \-b \fIlocal_address\fP
 Specify local address to bind.
