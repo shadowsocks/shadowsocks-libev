@@ -1,3 +1,9 @@
+shadowsocks-libev (2.4.6-1) unstable; urgency=low
+
+  * Update manual pages.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 21 Apr 2016 17:33:34 +0800
+
 shadowsocks-libev (2.4.5-1) unstable; urgency=low
 
   * Fix build issues on OpenWRT.
