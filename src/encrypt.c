@@ -212,7 +212,7 @@ static int safe_memcmp(const void *s1, const void *s2, size_t n)
 
 int balloc(buffer_t *ptr, size_t capacity)
 {
-    memset(ptr, 0, sizeof(buffer_t));
+    sodium_memzero(ptr, sizeof(buffer_t));
     ptr->array    = ss_malloc(capacity);
     ptr->capacity = capacity;
     return capacity;
@@ -1207,7 +1207,7 @@ int ss_encrypt(buffer_t *plain, enc_ctx_t *ctx, size_t capacity)
             if (padding) {
                 brealloc(plain, plain->len + padding, capacity);
                 memmove(plain->array + padding, plain->array, plain->len);
-                memset(plain->array, 0, padding);
+                sodium_memzero(plain->array, padding);
             }
             crypto_stream_xor_ic((uint8_t *)(cipher->array + iv_len),
                                  (const uint8_t *)plain->array,
@@ -1365,7 +1365,7 @@ int ss_decrypt(buffer_t *cipher, enc_ctx_t *ctx, size_t capacity)
                 brealloc(cipher, cipher->len + padding, capacity);
                 memmove(cipher->array + iv_len + padding, cipher->array + iv_len,
                         cipher->len - iv_len);
-                memset(cipher->array + iv_len, 0, padding);
+                sodium_memzero(cipher->array + iv_len, padding);
             }
             crypto_stream_xor_ic((uint8_t *)plain->array,
                                  (const uint8_t *)(cipher->array + iv_len),
@@ -1411,7 +1411,7 @@ int ss_decrypt(buffer_t *cipher, enc_ctx_t *ctx, size_t capacity)
 
 void enc_ctx_init(int method, enc_ctx_t *ctx, int enc)
 {
-    memset(ctx, 0, sizeof(enc_ctx_t));
+    sodium_memzero(ctx, sizeof(enc_ctx_t));
     cipher_context_init(&ctx->evp, method, enc);
 
     if (enc) {
