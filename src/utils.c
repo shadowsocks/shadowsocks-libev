@@ -221,9 +221,9 @@ void usage()
     printf(
         "                                  camellia-256-cfb, cast5-cfb, des-cfb,\n");
     printf(
-        "                                  idea-cfb, rc2-cfb, seed-cfb, salsa20 and\n");
+        "                                  idea-cfb, rc2-cfb, seed-cfb, salsa20,\n");
     printf(
-        "                                  chacha20.\n");
+        "                                  chacha20 and chacha20-ietf.\n");
     printf(
         "                                  The default cipher is tables.\n");
     printf("\n");
