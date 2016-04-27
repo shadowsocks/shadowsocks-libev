@@ -1298,6 +1298,7 @@ static void accept_cb(EV_P_ ev_io *w, int revents)
 int main(int argc, char **argv)
 {
     int i, c;
+    int resolv_mode = MODE_IPV4_FIRST;
     int pid_flags   = 0;
     char *user      = NULL;
     char *password  = NULL;
@@ -1327,7 +1328,7 @@ int main(int argc, char **argv)
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:i:d:a:n:huUvAw",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:i:d:a:n:r:huUvAw",
                             long_options, &option_index)) != -1) {
         switch (c) {
         case 0:
@@ -1378,6 +1379,19 @@ int main(int argc, char **argv)
             break;
         case 'a':
             user = optarg;
+            break;
+        case 'r':
+            if (strcmp(optarg, "4") == 0) {
+              resolv_mode = MODE_IPV4_ONLY;
+            } else if (strcmp(optarg, "6") == 0) {
+              resolv_mode = MODE_IPV6_ONLY;
+            } else if (strcmp(optarg, "46") == 0) {
+              resolv_mode = MODE_IPV4_FIRST;
+            } else if (strcmp(optarg, "64") == 0) {
+              resolv_mode = MODE_IPV6_FIRST;
+            } else {
+              opterr = 1;
+            }
             break;
 #ifdef HAVE_SETRLIMIT
         case 'n':
@@ -1530,12 +1544,12 @@ int main(int argc, char **argv)
     if (nameserver_num == 0) {
 #ifdef __MINGW32__
         nameservers[nameserver_num++] = "8.8.8.8";
-        resolv_init(loop, nameservers, nameserver_num);
+        resolv_init(loop, nameservers, nameserver_num, resolv_mode);
 #else
-        resolv_init(loop, NULL, 0);
+        resolv_init(loop, NULL, 0, resolv_mode);
 #endif
     } else {
-        resolv_init(loop, nameservers, nameserver_num);
+        resolv_init(loop, nameservers, nameserver_num, resolv_mode);
     }
 
     for (int i = 0; i < nameserver_num; i++)
