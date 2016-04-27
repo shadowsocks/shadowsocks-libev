@@ -65,10 +65,6 @@ extern int verbose;
 
 static struct ev_io resolv_io_watcher;
 static struct ev_timer resolv_timeout_watcher;
-static const int MODE_IPV4_ONLY  = 0;
-static const int MODE_IPV6_ONLY  = 1;
-static const int MODE_IPV4_FIRST = 2;
-static const int MODE_IPV6_FIRST = 3;
 static int resolv_mode           = 0;
 
 static void resolv_sock_cb(struct ev_loop *, struct ev_io *, int);
@@ -82,9 +78,9 @@ static struct sockaddr *choose_ipv4_first(struct ResolvQuery *);
 static struct sockaddr *choose_ipv6_first(struct ResolvQuery *);
 static struct sockaddr *choose_any(struct ResolvQuery *);
 
-int resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num)
+int resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, int resolv_mode_)
 {
-    resolv_mode = MODE_IPV4_FIRST;
+    resolv_mode = resolv_mode_;
 
     struct dns_ctx *ctx = &dns_defctx;
     if (nameservers == NULL) {

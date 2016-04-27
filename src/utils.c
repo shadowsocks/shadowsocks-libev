@@ -274,6 +274,12 @@ void usage()
 #ifdef MODULE_REMOTE
     printf(
         "       [-d <addr>]                Name servers for internal DNS resolver.\n");
+    printf(
+        "       [-r <mode>]                Resolve priority for IPv4 and IPv6. Mode:\n");
+    printf(
+        "                                  4: IPv4 only; 6: IPv6 only;\n");
+    printf(
+        "                                  46: IPv4 first (default); 64: IPv6 first\n\n");
 #endif
 #if defined(MODULE_REMOTE) || defined(MODULE_LOCAL)
     printf(

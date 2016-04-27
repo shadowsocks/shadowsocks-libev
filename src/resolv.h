@@ -40,7 +40,12 @@
 
 struct ResolvQuery;
 
-int resolv_init(struct ev_loop *, char **, int);
+static const int MODE_IPV4_ONLY  = 0;
+static const int MODE_IPV6_ONLY  = 1;
+static const int MODE_IPV4_FIRST = 2;
+static const int MODE_IPV6_FIRST = 3;
+
+int resolv_init(struct ev_loop *, char **, int, int);
 struct ResolvQuery *resolv_query(const char *, void (*)(struct sockaddr *,
                                                         void *), void (*)(
                                      void *), void *, uint16_t);
