@@ -229,6 +229,18 @@ sudo pacman -S shadowsocks-libev
 Please refer to downstream [PKGBUILD](https://projects.archlinux.org/svntogit/community.git/tree/trunk?h=packages/shadowsocks-libev)
 script for extra modifications and distribution-specific bugs.
 
+### NixOS
+
+```bash
+nix-env -iA nixos.shadowsocks-libev
+```
+
+### Nix
+
+```bash
+nix-env -iA nixpkgs.shadowsocks-libev
+```
+
 ### Linux
 
 For Unix-like systems, especially Debian-based systems,
