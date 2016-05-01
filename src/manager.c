@@ -1,7 +1,7 @@
 /*
  * server.c - Provide shadowsocks service
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -323,7 +323,7 @@ static void remove_server(char *prefix, char *port)
     cork_hash_table_delete(server_table, (void *)port, (void **)&old_port, (void **)&old_server);
 
     if (old_server != NULL) {
-        free(old_server);
+        ss_free(old_server);
     }
 
     stop_server(prefix, port);
@@ -371,7 +371,7 @@ static void manager_recv_cb(EV_P_ ev_io *w, int revents)
         if (server == NULL || server->port[0] == 0 || server->password[0] == 0) {
             LOGE("invalid command: %s:%s", buf, get_data(buf, r));
             if (server != NULL) {
-                free(server);
+                ss_free(server);
             }
             goto ERROR_MSG;
         }
@@ -389,13 +389,13 @@ static void manager_recv_cb(EV_P_ ev_io *w, int revents)
         if (server == NULL || server->port[0] == 0) {
             LOGE("invalid command: %s:%s", buf, get_data(buf, r));
             if (server != NULL) {
-                free(server);
+                ss_free(server);
             }
             goto ERROR_MSG;
         }
 
         remove_server(working_dir, server->port);
-        free(server);
+        ss_free(server);
 
         char msg[3] = "ok";
         if (sendto(manager->fd, msg, 3, 0, (struct sockaddr *)&claddr, len) != 3) {
@@ -572,10 +572,11 @@ int main(int argc, char **argv)
 
     int option_index                    = 0;
     static struct option long_options[] = {
-        { "fast-open",       no_argument,       0, 0 },
-        { "acl",             required_argument, 0, 0 },
+        { "fast-open"      , no_argument      , 0, 0 },
+        { "acl"            , required_argument, 0, 0 },
         { "manager-address", required_argument, 0, 0 },
-        { "executable",      required_argument, 0, 0 },
+        { "executable"     , required_argument, 0, 0 },
+        { "help"           , no_argument      , 0, 0 },
         {                 0,                 0, 0, 0 }
     };
 
@@ -583,7 +584,7 @@ int main(int argc, char **argv)
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:l:k:t:m:c:i:d:a:uUvA",
+    while ((c = getopt_long(argc, argv, "f:s:l:k:t:m:c:i:d:a:huUvA",
                             long_options, &option_index)) != -1)
         switch (c) {
         case 0:
@@ -595,6 +596,9 @@ int main(int argc, char **argv)
                 manager_address = optarg;
             } else if (option_index == 3) {
                 executable = optarg;
+            } else if (option_index == 4) {
+                usage();
+                exit(EXIT_SUCCESS);
             }
             break;
         case 's':
@@ -638,8 +642,15 @@ int main(int argc, char **argv)
         case 'v':
             verbose = 1;
             break;
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
         case 'A':
             auth = 1;
+            break;
+        case '?':
+            // The option character is not recognized.
+            opterr = 1;
             break;
         }
 

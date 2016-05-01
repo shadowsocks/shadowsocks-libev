@@ -67,6 +67,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Enable IPv6 support in libudns */
+#undef HAVE_IPv6
+
 /* Define to 1 if you have the `kqueue' function. */
 #undef HAVE_KQUEUE
 

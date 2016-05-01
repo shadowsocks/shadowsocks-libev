@@ -28,6 +28,7 @@
  */
 
 #include "json.h"
+#include "utils.h"
 
 #ifdef _MSC_VER
 #ifndef _CRT_SECURE_NO_WARNINGS
@@ -38,7 +39,7 @@
 #ifdef __cplusplus
 const struct _json_value json_value_none; /* zero-d by ctor */
 #else
-const struct _json_value json_value_none = { 0 };
+const struct _json_value json_value_none = { NULL, 0, {0}, {NULL} };
 #endif
 
 #include <stdio.h>
@@ -90,12 +91,12 @@ typedef struct {
 
 static void *default_alloc(size_t size, int zero, void *user_data)
 {
-    return zero ? calloc(1, size) : malloc(size);
+    return zero ? calloc(1, size) : ss_malloc(size);
 }
 
 static void default_free(void *ptr, void *user_data)
 {
-    free(ptr);
+    ss_free(ptr);
 }
 
 static void *json_alloc(json_state *state, unsigned long size, int zero)
@@ -239,7 +240,7 @@ json_value *json_parse_ex(json_settings *settings,
     unsigned int cur_line;
     const json_char *cur_line_begin, *i, *end;
     json_value *top, *root, *alloc = 0;
-    json_state state = { 0 };
+    json_state state = { 0UL, 0U, 0UL, {0UL, 0, NULL, NULL, NULL}, 0 };
     long flags;
     long num_digits         = 0, num_e = 0;
     json_int_t num_fraction = 0;
@@ -933,7 +934,7 @@ e_failed:
 
 json_value *json_parse(const json_char *json, size_t length)
 {
-    json_settings settings = { 0 };
+    json_settings settings = { 0UL, 0, NULL, NULL, NULL };
     return json_parse_ex(&settings, json, length, 0);
 }
 
@@ -986,7 +987,7 @@ void json_value_free_ex(json_settings *settings, json_value *value)
 
 void json_value_free(json_value *value)
 {
-    json_settings settings = { 0 };
+    json_settings settings = { 0UL, 0, NULL, NULL, NULL };
     settings.mem_free = default_free;
     json_value_free_ex(&settings, value);
 }

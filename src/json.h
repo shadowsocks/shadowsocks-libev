@@ -51,7 +51,6 @@
 
 extern "C"
 {
-
 #endif
 
 typedef struct {
@@ -61,11 +60,10 @@ typedef struct {
     /* Custom allocator support (leave null to use malloc/free)
      */
 
-    void * (*mem_alloc)(size_t, int zero, void * user_data);
-    void (* mem_free)(void *, void * user_data);
+    void * (*mem_alloc)(size_t, int zero, void *user_data);
+    void (*mem_free)(void *, void *user_data);
 
-    void * user_data;      /* will be passed to mem_alloc and mem_free */
-
+    void *user_data;       /* will be passed to mem_alloc and mem_free */
 } json_settings;
 
 #define json_enable_comments  0x01
@@ -79,13 +77,12 @@ typedef enum {
     json_string,
     json_boolean,
     json_null
-
 } json_type;
 
 extern const struct _json_value json_value_none;
 
 typedef struct _json_value {
-    struct _json_value * parent;
+    struct _json_value *parent;
 
     json_type type;
 
@@ -96,20 +93,18 @@ typedef struct _json_value {
 
         struct {
             unsigned int length;
-            json_char * ptr;     /* null terminated */
-
+            json_char *ptr;      /* null terminated */
         } string;
 
         struct {
             unsigned int length;
 
             struct {
-                json_char * name;
+                json_char *name;
                 unsigned int name_length;
 
-                struct _json_value * value;
-
-            } * values;
+                struct _json_value *value;
+            } *values;
 
 #if defined(__cplusplus) && __cplusplus >= 201103L
             decltype(values) begin() const
@@ -121,12 +116,11 @@ typedef struct _json_value {
                 return values + length;
             }
 #endif
-
         } object;
 
         struct {
             unsigned int length;
-            struct _json_value ** values;
+            struct _json_value **values;
 
 #if defined(__cplusplus) && __cplusplus >= 201103L
             decltype(values) begin() const
@@ -138,17 +132,13 @@ typedef struct _json_value {
                 return values + length;
             }
 #endif
-
         } array;
-
     } u;
 
     union {
-        struct _json_value * next_alloc;
-        void * object_mem;
-
+        struct _json_value *next_alloc;
+        void *object_mem;
     } _reserved;
-
 
     /* Some C++ operator sugar */
 
@@ -166,19 +156,18 @@ public:
             return json_value_none;
         }
 
-        return *u.array.values [index];
+        return *u.array.values[index];
     }
 
-    inline const struct _json_value &operator [] (const char * index) const {
+    inline const struct _json_value &operator [] (const char *index) const {
         if (type != json_object) {
             return json_value_none;
         }
 
-        for (unsigned int i = 0; i < u.object.length; ++i) {
-            if (!strcmp(u.object.values [i].name, index)) {
-                return *u.object.values [i].value;
+        for (unsigned int i = 0; i < u.object.length; ++i)
+            if (!strcmp(u.object.values[i].name, index)) {
+                return *u.object.values[i].value;
             }
-        }
 
         return json_value_none;
     }
@@ -192,7 +181,6 @@ public:
         default:
             return "";
         }
-        ;
     }
 
     inline operator json_int_t() const
@@ -207,7 +195,6 @@ public:
         default:
             return 0;
         }
-        ;
     }
 
     inline operator bool() const
@@ -231,36 +218,30 @@ public:
         default:
             return 0;
         }
-        ;
     }
 
 #endif
-
 } json_value;
 
-json_value * json_parse(const json_char * json,
-                        size_t length);
+json_value *json_parse(const json_char *json,
+                       size_t length);
 
 #define json_error_max 128
-json_value * json_parse_ex(json_settings * settings,
-                           const json_char * json,
-                           size_t length,
-                           char * error);
+json_value *json_parse_ex(json_settings *settings,
+                          const json_char *json,
+                          size_t length,
+                          char *error);
 
 void json_value_free(json_value *);
-
 
 /* Not usually necessary, unless you used a custom mem_alloc and now want to
  * use a custom mem_free.
  */
-void json_value_free_ex(json_settings * settings,
+void json_value_free_ex(json_settings *settings,
                         json_value *);
-
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
 #endif
-
-

@@ -1,7 +1,7 @@
 /*
  * encrypt.c - Manage the global encryptor
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -203,7 +203,8 @@ static int safe_memcmp(const void *s1, const void *s2, size_t n)
 {
     const unsigned char *_s1 = (const unsigned char *)s1;
     const unsigned char *_s2 = (const unsigned char *)s2;
-    int ret                  = 0, i;
+    int ret                  = 0;
+    size_t i;
     for (i = 0; i < n; i++)
         ret |= _s1[i] ^ _s2[i];
     return !!ret;
@@ -211,17 +212,19 @@ static int safe_memcmp(const void *s1, const void *s2, size_t n)
 
 int balloc(buffer_t *ptr, size_t capacity)
 {
-    memset(ptr, 0, sizeof(buffer_t));
-    ptr->array    = malloc(capacity);
+    sodium_memzero(ptr, sizeof(buffer_t));
+    ptr->array    = ss_malloc(capacity);
     ptr->capacity = capacity;
     return capacity;
 }
 
 int brealloc(buffer_t *ptr, size_t len, size_t capacity)
 {
-    int real_capacity = max(len, capacity);
+    if (ptr == NULL)
+        return -1;
+    size_t real_capacity = max(len, capacity);
     if (ptr->capacity < real_capacity) {
-        ptr->array    = realloc(ptr->array, real_capacity);
+        ptr->array    = ss_realloc(ptr->array, real_capacity);
         ptr->capacity = real_capacity;
     }
     return real_capacity;
@@ -229,12 +232,13 @@ int brealloc(buffer_t *ptr, size_t len, size_t capacity)
 
 void bfree(buffer_t *ptr)
 {
+    if (ptr == NULL)
+        return;
     ptr->idx      = 0;
     ptr->len      = 0;
     ptr->capacity = 0;
     if (ptr->array != NULL) {
-        free(ptr->array);
-        ptr->array = NULL;
+        ss_free(ptr->array);
     }
 }
 
@@ -305,8 +309,8 @@ static void merge(uint8_t *left, int llength, uint8_t *right,
         }
     }
 
-    free(ltmp);
-    free(rtmp);
+    ss_free(ltmp);
+    ss_free(rtmp);
 }
 
 static void merge_sort(uint8_t array[], int length,
@@ -364,8 +368,8 @@ void enc_table_init(const char *pass)
     uint64_t key = 0;
     uint8_t *digest;
 
-    enc_table = malloc(256);
-    dec_table = malloc(256);
+    enc_table = ss_malloc(256);
+    dec_table = ss_malloc(256);
 
     digest = enc_md5((const uint8_t *)pass, strlen(pass), NULL);
 
@@ -1119,7 +1123,7 @@ int ss_encrypt_all(buffer_t *plain, int method, int auth, size_t capacity)
         size_t iv_len = enc_iv_len;
         int err       = 1;
 
-        static buffer_t tmp = { 0 };
+        static buffer_t tmp = { 0, 0, 0, NULL };
         brealloc(&tmp, iv_len + plain->len, capacity);
         buffer_t *cipher = &tmp;
         cipher->len = plain->len;
@@ -1178,7 +1182,7 @@ int ss_encrypt_all(buffer_t *plain, int method, int auth, size_t capacity)
 int ss_encrypt(buffer_t *plain, enc_ctx_t *ctx, size_t capacity)
 {
     if (ctx != NULL) {
-        static buffer_t tmp = { 0 };
+        static buffer_t tmp = { 0, 0, 0, NULL };
 
         int err       = 1;
         size_t iv_len = 0;
@@ -1203,7 +1207,7 @@ int ss_encrypt(buffer_t *plain, enc_ctx_t *ctx, size_t capacity)
             if (padding) {
                 brealloc(plain, plain->len + padding, capacity);
                 memmove(plain->array + padding, plain->array, plain->len);
-                memset(plain->array, 0, padding);
+                sodium_memzero(plain->array, padding);
             }
             crypto_stream_xor_ic((uint8_t *)(cipher->array + iv_len),
                                  (const uint8_t *)plain->array,
@@ -1261,7 +1265,7 @@ int ss_decrypt_all(buffer_t *cipher, int method, int auth, size_t capacity)
         cipher_ctx_t evp;
         cipher_context_init(&evp, method, 0);
 
-        static buffer_t tmp = { 0 };
+        static buffer_t tmp = { 0, 0, 0, NULL };
         brealloc(&tmp, cipher->len, capacity);
         buffer_t *plain = &tmp;
         plain->len = cipher->len - iv_len;
@@ -1324,7 +1328,7 @@ int ss_decrypt_all(buffer_t *cipher, int method, int auth, size_t capacity)
 int ss_decrypt(buffer_t *cipher, enc_ctx_t *ctx, size_t capacity)
 {
     if (ctx != NULL) {
-        static buffer_t tmp = { 0 };
+        static buffer_t tmp = { 0, 0, 0, NULL };
 
         size_t iv_len = 0;
         int err       = 1;
@@ -1361,7 +1365,7 @@ int ss_decrypt(buffer_t *cipher, enc_ctx_t *ctx, size_t capacity)
                 brealloc(cipher, cipher->len + padding, capacity);
                 memmove(cipher->array + iv_len + padding, cipher->array + iv_len,
                         cipher->len - iv_len);
-                memset(cipher->array + iv_len, 0, padding);
+                sodium_memzero(cipher->array + iv_len, padding);
             }
             crypto_stream_xor_ic((uint8_t *)plain->array,
                                  (const uint8_t *)(cipher->array + iv_len),
@@ -1407,7 +1411,7 @@ int ss_decrypt(buffer_t *cipher, enc_ctx_t *ctx, size_t capacity)
 
 void enc_ctx_init(int method, enc_ctx_t *ctx, int enc)
 {
-    memset(ctx, 0, sizeof(enc_ctx_t));
+    sodium_memzero(ctx, sizeof(enc_ctx_t));
     cipher_context_init(&ctx->evp, method, enc);
 
     if (enc) {

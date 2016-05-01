@@ -4,7 +4,7 @@ MAINTAINER Sah Lee <contact@leesah.name>
 
 ENV DEPENDENCIES git-core build-essential autoconf libtool libssl-dev
 ENV BASEDIR /tmp/shadowsocks-libev
-ENV PORT 8338
+ENV SERVER_PORT 8338
 
 # Set up building environment
 RUN apt-get update \
@@ -23,7 +23,8 @@ RUN rm -rf $BASEDIR/shadowsocks-libev\
  && apt-get --purge autoremove -y $DEPENDENCIES
 
 # Port in the config file won't take affect. Instead we'll use 8388.
-EXPOSE $PORT
+EXPOSE $SERVER_PORT
+EXPOSE $SERVER_PORT/udp
 
 # Override the host and port in the config file.
 ADD entrypoint /

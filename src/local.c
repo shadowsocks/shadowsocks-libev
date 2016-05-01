@@ -1,7 +1,7 @@
 /*
  * local.c - Setup a socks5 proxy through remote shadowsocks server
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -214,14 +214,13 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     server_t *server              = server_recv_ctx->server;
     remote_t *remote              = server->remote;
     buffer_t *buf;
+    ssize_t r;
 
     if (remote == NULL) {
         buf = server->buf;
     } else {
         buf = remote->buf;
     }
-
-    ssize_t r;
 
     r = recv(server->fd, buf->array, BUF_SIZE, 0);
 
@@ -333,7 +332,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                             close_and_free_server(EV_A_ server);
                             return;
                         }
-                    } else if (s <= remote->buf->len) {
+                    } else if (s <= (int)(remote->buf->len)) {
                         remote->buf->len -= s;
                         remote->buf->idx  = s;
                     }
@@ -363,7 +362,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                         close_and_free_server(EV_A_ server);
                         return;
                     }
-                } else if (s < remote->buf->len) {
+                } else if (s < (int)(remote->buf->len)) {
                     remote->buf->len -= s;
                     remote->buf->idx  = s;
                     ev_io_stop(EV_A_ & server_recv_ctx->io);
@@ -383,7 +382,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             server->stage = 1;
 
             int off = (buf->array[1] & 0xff) + 2;
-            if (buf->array[0] == 0x05 && off < buf->len) {
+            if (buf->array[0] == 0x05 && off < (int)(buf->len)) {
                 memmove(buf->array, buf->array + off, buf->len - off);
                 buf->len -= off;
                 continue;
@@ -590,7 +589,7 @@ static void server_send_cb(EV_P_ ev_io *w, int revents)
                 close_and_free_server(EV_A_ server);
             }
             return;
-        } else if (s < server->buf->len) {
+        } else if (s < (ssize_t)(server->buf->len)) {
             // partly sent, move memory, wait for the next time to send
             server->buf->len -= s;
             server->buf->idx += s;
@@ -695,7 +694,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
             close_and_free_server(EV_A_ server);
             return;
         }
-    } else if (s < server->buf->len) {
+    } else if (s < (int)(server->buf->len)) {
         server->buf->len -= s;
         server->buf->idx  = s;
         ev_io_stop(EV_A_ & remote_recv_ctx->io);
@@ -752,7 +751,7 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
                 close_and_free_server(EV_A_ server);
             }
             return;
-        } else if (s < remote->buf->len) {
+        } else if (s < (ssize_t)(remote->buf->len)) {
             // partly sent, move memory, wait for the next time to send
             remote->buf->len -= s;
             remote->buf->idx += s;
@@ -770,13 +769,13 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
 static remote_t *new_remote(int fd, int timeout)
 {
     remote_t *remote;
-    remote = malloc(sizeof(remote_t));
+    remote = ss_malloc(sizeof(remote_t));
 
     memset(remote, 0, sizeof(remote_t));
 
-    remote->buf                 = malloc(sizeof(buffer_t));
-    remote->recv_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->send_ctx            = malloc(sizeof(remote_ctx_t));
+    remote->buf                 = ss_malloc(sizeof(buffer_t));
+    remote->recv_ctx            = ss_malloc(sizeof(remote_ctx_t));
+    remote->send_ctx            = ss_malloc(sizeof(remote_ctx_t));
     remote->recv_ctx->connected = 0;
     remote->send_ctx->connected = 0;
     remote->fd                  = fd;
@@ -802,11 +801,11 @@ static void free_remote(remote_t *remote)
     }
     if (remote->buf != NULL) {
         bfree(remote->buf);
-        free(remote->buf);
+        ss_free(remote->buf);
     }
-    free(remote->recv_ctx);
-    free(remote->send_ctx);
-    free(remote);
+    ss_free(remote->recv_ctx);
+    ss_free(remote->send_ctx);
+    ss_free(remote);
 }
 
 static void close_and_free_remote(EV_P_ remote_t *remote)
@@ -824,13 +823,13 @@ static void close_and_free_remote(EV_P_ remote_t *remote)
 static server_t *new_server(int fd, int method)
 {
     server_t *server;
-    server = malloc(sizeof(server_t));
+    server = ss_malloc(sizeof(server_t));
 
     memset(server, 0, sizeof(server_t));
 
-    server->recv_ctx            = malloc(sizeof(server_ctx_t));
-    server->send_ctx            = malloc(sizeof(server_ctx_t));
-    server->buf                 = malloc(sizeof(buffer_t));
+    server->recv_ctx            = ss_malloc(sizeof(server_ctx_t));
+    server->send_ctx            = ss_malloc(sizeof(server_ctx_t));
+    server->buf                 = ss_malloc(sizeof(buffer_t));
     server->recv_ctx->connected = 0;
     server->send_ctx->connected = 0;
     server->fd                  = fd;
@@ -838,8 +837,8 @@ static server_t *new_server(int fd, int method)
     server->send_ctx->server    = server;
 
     if (method) {
-        server->e_ctx = malloc(sizeof(struct enc_ctx));
-        server->d_ctx = malloc(sizeof(struct enc_ctx));
+        server->e_ctx = ss_malloc(sizeof(struct enc_ctx));
+        server->d_ctx = ss_malloc(sizeof(struct enc_ctx));
         enc_ctx_init(method, server->e_ctx, 1);
         enc_ctx_init(method, server->d_ctx, 0);
     } else {
@@ -866,19 +865,19 @@ static void free_server(server_t *server)
     }
     if (server->e_ctx != NULL) {
         cipher_context_release(&server->e_ctx->evp);
-        free(server->e_ctx);
+        ss_free(server->e_ctx);
     }
     if (server->d_ctx != NULL) {
         cipher_context_release(&server->d_ctx->evp);
-        free(server->d_ctx);
+        ss_free(server->d_ctx);
     }
     if (server->buf != NULL) {
         bfree(server->buf);
-        free(server->buf);
+        ss_free(server->buf);
     }
-    free(server->recv_ctx);
-    free(server->send_ctx);
-    free(server);
+    ss_free(server->recv_ctx);
+    ss_free(server->send_ctx);
+    ss_free(server);
 }
 
 static void close_and_free_server(EV_P_ server_t *server)
@@ -986,8 +985,9 @@ int main(int argc, char **argv)
 
     int option_index                    = 0;
     static struct option long_options[] = {
-        { "fast-open", no_argument,       0, 0 },
-        { "acl",       required_argument, 0, 0 },
+        { "fast-open", no_argument      , 0, 0 },
+        { "acl"      , required_argument, 0, 0 },
+        { "help"     , no_argument      , 0, 0 },
         {           0,                 0, 0, 0 }
     };
 
@@ -996,10 +996,10 @@ int main(int argc, char **argv)
     USE_TTY();
 
 #ifdef ANDROID
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:P:uvVA",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:P:huvVA",
                             long_options, &option_index)) != -1) {
 #else
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:uvA",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huvA",
                             long_options, &option_index)) != -1) {
 #endif
         switch (c) {
@@ -1007,8 +1007,11 @@ int main(int argc, char **argv)
             if (option_index == 0) {
                 fast_open = 1;
             } else if (option_index == 1) {
-                LOGI("initialize acl...");
+                LOGI("initializing acl...");
                 acl = !init_acl(optarg, BLACK_LIST);
+            } else if (option_index == 2) {
+                usage();
+                exit(EXIT_SUCCESS);
             }
             break;
         case 's':
@@ -1059,6 +1062,9 @@ int main(int argc, char **argv)
         case 'v':
             verbose = 1;
             break;
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
         case 'A':
             auth = 1;
             break;
@@ -1070,6 +1076,10 @@ int main(int argc, char **argv)
             prefix = optarg;
             break;
 #endif
+        case '?':
+            // The option character is not recognized.
+            opterr = 1;
+            break;
         }
     }
 
@@ -1178,18 +1188,18 @@ int main(int argc, char **argv)
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
 
     // Setup keys
-    LOGI("initialize ciphers... %s", method);
+    LOGI("initializing ciphers... %s", method);
     int m = enc_init(password, method);
 
     // Setup proxy context
     listen_ctx_t listen_ctx;
     listen_ctx.remote_num  = remote_num;
-    listen_ctx.remote_addr = malloc(sizeof(struct sockaddr *) * remote_num);
+    listen_ctx.remote_addr = ss_malloc(sizeof(struct sockaddr *) * remote_num);
     for (i = 0; i < remote_num; i++) {
         char *host = remote_addr[i].host;
         char *port = remote_addr[i].port == NULL ? remote_port :
                      remote_addr[i].port;
-        struct sockaddr_storage *storage = malloc(sizeof(struct sockaddr_storage));
+        struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
         memset(storage, 0, sizeof(struct sockaddr_storage));
         if (get_sockaddr(host, port, storage, 1) == -1) {
             FATAL("failed to resolve the provided hostname");
@@ -1252,8 +1262,8 @@ int main(int argc, char **argv)
     }
 
     for (i = 0; i < remote_num; i++)
-        free(listen_ctx.remote_addr[i]);
-    free(listen_ctx.remote_addr);
+        ss_free(listen_ctx.remote_addr[i]);
+    ss_free(listen_ctx.remote_addr);
 
 #ifdef __MINGW32__
     winsock_cleanup();
@@ -1316,10 +1326,10 @@ int start_ss_local_server(profile_t profile)
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
 
     // Setup keys
-    LOGI("initialize ciphers... %s", method);
+    LOGI("initializing ciphers... %s", method);
     int m = enc_init(password, method);
 
-    struct sockaddr_storage *storage = malloc(sizeof(struct sockaddr_storage));
+    struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
     memset(storage, 0, sizeof(struct sockaddr_storage));
     if (get_sockaddr(remote_host, remote_port_str, storage, 1) == -1) {
         return -1;
@@ -1330,7 +1340,7 @@ int start_ss_local_server(profile_t profile)
     listen_ctx_t listen_ctx;
 
     listen_ctx.remote_num     = 1;
-    listen_ctx.remote_addr    = malloc(sizeof(struct sockaddr *));
+    listen_ctx.remote_addr    = ss_malloc(sizeof(struct sockaddr *));
     listen_ctx.remote_addr[0] = (struct sockaddr *)storage;
     listen_ctx.timeout        = timeout;
     listen_ctx.method         = m;
@@ -1383,7 +1393,7 @@ int start_ss_local_server(profile_t profile)
     free_connections(loop);
     close(listen_ctx.fd);
 
-    free(listen_ctx.remote_addr);
+    ss_free(listen_ctx.remote_addr);
 
 #ifdef __MINGW32__
     winsock_cleanup();

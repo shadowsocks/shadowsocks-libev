@@ -1,7 +1,7 @@
 /*
  * cache.c - Manage the connection cache for UDPRELAY
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -27,7 +27,9 @@
 
 #include <errno.h>
 #include <stdlib.h>
+
 #include "cache.h"
+#include "utils.h"
 
 #ifdef __MINGW32__
 #include "win32.h"
@@ -91,13 +93,12 @@ int cache_delete(struct cache *cache, int keep_data)
                     cache->free_cb(entry->data);
                 }
             }
-            free(entry->key);
-            free(entry);
+            ss_free(entry->key);
+            ss_free(entry);
         }
     }
 
-    free(cache);
-    cache = NULL;
+    ss_free(cache);
     return 0;
 }
 
@@ -130,11 +131,11 @@ int cache_remove(struct cache *cache, char *key, size_t key_len)
             if (cache->free_cb) {
                 cache->free_cb(tmp->data);
             } else {
-                free(tmp->data);
+                ss_free(tmp->data);
             }
         }
-        free(tmp->key);
-        free(tmp);
+        ss_free(tmp->key);
+        ss_free(tmp);
     }
 
     return 0;
@@ -230,7 +231,7 @@ int cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
         return ENOMEM;
     }
 
-    entry->key = malloc(key_len);
+    entry->key = ss_malloc(key_len);
     memcpy(entry->key, key, key_len);
     entry->data = data;
     HASH_ADD_KEYPTR(hh, cache->entries, entry->key, key_len, entry);
@@ -242,11 +243,11 @@ int cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
                 if (cache->free_cb) {
                     cache->free_cb(entry->data);
                 } else {
-                    free(entry->data);
+                    ss_free(entry->data);
                 }
             }
-            free(entry->key);
-            free(entry);
+            ss_free(entry->key);
+            ss_free(entry);
             break;
         }
     }

@@ -1,7 +1,7 @@
 /*
  * utils.c - Misc utilities
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -205,7 +205,7 @@ void usage()
 #endif
     printf("\n");
     printf(
-        "       -s <server_host>           Host name or ip address of your remote server.\n");
+        "       -s <server_host>           Host name or IP address of your remote server.\n");
     printf(
         "       -p <server_port>           Port number of your remote server.\n");
     printf(
@@ -219,9 +219,13 @@ void usage()
     printf(
         "                                  bf-cfb, camellia-128-cfb, camellia-192-cfb,\n");
     printf(
-        "                                  camellia-256-cfb, cast5-cfb, des-cfb, idea-cfb,\n");
+        "                                  camellia-256-cfb, cast5-cfb, des-cfb,\n");
     printf(
-        "                                  rc2-cfb, seed-cfb, salsa20 and chacha20.\n");
+        "                                  idea-cfb, rc2-cfb, seed-cfb, salsa20,\n");
+    printf(
+        "                                  chacha20 and chacha20-ietf.\n");
+    printf(
+        "                                  The default cipher is tables.\n");
     printf("\n");
     printf(
         "       [-a <user>]                Run as another user.\n");
@@ -258,6 +262,8 @@ void usage()
         "       [-A]                       Enable onetime authentication.\n");
 #ifdef MODULE_REMOTE
     printf(
+        "       [-6]                       Resovle hostname to IPv6 address first.\n");
+    printf(
         "       [-w]                       Enable white list mode (when ACL enabled).\n");
 #endif
     printf("\n");
@@ -289,7 +295,9 @@ void usage()
 #endif
     printf("\n");
     printf(
-        "       [-v]                       Verbose mode\n");
+        "       [-v]                       Verbose mode.\n");
+    printf(
+        "       [-h, --help]               Print this message.\n");
     printf("\n");
 }
 

@@ -1,7 +1,7 @@
 /*
  * utils.h - Misc utilities
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -23,6 +23,7 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -149,7 +150,7 @@ extern int use_syslog;
                 fprintf(stderr, "\e[01;32m %s INFO: \e[0m" format "\n", timestr, \
                         ## __VA_ARGS__);                                         \
             } else {                                                             \
-                fprintf(stderr, "%s INFO: " format "\n", timestr,                \
+                fprintf(stderr, " %s INFO: " format "\n", timestr,               \
                         ## __VA_ARGS__);                                         \
             }                                                                    \
         }                                                                        \
@@ -201,5 +202,30 @@ char *ss_strndup(const char *s, size_t n);
 #ifdef HAVE_SETRLIMIT
 int set_nofile(int nofile);
 #endif
+
+#define ss_free(ptr)     \
+    do {                 \
+        free(ptr);       \
+        ptr = NULL;      \
+    } while(0)
+
+inline void *ss_malloc(size_t size)
+{
+    void *tmp = malloc(size);
+    if (tmp == NULL)
+        exit(EXIT_FAILURE);
+    return tmp;
+}
+
+inline void *ss_realloc(void *ptr, size_t new_size)
+{
+    void *new = realloc(ptr, new_size);
+    if (new == NULL) {
+        free(ptr);
+        ptr = NULL;
+        exit(EXIT_FAILURE);
+    }
+    return new;
+}
 
 #endif // _UTILS_H

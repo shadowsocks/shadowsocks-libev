@@ -1,7 +1,7 @@
 /*
  * server.c - Provide shadowsocks service
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -112,6 +112,7 @@ static int white_list = 0;
 static int acl        = 0;
 static int mode       = TCP_ONLY;
 static int auth       = 0;
+static int ipv6first  = 0;
 
 static int fast_open = 0;
 #ifdef HAVE_SETRLIMIT
@@ -274,6 +275,7 @@ int setfastopen(int fd)
         int opt = 5;
 #endif
         s = setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(opt));
+
         if (s == -1) {
             if (errno == EPROTONOSUPPORT || errno == ENOPROTOOPT) {
                 LOGE("fast open is not supported on this platform");
@@ -639,11 +641,9 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                     LOGE("authentication error from %s", peer_name);
                     if (acl) {
                         if (acl_get_mode() == BLACK_LIST) {
+                            // Auto ban enabled only in black list mode
                             acl_add_ip(peer_name);
                             LOGE("add %s to the black list", peer_name);
-                        } else {
-                            acl_remove_ip(peer_name);
-                            LOGE("remove %s from the white list", peer_name);
                         }
                     }
                 }
@@ -1101,10 +1101,10 @@ static remote_t *new_remote(int fd)
 
     remote_t *remote;
 
-    remote                      = malloc(sizeof(remote_t));
-    remote->recv_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->send_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->buf                 = malloc(sizeof(buffer_t));
+    remote                      = ss_malloc(sizeof(remote_t));
+    remote->recv_ctx            = ss_malloc(sizeof(remote_ctx_t));
+    remote->send_ctx            = ss_malloc(sizeof(remote_ctx_t));
+    remote->buf                 = ss_malloc(sizeof(buffer_t));
     remote->fd                  = fd;
     remote->recv_ctx->remote    = remote;
     remote->recv_ctx->connected = 0;
@@ -1127,11 +1127,11 @@ static void free_remote(remote_t *remote)
     }
     if (remote->buf != NULL) {
         bfree(remote->buf);
-        free(remote->buf);
+        ss_free(remote->buf);
     }
-    free(remote->recv_ctx);
-    free(remote->send_ctx);
-    free(remote);
+    ss_free(remote->recv_ctx);
+    ss_free(remote->send_ctx);
+    ss_free(remote);
 }
 
 static void close_and_free_remote(EV_P_ remote_t *remote)
@@ -1155,13 +1155,13 @@ static server_t *new_server(int fd, listen_ctx_t *listener)
     }
 
     server_t *server;
-    server = malloc(sizeof(server_t));
+    server = ss_malloc(sizeof(server_t));
 
     memset(server, 0, sizeof(server_t));
 
-    server->recv_ctx            = malloc(sizeof(server_ctx_t));
-    server->send_ctx            = malloc(sizeof(server_ctx_t));
-    server->buf                 = malloc(sizeof(buffer_t));
+    server->recv_ctx            = ss_malloc(sizeof(server_ctx_t));
+    server->send_ctx            = ss_malloc(sizeof(server_ctx_t));
+    server->buf                 = ss_malloc(sizeof(buffer_t));
     server->fd                  = fd;
     server->recv_ctx->server    = server;
     server->recv_ctx->connected = 0;
@@ -1173,8 +1173,8 @@ static server_t *new_server(int fd, listen_ctx_t *listener)
     server->remote              = NULL;
 
     if (listener->method) {
-        server->e_ctx = malloc(sizeof(enc_ctx_t));
-        server->d_ctx = malloc(sizeof(enc_ctx_t));
+        server->e_ctx = ss_malloc(sizeof(enc_ctx_t));
+        server->d_ctx = ss_malloc(sizeof(enc_ctx_t));
         enc_ctx_init(listener->method, server->e_ctx, 1);
         enc_ctx_init(listener->method, server->d_ctx, 0);
     } else {
@@ -1191,7 +1191,7 @@ static server_t *new_server(int fd, listen_ctx_t *listener)
 
     server->chunk = (chunk_t *)malloc(sizeof(chunk_t));
     memset(server->chunk, 0, sizeof(chunk_t));
-    server->chunk->buf = malloc(sizeof(buffer_t));
+    server->chunk->buf = ss_malloc(sizeof(buffer_t));
     memset(server->chunk->buf, 0, sizeof(buffer_t));
 
     cork_dllist_add(&connections, &server->entries);
@@ -1206,31 +1206,29 @@ static void free_server(server_t *server)
     if (server->chunk != NULL) {
         if (server->chunk->buf != NULL) {
             bfree(server->chunk->buf);
-            free(server->chunk->buf);
-            server->chunk->buf = NULL;
+            ss_free(server->chunk->buf);
         }
-        free(server->chunk);
-        server->chunk = NULL;
+        ss_free(server->chunk);
     }
     if (server->remote != NULL) {
         server->remote->server = NULL;
     }
     if (server->e_ctx != NULL) {
         cipher_context_release(&server->e_ctx->evp);
-        free(server->e_ctx);
+        ss_free(server->e_ctx);
     }
     if (server->d_ctx != NULL) {
         cipher_context_release(&server->d_ctx->evp);
-        free(server->d_ctx);
+        ss_free(server->d_ctx);
     }
     if (server->buf != NULL) {
         bfree(server->buf);
-        free(server->buf);
+        ss_free(server->buf);
     }
 
-    free(server->recv_ctx);
-    free(server->send_ctx);
-    free(server);
+    ss_free(server->recv_ctx);
+    ss_free(server->send_ctx);
+    ss_free(server);
 }
 
 static void close_and_free_server(EV_P_ server_t *server)
@@ -1319,9 +1317,10 @@ int main(int argc, char **argv)
 
     int option_index                    = 0;
     static struct option long_options[] = {
-        { "fast-open",       no_argument,       0, 0 },
-        { "acl",             required_argument, 0, 0 },
+        { "fast-open"      , no_argument      , 0, 0 },
+        { "acl"            , required_argument, 0, 0 },
         { "manager-address", required_argument, 0, 0 },
+        { "help"           , no_argument      , 0, 0 },
         {                 0,                 0, 0, 0 }
     };
 
@@ -1329,18 +1328,21 @@ int main(int argc, char **argv)
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:i:d:a:n:uUvAw",
-                            long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:i:d:a:n:huUvAw6",
+                            long_options, &option_index)) != -1) {
         switch (c) {
         case 0:
             if (option_index == 0) {
                 fast_open = 1;
             } else if (option_index == 1) {
-                LOGI("initialize acl...");
+                LOGI("initializing acl...");
                 acl      = 1;
                 acl_path = optarg;
             } else if (option_index == 2) {
                 manager_address = optarg;
+            } else if (option_index == 3) {
+                usage();
+                exit(EXIT_SUCCESS);
             }
             break;
         case 's':
@@ -1392,13 +1394,24 @@ int main(int argc, char **argv)
         case 'v':
             verbose = 1;
             break;
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
         case 'A':
             auth = 1;
             break;
         case 'w':
             white_list = 1;
             break;
+        case '6':
+            ipv6first = 1;
+            break;
+        case '?':
+            // The option character is not recognized.
+            opterr = 1;
+            break;
         }
+    }
 
     if (opterr) {
         usage();
@@ -1482,6 +1495,10 @@ int main(int argc, char **argv)
         daemonize(pid_path);
     }
 
+    if (ipv6first) {
+        LOGI("resolving hostname to IPv6 address first");
+    }
+
     if (fast_open == 1) {
 #ifdef TCP_FASTOPEN
         LOGI("using tcp fast open");
@@ -1492,6 +1509,14 @@ int main(int argc, char **argv)
 
     if (auth) {
         LOGI("onetime authentication enabled");
+    }
+
+    if (mode != TCP_ONLY) {
+        LOGI("UDP relay enabled");
+    }
+
+    if (mode == UDP_ONLY) {
+        LOGI("TCP relay disabled");
     }
 
 #ifdef __MINGW32__
@@ -1511,7 +1536,7 @@ int main(int argc, char **argv)
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
 
     // setup keys
-    LOGI("initialize ciphers... %s", method);
+    LOGI("initializing ciphers... %s", method);
     int m = enc_init(password, method);
 
     // inilitialize ev loop
@@ -1521,12 +1546,12 @@ int main(int argc, char **argv)
     if (nameserver_num == 0) {
 #ifdef __MINGW32__
         nameservers[nameserver_num++] = "8.8.8.8";
-        resolv_init(loop, nameservers, nameserver_num);
+        resolv_init(loop, nameservers, nameserver_num, ipv6first);
 #else
-        resolv_init(loop, NULL, 0);
+        resolv_init(loop, NULL, 0, ipv6first);
 #endif
     } else {
-        resolv_init(loop, nameservers, nameserver_num);
+        resolv_init(loop, nameservers, nameserver_num, ipv6first);
     }
 
     for (int i = 0; i < nameserver_num; i++)
@@ -1577,14 +1602,6 @@ int main(int argc, char **argv)
     if (manager_address != NULL) {
         ev_timer_init(&stat_update_watcher, stat_update_cb, UPDATE_INTERVAL, UPDATE_INTERVAL);
         ev_timer_start(EV_DEFAULT, &stat_update_watcher);
-    }
-
-    if (mode != TCP_ONLY) {
-        LOGI("UDP relay enabled");
-    }
-
-    if (mode == UDP_ONLY) {
-        LOGI("TCP relay disabled");
     }
 
     // setuid

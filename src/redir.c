@@ -1,8 +1,8 @@
 /*
  * redir.c - Provide a transparent TCP proxy through remote shadowsocks
- *            server
+ *           server
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -36,10 +36,12 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <limits.h>
 #include <linux/if.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
+#include <udns.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -189,6 +191,26 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             close_and_free_server(EV_A_ server);
             return;
         }
+    }
+
+    if (verbose) {
+        uint16_t port = 0;
+        char ipstr[INET6_ADDRSTRLEN];
+        memset(&ipstr, 0, INET6_ADDRSTRLEN);
+
+        if (AF_INET == server->destaddr.ss_family) {
+            struct sockaddr_in *sa = (struct sockaddr_in *)&(server->destaddr);
+            dns_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
+            port = ntohs(sa->sin_port);
+        } else {
+            // TODO: The code below need to be test in IPv6 envirment, which I
+            //       don't have.
+            struct sockaddr_in6 *sa = (struct sockaddr_in6 *)&(server->destaddr);
+            dns_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
+            port = ntohs(sa->sin6_port);
+        }
+
+        LOGI("redir to %s:%d, len=%zd", ipstr, port, r);
     }
 
     remote->buf->len = r;
@@ -452,13 +474,13 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
 static remote_t *new_remote(int fd, int timeout)
 {
     remote_t *remote;
-    remote = malloc(sizeof(remote_t));
+    remote = ss_malloc(sizeof(remote_t));
 
     memset(remote, 0, sizeof(remote_t));
 
-    remote->recv_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->send_ctx            = malloc(sizeof(remote_ctx_t));
-    remote->buf                 = malloc(sizeof(buffer_t));
+    remote->recv_ctx            = ss_malloc(sizeof(remote_ctx_t));
+    remote->send_ctx            = ss_malloc(sizeof(remote_ctx_t));
+    remote->buf                 = ss_malloc(sizeof(buffer_t));
     remote->fd                  = fd;
     remote->recv_ctx->remote    = remote;
     remote->recv_ctx->connected = 0;
@@ -483,11 +505,11 @@ static void free_remote(remote_t *remote)
         }
         if (remote->buf != NULL) {
             bfree(remote->buf);
-            free(remote->buf);
+            ss_free(remote->buf);
         }
-        free(remote->recv_ctx);
-        free(remote->send_ctx);
-        free(remote);
+        ss_free(remote->recv_ctx);
+        ss_free(remote->send_ctx);
+        ss_free(remote);
     }
 }
 
@@ -505,11 +527,11 @@ static void close_and_free_remote(EV_P_ remote_t *remote)
 static server_t *new_server(int fd, int method)
 {
     server_t *server;
-    server = malloc(sizeof(server_t));
+    server = ss_malloc(sizeof(server_t));
 
-    server->recv_ctx            = malloc(sizeof(server_ctx_t));
-    server->send_ctx            = malloc(sizeof(server_ctx_t));
-    server->buf                 = malloc(sizeof(buffer_t));
+    server->recv_ctx            = ss_malloc(sizeof(server_ctx_t));
+    server->send_ctx            = ss_malloc(sizeof(server_ctx_t));
+    server->buf                 = ss_malloc(sizeof(buffer_t));
     server->fd                  = fd;
     server->recv_ctx->server    = server;
     server->recv_ctx->connected = 0;
@@ -517,8 +539,8 @@ static server_t *new_server(int fd, int method)
     server->send_ctx->connected = 0;
 
     if (method) {
-        server->e_ctx = malloc(sizeof(enc_ctx_t));
-        server->d_ctx = malloc(sizeof(enc_ctx_t));
+        server->e_ctx = ss_malloc(sizeof(enc_ctx_t));
+        server->d_ctx = ss_malloc(sizeof(enc_ctx_t));
         enc_ctx_init(method, server->e_ctx, 1);
         enc_ctx_init(method, server->d_ctx, 0);
     } else {
@@ -542,19 +564,19 @@ static void free_server(server_t *server)
         }
         if (server->e_ctx != NULL) {
             cipher_context_release(&server->e_ctx->evp);
-            free(server->e_ctx);
+            ss_free(server->e_ctx);
         }
         if (server->d_ctx != NULL) {
             cipher_context_release(&server->d_ctx->evp);
-            free(server->d_ctx);
+            ss_free(server->d_ctx);
         }
         if (server->buf != NULL) {
             bfree(server->buf);
-            free(server->buf);
+            ss_free(server->buf);
         }
-        free(server->recv_ctx);
-        free(server->send_ctx);
-        free(server);
+        ss_free(server->recv_ctx);
+        ss_free(server->send_ctx);
+        ss_free(server);
     }
 }
 
@@ -607,6 +629,16 @@ static void accept_cb(EV_P_ ev_io *w, int revents)
     setsockopt(remotefd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
 
+    // Enable TCP keepalive feature
+    int keepAlive    = 1;
+    int keepIdle     = 40;
+    int keepInterval = 20;
+    int keepCount    = 5;
+    setsockopt(remotefd, SOL_SOCKET, SO_KEEPALIVE, (void *)&keepAlive, sizeof(keepAlive));
+    setsockopt(remotefd, SOL_TCP, TCP_KEEPIDLE, (void *)&keepIdle, sizeof(keepIdle));
+    setsockopt(remotefd, SOL_TCP, TCP_KEEPINTVL, (void *)&keepInterval, sizeof(keepInterval));
+    setsockopt(remotefd, SOL_TCP, TCP_KEEPCNT, (void *)&keepCount, sizeof(keepCount));
+
     // Setup
     setnonblocking(remotefd);
 
@@ -640,10 +672,23 @@ int main(int argc, char **argv)
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
     char *remote_port = NULL;
 
+    int option_index                    = 0;
+    static struct option long_options[] = {
+        { "help", no_argument, 0, 0 },
+        {      0,           0, 0, 0 }
+    };
+
     opterr = 0;
 
-    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:uUvA")) != -1)
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:huUvA",
+                            long_options, &option_index)) != -1) {
         switch (c) {
+        case 0:
+            if (option_index == 0) {
+                usage();
+                exit(EXIT_SUCCESS);
+            }
+            break;
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
                 remote_addr[remote_num].host   = optarg;
@@ -692,10 +737,18 @@ int main(int argc, char **argv)
         case 'v':
             verbose = 1;
             break;
+        case 'h':
+            usage();
+            exit(EXIT_SUCCESS);
         case 'A':
             auth = 1;
             break;
+        case '?':
+            // The option character is not recognized.
+            opterr = 1;
+            break;
         }
+    }
 
     if (opterr) {
         usage();
@@ -781,18 +834,18 @@ int main(int argc, char **argv)
     signal(SIGABRT, SIG_IGN);
 
     // Setup keys
-    LOGI("initialize ciphers... %s", method);
+    LOGI("initializing ciphers... %s", method);
     int m = enc_init(password, method);
 
     // Setup proxy context
     listen_ctx_t listen_ctx;
     listen_ctx.remote_num  = remote_num;
-    listen_ctx.remote_addr = malloc(sizeof(struct sockaddr *) * remote_num);
+    listen_ctx.remote_addr = ss_malloc(sizeof(struct sockaddr *) * remote_num);
     for (int i = 0; i < remote_num; i++) {
         char *host = remote_addr[i].host;
         char *port = remote_addr[i].port == NULL ? remote_port :
                      remote_addr[i].port;
-        struct sockaddr_storage *storage = malloc(sizeof(struct sockaddr_storage));
+        struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
         memset(storage, 0, sizeof(struct sockaddr_storage));
         if (get_sockaddr(host, port, storage, 1) == -1) {
             FATAL("failed to resolve the provided hostname");
