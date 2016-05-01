@@ -43,6 +43,8 @@ refer to the [Wiki page](https://github.com/shadowsocks/shadowsocks/wiki/Feature
     + [Install from repository](#install-from-repository-2)
     + [Build from source](#build-from-source)
 - [Archlinux](#archlinux)
+- [NixOS](#nixos)
+- [Nix](#nix)
 - [Directly build and install on UNIX-like system](#linux)
 - [FreeBSD](#freebsd)
 - [OpenWRT](#openwrt)
