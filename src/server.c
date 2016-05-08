@@ -759,7 +759,10 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         if (verbose) {
-            LOGI("connect to: %s:%d", host, ntohs(port));
+            if ((atyp & ADDRTYPE_MASK) == 4)
+                LOGI("connect to [%s]:%d", host, ntohs(port));
+            else
+                LOGI("connect to %s:%d", host, ntohs(port));
         }
 
         if (server->auth && !ss_check_hash(server->buf, server->chunk, server->d_ctx, BUF_SIZE)) {

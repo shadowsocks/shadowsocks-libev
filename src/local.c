@@ -468,7 +468,10 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
 
                 if (verbose) {
-                    LOGI("connect to %s:%s", host, port);
+                    if (request->atyp == 4)
+                        LOGI("connect to [%s]:%s", host, port);
+                    else
+                        LOGI("connect to %s:%s", host, port);
                 }
 
                 if ((acl && (request->atyp == 1 || request->atyp == 4) && acl_match_ip(host))) {
