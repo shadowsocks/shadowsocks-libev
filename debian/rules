@@ -40,5 +40,8 @@ override_dh_installinit:
 	dh_installinit --no-start --name=shadowsocks-libev-redir@
 	dh_installinit --no-start --name=shadowsocks-libev-local@
 
+override_dh_installchangelogs:
+	dh_installchangelogs -XChanges
+
 %:
 	dh $@  --with systemd
