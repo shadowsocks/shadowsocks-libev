@@ -12669,6 +12669,8 @@ fi
 
 
 
+if test -z "$USE_SYSTEM_SHARED_LIB_TRUE"; then :
+  else
 
 for ac_header in sys/inotify.h sys/epoll.h sys/event.h port.h poll.h sys/select.h sys/eventfd.h sys/signalfd.h
 do :
@@ -12938,6 +12940,7 @@ fi
 
 
 
+fi
 
 case $host in
   *-mingw*)
@@ -15573,8 +15576,13 @@ if test -z "$USE_SYSTEM_SHARED_LIB_TRUE"; then :
 
 fi
 
-ac_config_files="$ac_config_files shadowsocks-libev.pc Makefile libcork/Makefile libipset/Makefile libudns/Makefile libev/Makefile src/Makefile"
+ac_config_files="$ac_config_files shadowsocks-libev.pc Makefile libcork/Makefile libipset/Makefile src/Makefile"
 
+if test -z "$USE_SYSTEM_SHARED_LIB_TRUE"; then :
+  else
+  ac_config_files="$ac_config_files libudns/Makefile libev/Makefile"
+
+fi
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -16605,9 +16613,9 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "libcork/Makefile") CONFIG_FILES="$CONFIG_FILES libcork/Makefile" ;;
     "libipset/Makefile") CONFIG_FILES="$CONFIG_FILES libipset/Makefile" ;;
+    "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "libudns/Makefile") CONFIG_FILES="$CONFIG_FILES libudns/Makefile" ;;
     "libev/Makefile") CONFIG_FILES="$CONFIG_FILES libev/Makefile" ;;
-    "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
