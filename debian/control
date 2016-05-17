@@ -42,15 +42,3 @@ Description: lightweight and secure socks5 proxy (development files)
  embedded devices and low end boxes.
  .
  This package provides C header files for the libraries.
-
-Package: libshadowsocks-dbg
-Architecture: any
-Section: debug
-Priority: extra
-Breaks: shadowsocks-libev (<< 2.4.0)
-Depends: libshadowsocks1 (= ${binary:Version}), ${misc:Depends}
-Description: debugging symbols for the libshadowsocks1 library
- Shadowsocks-libev is a lightweight and secure socks5 proxy for
- embedded devices and low end boxes.
- .
- This package contains the debugging symbols for libshadowsocks1.
