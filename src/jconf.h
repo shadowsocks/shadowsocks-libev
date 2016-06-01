@@ -1,5 +1,5 @@
 /*
- * server.c - Define the config data structure
+ * jconf.h - Define the config data structure
  *
  * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *

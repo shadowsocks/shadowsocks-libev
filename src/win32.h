@@ -1,5 +1,5 @@
 /*
- * win32.c - Win32 port helpers
+ * win32.h - Win32 port helpers
  *
  * Copyright (C) 2014, Linus Yang <linusyang@gmail.com>
  *

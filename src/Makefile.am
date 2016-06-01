@@ -28,31 +28,31 @@ endif
 ss_local_SOURCES = utils.c \
                    jconf.c \
                    json.c \
-				   encrypt.c \
-				   udprelay.c \
-				   cache.c \
-				   acl.c \
-				   netutils.c \
-				   local.c
+                   encrypt.c \
+                   udprelay.c \
+                   cache.c \
+                   acl.c \
+                   netutils.c \
+                   local.c
 
 ss_tunnel_SOURCES = utils.c \
-					jconf.c \
-					json.c \
-					encrypt.c \
-					udprelay.c \
-					cache.c \
-					netutils.c \
-					tunnel.c
-
-ss_server_SOURCES = utils.c \
-					netutils.c \
                     jconf.c \
                     json.c \
                     encrypt.c \
-					udprelay.c \
-					cache.c \
-					acl.c \
-					resolv.c \
+                    udprelay.c \
+                    cache.c \
+                    netutils.c \
+                    tunnel.c
+
+ss_server_SOURCES = utils.c \
+                    netutils.c \
+                    jconf.c \
+                    json.c \
+                    encrypt.c \
+                    udprelay.c \
+                    cache.c \
+                    acl.c \
+                    resolv.c \
                     server.c
 
 ss_manager_SOURCES = utils.c \
@@ -91,9 +91,9 @@ ss_redir_SOURCES = utils.c \
                    jconf.c \
                    json.c \
                    encrypt.c \
-				   netutils.c \
-				   cache.c \
-				   udprelay.c \
+                   netutils.c \
+                   cache.c \
+                   udprelay.c \
                    redir.c
 ss_redir_CFLAGS = $(AM_CFLAGS) -DMODULE_REDIR
 ss_redir_LDADD = $(SS_COMMON_LIBS)
