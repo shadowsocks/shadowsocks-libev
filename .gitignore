@@ -24,7 +24,7 @@ debian/shadowsocks-libev.substvars
 debian/*.debhelper*
 .dirstamp
 shadowsocks-libev.pc
-debian/libshadowsocks1.symbols
+debian/libshadowsocks-libev1.symbols
 libsodium/src/libsodium/include/sodium/version.h
 
 # Ignore garbage of OS X
