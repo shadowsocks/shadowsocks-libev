@@ -940,6 +940,9 @@ static void signal_cb(EV_P_ ev_signal *w, int revents)
         switch (w->signum) {
         case SIGINT:
         case SIGTERM:
+#ifndef __MINGW32__
+        case SIGUSR1:
+#endif
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
     }
@@ -1328,6 +1331,11 @@ int start_ss_local_server(profile_t profile)
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
+#ifndef __MINGW32__
+    struct ev_signal sigusr1_watcher;
+    ev_signal_init(&sigusr1_watcher, signal_cb, SIGUSR1);
+    ev_signal_start(EV_DEFAULT, &sigusr1_watcher);
+#endif
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
@@ -1405,6 +1413,9 @@ int start_ss_local_server(profile_t profile)
 
     ev_signal_stop(EV_DEFAULT, &sigint_watcher);
     ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+#ifndef __MINGW32__
+    ev_signal_stop(EV_DEFAULT, &sigusr1_watcher);
+#endif
 
     // cannot reach here
     return 0;
