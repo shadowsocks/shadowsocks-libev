@@ -4,34 +4,16 @@ Upstream-Contact: Max Lv <max.c.lv@gmail.com>
 Source: https://github.com/shadowsocks/shadowsocks-libev
 
 Files: *
-Copyright: 2013-2015 Clow Windy <clowwindy42@gmail.com>
-           2013-2015 Max Lv <max.c.lv@gmail.com>
+Copyright: 2013-2015, Clow Windy <clowwindy42@gmail.com>
+           2013-2016, Max Lv <max.c.lv@gmail.com>
+           2014, Linus Yang <linusyang@gmail.com>
 License: GPL-3+
 
 Files: debian/*
-Copyright: 2013-2015 Max Lv <max.c.lv@gmail.com>
+Copyright: 2013-2015, Max Lv <max.c.lv@gmail.com>
            2015, Boyuan Yang <073plan@gmail.com>
+           2016, Roger Shimizu <rogershimizu@gmail.com>
 License: GPL-3+
-
-Files: libcork/Makefile.am libipset/Makefile.am libipset/bdd/Makefile.am libipset/map/Makefile.am libipset/set/Makefile.am
-Copyright: 2005-2008 Lennart Poettering
-License: LGPL-2.1+
- This package is free software; you can redistribute it and/or modify
- it under the terms of the GNU Lesser General Public License as
- published by the Free Software Foundation, either version 2.1 of the
- License, or (at your option) any later version.
- .
- This package is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- Lesser General Public License for more details.
- .
- You should have received a copy of the GNU Lesser General Public
- License along with libasyncns. If not, see
- <http://www.gnu.org/licenses/>.
- .
- On Debian systems, the complete text of the GNU Lesser General Public
- License version 2.1 can be found in "/usr/share/common-licenses/LGPL-2.1".
 
 Files: libcork/* libipset/*
 Copyright: 2011-2013, RedJack, LLC.
@@ -63,6 +45,64 @@ License: BSD-3-clause
  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Files: src/json.c src/json.h
+Copyright: 2012-2014, James McLaughlin et al.
+License: BSD-2-clause
+
+Files: src/resolv.c src/resolv.h
+Copyright: 2014, Dustin Lundquist <dustin@null-ptr.net>
+License: BSD-2-clause
+
+Files: src/ss-nat
+Copyright: 2015, OpenWrt-dist
+           2015, Jian Chang <aa65535@live.com>
+License: GPL-3+
+
+Files: src/uthash.h
+Copyright: 2003-2013, Troy D. Hanson
+License: BSD-1-clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+ .
+ * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER
+ OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+License: BSD-2-clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ .
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+ .
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ SUCH DAMAGE.
 
 License: GPL-3+
  This package is free software; you can redistribute it and/or modify

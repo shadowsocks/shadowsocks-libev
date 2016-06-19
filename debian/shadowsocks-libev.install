@@ -1,3 +1,4 @@
 usr/bin/
 usr/share/man/
 debian/config.json  etc/shadowsocks-libev
+debian/shadowsocks-libev-*.service lib/systemd/system

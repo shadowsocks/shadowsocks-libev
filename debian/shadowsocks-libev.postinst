@@ -1,0 +1,23 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+	configure|reconfigure)
+		# continue
+		;;
+	abort-upgrade|abort-remove|abort-deconfigure)
+		exit 0
+		;;
+	*)
+		echo "postinst called with unknown argument \`$1'" >&2
+		exit 0
+		;;
+esac
+
+passwd=$(apg -n 1 -M ncl)
+sed -i "s/barfoo!/$passwd/" etc/shadowsocks-libev/config.json
+
+#DEBHELPER#
+
+exit 0
