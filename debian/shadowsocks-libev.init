@@ -6,9 +6,8 @@
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: lightweight secured socks5 proxy
-# Description:       Shadowsocks-libev is a lightweight secured 
+# Description:       Shadowsocks-libev is a lightweight secured
 #                    socks5 proxy for embedded devices and low end boxes.
-#                    
 ### END INIT INFO
 
 # Author: Max Lv <max.c.lv@gmail.com>
