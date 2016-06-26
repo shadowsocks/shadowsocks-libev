@@ -164,7 +164,7 @@ sudo systemctl start shadowsocks-libev      # for systemd
 ### Fedora & RHEL
 
 Supported distributions include
-- Fedora 20, 21, rawhide
+- Fedora 22, 23, 24
 - RHEL 6, 7 and derivatives (including CentOS, Scientific Linux)
 
 #### Install from repository
