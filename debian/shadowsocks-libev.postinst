@@ -16,7 +16,7 @@ case "$1" in
 esac
 
 passwd=$(apg -n 1 -M ncl)
-sed -i "s/barfoo!/$passwd/" etc/shadowsocks-libev/config.json
+sed -i "s/barfoo!/$passwd/" /etc/shadowsocks-libev/config.json
 
 #DEBHELPER#
 
