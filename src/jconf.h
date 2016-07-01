@@ -29,6 +29,11 @@
 #define MAX_CONNECT_TIMEOUT 10
 #define MIN_UDP_TIMEOUT 10
 
+#define TCP_ONLY     0
+#define TCP_AND_UDP  1
+#define UDP_ONLY     3
+
+
 typedef struct {
     char *host;
     char *port;
@@ -55,6 +60,7 @@ typedef struct {
     int nofile;
     char *nameserver;
     char *tunnel_address;
+    int mode;
 } jconf_t;
 
 jconf_t *read_jconf(const char *file);

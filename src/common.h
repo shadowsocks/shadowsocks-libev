@@ -49,10 +49,6 @@
 #define SOL_TCP IPPROTO_TCP
 #endif
 
-#define TCP_ONLY     0
-#define TCP_AND_UDP  1
-#define UDP_ONLY     3
-
 #if defined(MODULE_TUNNEL) || defined(MODULE_REDIR)
 #define MODULE_LOCAL
 #endif
