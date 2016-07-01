@@ -1137,6 +1137,12 @@ int main(int argc, char **argv)
         if (fast_open == 0) {
             fast_open = conf->fast_open;
         }
+        if (mode == TCP_ONLY) {
+            if (conf->mode == UDP_ONLY)
+                LOGI("ignore unsupported mode: udp_only, use tcp_only as fallback");
+            else
+                mode = conf->mode;
+        }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;

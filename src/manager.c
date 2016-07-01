@@ -703,6 +703,9 @@ int main(int argc, char **argv)
         if (auth == 0) {
             auth = conf->auth;
         }
+        if (mode == TCP_ONLY) {
+            mode = conf->mode;
+        }
     }
 
     if (server_num == 0) {

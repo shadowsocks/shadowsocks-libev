@@ -1485,6 +1485,9 @@ int main(int argc, char **argv)
         if (auth == 0) {
             auth = conf->auth;
         }
+        if (mode == TCP_ONLY) {
+            mode = conf->mode;
+        }
 #ifdef TCP_FASTOPEN
         if (fast_open == 0) {
             fast_open = conf->fast_open;
