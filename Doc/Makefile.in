@@ -21,7 +21,7 @@ MAN1_TXT =
 #MAN1_TXT += ss-tunnel.asciidoc
 
 MAN8_TXT =
-#MAN8_TXT += shadowsocks-libev.asciidoc
+MAN8_TXT += shadowsocks-libev.asciidoc
 
 ifeq ($(DISABLE_DOCUMENTATION),1)
   MAN1_TXT =
