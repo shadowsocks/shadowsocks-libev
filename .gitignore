@@ -6,6 +6,7 @@ libev/Makefile
 libudns/Makefile
 libcork/Makefile
 libipset/Makefile
+Doc/Makefile
 autom4te.cache/
 /config.h
 config.log
@@ -35,6 +36,11 @@ libsodium/src/libsodium/include/sodium/version.h
 
 # Ignore vim cache
 *.swp
+
+# Documentation files
+Doc/*.gz
+Doc/*.xml
+Doc/*.html
 
 #	Do not edit the following section
 # 	Edit Compile Debug Document Distribute

@@ -1,0 +1,105 @@
+ASCIIDOC = @ASCIIDOC@
+ASCIIDOC_EXTRA =
+MANPAGE_XSL = manpage-normal.xsl
+XMLTO = @XMLTO@
+XMLTO_EXTRA = -m manpage-bold-literal.xsl
+GZIPCMD = @GZIP@
+INSTALL = @INSTALL@
+RM = @RM@
+MV = @MV@
+SED = @SED@
+VERSION = $(shell $(SED) -n 's/.*PACKAGE_VERSION "\(.*\)"/\1/p'\
+		  ../config.h)
+
+# Guard against environment variables
+MAN1_TXT =
+#MAN1_TXT += ss-local.asciidoc
+#MAN1_TXT += ss-manager.asciidoc
+#MAN1_TXT += ss-nat.asciidoc
+#MAN1_TXT += ss-redir.asciidoc
+#MAN1_TXT += ss-server.asciidoc
+#MAN1_TXT += ss-tunnel.asciidoc
+
+MAN8_TXT =
+#MAN8_TXT += shadowsocks-libev.asciidoc
+
+ifeq ($(DISABLE_DOCUMENTATION),1)
+  MAN1_TXT =
+  MAN8_TXT =
+endif
+
+MAN_TXT = $(MAN8_TXT) $(MAN1_TXT)
+MAN_XML = $(patsubst %.asciidoc,%.xml,$(MAN_TXT))
+MAN_HTML = $(patsubst %.asciidoc,%.html,$(MAN_TXT))
+
+DOC_MAN1 = $(patsubst %.asciidoc,%.1,$(MAN1_TXT))
+GZ_MAN1 = $(patsubst %.asciidoc,%.1.gz,$(MAN1_TXT))
+
+DOC_MAN8 = $(patsubst %.asciidoc,%.8,$(MAN8_TXT))
+GZ_MAN8 = $(patsubst %.asciidoc,%.8.gz,$(MAN8_TXT))
+
+prefix = @prefix@
+mandir ?= $(prefix)/share/man
+man1dir = $(mandir)/man1
+man8dir = $(mandir)/man8
+
+ifneq ($(findstring $(MAKEFLAGS),s),s)
+ifndef V
+	QUIET_RM	= @
+	QUIET_ASCIIDOC	= @echo "    [ASCII]  $@";
+	QUIET_XMLTO	= @echo "    [XMLTO]  $@";
+	QUIET_GZIP	= @echo "    [GZ]     $@";
+	QUIET_STDERR	= 2> /dev/null
+	QUIET_SUBDIR0	= +@subdir=
+	QUIET_SUBDIR1	= ;$(NO_SUBDIR) echo '   ' SUBDIR $$subdir; \
+			  $(MAKE) $(PRINT_DIR) -C $$subdir
+	export V
+endif
+endif
+
+all: man
+man: man1 man8
+man1: $(GZ_MAN1)
+man8: $(GZ_MAN8)
+html: $(MAN_HTML)
+
+install: install-man
+
+install-man: man
+	$(INSTALL) -d -m 755 $(DESTDIR)$(man1dir)
+	$(INSTALL) -d -m 755 $(DESTDIR)$(man8dir)
+ifdef GZ_MAN1
+	$(INSTALL) -m 644 $(GZ_MAN1) $(DESTDIR)$(man1dir)
+endif
+ifdef GZ_MAN8
+	$(INSTALL) -m 644 $(GZ_MAN8) $(DESTDIR)$(man8dir)
+endif
+
+clean:
+	$(QUIET_RM)$(RM) -f *.xml *.xml+ *.1 *.1.gz *.8 *.8.gz *.html
+
+%.1.gz : %.1
+	$(QUIET_GZIP)$(GZIPCMD) -n -c $< > $@
+
+%.8.gz : %.8
+	$(QUIET_GZIP)$(GZIPCMD) -n -c $< > $@
+
+%.1 : %.xml
+	$(QUIET_XMLTO)$(RM) -f $@ && \
+	$(XMLTO) -m $(MANPAGE_XSL) $(XMLTO_EXTRA) man $<
+
+%.8 : %.xml
+	$(QUIET_XMLTO)$(RM) -f $@ && \
+	$(XMLTO) -m $(MANPAGE_XSL) $(XMLTO_EXTRA) man $<
+
+%.xml : %.asciidoc asciidoc.conf
+	$(QUIET_ASCIIDOC)$(RM) -f $@+ $@ && \
+	$(ASCIIDOC) -b docbook -d manpage -f asciidoc.conf \
+	    -aversion=$(VERSION) $(ASCIIDOC_EXTRA) -o $@+ $< && \
+	$(MV) $@+ $@
+
+%.html : %.asciidoc asciidoc.conf
+	$(QUIET_ASCIIDOC)$(RM) -f $@+ $@ && \
+	$(ASCIIDOC) -b html -d article -f asciidoc.conf \
+		-aversion=$(VERSION) $(ASCIIDOC_EXTRA) -o $@+ $< && \
+	$(MV) $@+ $@
