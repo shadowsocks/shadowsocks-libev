@@ -27,6 +27,9 @@ shadowsocks-libev.pc
 debian/libshadowsocks-libev1.symbols
 libsodium/src/libsodium/include/sodium/version.h
 
+# Ignore per-project vim config
+.vimrc
+
 # Ignore garbage of OS X
 *.DS_Store
 
