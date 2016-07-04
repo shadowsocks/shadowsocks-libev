@@ -47,17 +47,18 @@ AC_ARG_WITH(
 
 AC_ARG_ENABLE([documentation],
   AS_HELP_STRING([--disable-documentation], [do not build documentation]),
-  [], [enable_documentation=yes])
-AS_IF([test "x$enable_documentation" = xyes], [DISABLE_DOCUMENTATION=0],
-      [DISABLE_DOCUMENTATION=1])
-AC_SUBST([DISABLE_DOCUMENTATION])
+  [disable_documentation=true],
+  [disable_documentation=false])
+AM_CONDITIONAL([ENABLE_DOCUMENTATION], [test x$disable_documentation = xfalse])
 
-if test "x$enable_documentation" = xyes; then
+AM_COND_IF([ENABLE_DOCUMENTATION], [
   AC_PATH_PROG([ASCIIDOC], [asciidoc], [asciidoc])
   AC_PATH_PROG([XMLTO], [xmlto], [xmlto])
   AC_PATH_PROG([GZIP], [gzip], [gzip])
+  AC_PATH_PROG([RM], [rm], [rm])
+  AC_PATH_PROG([MV], [mv], [mv])
   AC_PROG_SED
-fi
+])
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -67,8 +68,6 @@ AC_PROG_LN_S
 AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 AC_LANG_SOURCE
-AC_PATH_PROG([RM], [rm], [rm])
-AC_PATH_PROG([MV], [mv], [mv])
 
 dnl Checks for libev
 AM_COND_IF([USE_SYSTEM_SHARED_LIB],
@@ -306,10 +305,14 @@ AC_CONFIG_FILES([ shadowsocks-libev.pc
                  Makefile
                  libcork/Makefile
                  libipset/Makefile
-                 src/Makefile
-                 doc/Makefile])
+                 src/Makefile])
 AM_COND_IF([USE_SYSTEM_SHARED_LIB],
   [],
   [AC_CONFIG_FILES([libudns/Makefile
                  libev/Makefile])])
+
+AM_COND_IF([ENABLE_DOCUMENTATION],
+  [AC_CONFIG_FILES([doc/Makefile])
+])
+
 AC_OUTPUT
