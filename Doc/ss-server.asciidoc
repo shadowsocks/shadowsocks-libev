@@ -63,6 +63,8 @@ Set the socket timeout in seconds. The default value is 60.
 
 -c <config_file>::
 Use a configuration file.
++
+Refer to `shadowsocks-libev`(8) 'CONFIG FILE' section for more details.
 
 -n <number>::
 Specify max number of open files.
