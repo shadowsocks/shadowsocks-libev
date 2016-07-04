@@ -18,7 +18,7 @@ MAN1_TXT += ss-manager.asciidoc
 MAN1_TXT += ss-nat.asciidoc
 MAN1_TXT += ss-redir.asciidoc
 MAN1_TXT += ss-server.asciidoc
-#MAN1_TXT += ss-tunnel.asciidoc
+MAN1_TXT += ss-tunnel.asciidoc
 
 MAN8_TXT =
 MAN8_TXT += shadowsocks-libev.asciidoc
