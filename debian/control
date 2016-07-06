@@ -2,7 +2,9 @@ Source: shadowsocks-libev
 Section: net
 Priority: extra
 Maintainer: Max Lv <max.c.lv@gmail.com>
-Build-Depends: debhelper (>= 9), dh-systemd (>= 1.5), pkg-config, libssl-dev (>= 0.9.8), autotools-dev, mime-support, gawk
+Build-Depends: debhelper (>= 9), dh-systemd (>= 1.5), pkg-config,
+               libssl-dev (>= 0.9.8), autotools-dev, mime-support, gawk,
+               asciidoc, xmlto
 Standards-Version: 3.9.8
 Homepage: https://www.shadowsocks.org
 Vcs-Git: https://github.com/shadowsocks/shadowsocks-libev.git
