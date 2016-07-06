@@ -22,4 +22,4 @@ override_dh_installchangelogs:
 	dh_installchangelogs -XChanges
 
 %:
-	dh $@  --with systemd
+	dh $@ --with systemd
