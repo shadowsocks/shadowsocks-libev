@@ -74,7 +74,8 @@
 
 int verbose      = 0;
 char *executable = "ss-server";
-char working_dir[PATH_MAX];
+char *working_dir = NULL;
+int working_dir_size = 0;
 
 static struct cork_hash_table *server_table;
 
@@ -92,14 +93,17 @@ static int setnonblocking(int fd)
 
 static void build_config(char *prefix, struct server *server)
 {
-    char path[PATH_MAX];
+    char *path = NULL;
+    int path_size = strlen(prefix) + strlen(server->port) + 20;
 
-    snprintf(path, PATH_MAX, "%s/.shadowsocks_%s.conf", prefix, server->port);
+    path = malloc(path_size);
+    snprintf(path, path_size, "%s/.shadowsocks_%s.conf", prefix, server->port);
     FILE *f = fopen(path, "w+");
     if (f == NULL) {
         if (verbose) {
             LOGE("unable to open config file");
         }
+        free(path);
         return;
     }
     fprintf(f, "{\n");
@@ -107,6 +111,7 @@ static void build_config(char *prefix, struct server *server)
     fprintf(f, "\"password\":\"%s\",\n", server->password);
     fprintf(f, "}\n");
     fclose(f);
+    free(path);
 }
 
 static char *construct_command_line(struct manager_ctx *manager, struct server *server)
@@ -296,14 +301,16 @@ static void add_server(struct manager_ctx *manager, struct server *server)
 
 static void kill_server(char *prefix, char *pid_file)
 {
-    char path[PATH_MAX];
-    int pid;
-    snprintf(path, PATH_MAX, "%s/%s", prefix, pid_file);
+    char *path = NULL;
+    int pid, path_size = strlen(prefix) + strlen(pid_file) + 2;
+    path = malloc(path_size);
+    snprintf(path, path_size, "%s/%s", prefix, pid_file);
     FILE *f = fopen(path, "r");
     if (f == NULL) {
         if (verbose) {
             LOGE("unable to open pid file");
         }
+        free(path);
         return;
     }
     if (fscanf(f, "%d", &pid) != EOF) {
@@ -311,24 +318,28 @@ static void kill_server(char *prefix, char *pid_file)
     }
     fclose(f);
     remove(path);
+    free(path);
 }
 
 static void stop_server(char *prefix, char *port)
 {
-    char path[PATH_MAX];
-    int pid;
-    snprintf(path, PATH_MAX, "%s/.shadowsocks_%s.pid", prefix, port);
+    char *path = NULL;
+    int pid, path_size = strlen(prefix) + strlen(port) + 20;
+    path = malloc(path_size);
+    snprintf(path, path_size, "%s/.shadowsocks_%s.pid", prefix, port);
     FILE *f = fopen(path, "r");
     if (f == NULL) {
         if (verbose) {
             LOGE("unable to open pid file");
         }
+        free(path);
         return;
     }
     if (fscanf(f, "%d", &pid) != EOF) {
         kill(pid, SIGTERM);
     }
     fclose(f);
+    free(path);
 }
 
 static void remove_server(char *prefix, char *port)
@@ -787,11 +798,14 @@ int main(int argc, char **argv)
 
     struct passwd *pw   = getpwuid(getuid());
     const char *homedir = pw->pw_dir;
-    snprintf(working_dir, PATH_MAX, "%s/.shadowsocks", homedir);
+    working_dir_size = strlen(homedir)+15;
+    working_dir = malloc(working_dir_size);
+    snprintf(working_dir, working_dir_size, "%s/.shadowsocks", homedir);
 
     int err = mkdir(working_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (err != 0 && errno != EEXIST) {
         ERROR("mkdir");
+        free(working_dir);
         FATAL("unable to create working directory");
     }
 
@@ -809,6 +823,7 @@ int main(int argc, char **argv)
         }
         closedir (dp);
     } else {
+        free(working_dir);
         FATAL("Couldn't open the directory");
     }
 
@@ -831,6 +846,7 @@ int main(int argc, char **argv)
         struct sockaddr_un svaddr;
         sfd = socket(AF_UNIX, SOCK_DGRAM, 0);       /*  Create server socket */
         if (sfd == -1) {
+            free(working_dir);
             FATAL("socket");
         }
 
@@ -838,6 +854,7 @@ int main(int argc, char **argv)
 
         if (remove(manager_address) == -1 && errno != ENOENT) {
             ERROR("bind");
+            free(working_dir);
             exit(EXIT_FAILURE);
         }
 
@@ -847,11 +864,13 @@ int main(int argc, char **argv)
 
         if (bind(sfd, (struct sockaddr *)&svaddr, sizeof(struct sockaddr_un)) == -1) {
             ERROR("bind");
+            free(working_dir);
             exit(EXIT_FAILURE);
         }
     } else {
         sfd = create_server_socket(ip_addr.host, ip_addr.port);
         if (sfd == -1) {
+            free(working_dir);
             FATAL("socket");
         }
     }
@@ -884,6 +903,7 @@ int main(int argc, char **argv)
 
     ev_signal_stop(EV_DEFAULT, &sigint_watcher);
     ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+    free(working_dir);
 
     return 0;
 }
