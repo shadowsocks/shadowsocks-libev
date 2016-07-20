@@ -2,7 +2,7 @@ FROM ubuntu:latest
 
 MAINTAINER Sah Lee <contact@leesah.name>
 
-ENV DEPENDENCIES git-core build-essential autoconf libtool libssl-dev
+ENV DEPENDENCIES git-core build-essential autoconf libtool libssl-dev asciidoc xmlto
 ENV BASEDIR /tmp/shadowsocks-libev
 ENV SERVER_PORT 8338
 
