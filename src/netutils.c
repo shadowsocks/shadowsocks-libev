@@ -34,6 +34,7 @@
 #define sleep(n) Sleep(1000 * (n))
 #else
 #include <sys/socket.h>
+#include <sys/poll.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -250,4 +251,12 @@ int sockaddr_cmp_addr(struct sockaddr_storage *addr1,
         /* eek unknown type, perform this comparison for sanity. */
         return memcmp(addr1, addr2, len);
     }
+}
+
+bool fd_can_read(int fd) {
+    struct pollfd pollfd;
+    pollfd.fd = fd;
+    pollfd.events = POLLIN;
+    int fds = poll(&pollfd, 1, 0);
+    return fds == 1;
 }
