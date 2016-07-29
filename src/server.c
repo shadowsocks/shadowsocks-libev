@@ -1020,7 +1020,9 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    int s = send(server->fd, server->buf->array, server->buf->len, 0);
+    bool has_more = fd_can_read(remote->fd);
+
+    int s = send(server->fd, server->buf->array, server->buf->len, has_more ? MSG_MORE : 0);
 
     if (s == -1) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {

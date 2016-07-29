@@ -23,6 +23,8 @@
 #ifndef _NETUTILS_H
 #define _NETUTILS_H
 
+#include <stdbool.h>
+
 /** byte size of ip4 address */
 #define INET_SIZE 4
 /** byte size of ip6 address */
@@ -58,5 +60,7 @@ int sockaddr_cmp(struct sockaddr_storage *addr1,
  */
 int sockaddr_cmp_addr(struct sockaddr_storage *addr1,
                       struct sockaddr_storage *addr2, socklen_t len);
+
+bool fd_can_read(int fd);
 
 #endif
