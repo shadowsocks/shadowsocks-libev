@@ -1426,7 +1426,7 @@ void enc_key_init(int method, const char *pass)
         return;
     }
 
-    // Inilitialize cache
+    // Initialize cache
     cache_create(&iv_cache, 256, NULL);
 
 #if defined(USE_CRYPTO_OPENSSL)

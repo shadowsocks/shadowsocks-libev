@@ -780,7 +780,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents)
     }
 #endif
 
-    // handle the UDP packet sucessfully,
+    // handle the UDP packet successfully,
     // triger the timer
     ev_timer_again(EV_A_ & remote_ctx->watcher);
 
@@ -1265,16 +1265,16 @@ int init_udprelay(const char *server_host, const char *server_port,
 #endif
                   int mtu, int method, int auth, int timeout, const char *iface)
 {
-    // Inilitialize ev loop
+    // Initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
 
-    // Inilitialize MTU
+    // Initialize MTU
     if (mtu > 0) {
         packet_size = mtu - 1 - 28 - 2 - 64;
         buf_size    = packet_size * 2;
     }
 
-    // Inilitialize cache
+    // Initialize cache
     struct cache *conn_cache;
     cache_create(&conn_cache, MAX_UDP_CONN_NUM, free_cb);
 

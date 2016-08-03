@@ -788,7 +788,7 @@ int main(int argc, char **argv)
     manager.nameservers     = nameservers;
     manager.nameserver_num  = nameserver_num;
 
-    // inilitialize ev loop
+    // initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
 
     // setuid

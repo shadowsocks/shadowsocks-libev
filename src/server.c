@@ -402,7 +402,7 @@ static remote_t *connect_to_remote(struct addrinfo *res,
     const char *iface = server->listen_ctx->iface;
 #endif
 
-    // initilize remote socks
+    // initialize remote socks
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (sockfd < 0) {
         ERROR("socket");
@@ -545,9 +545,9 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             // wait for more
             if (verbose) {
 #ifdef __MINGW32__
-                LOGI("imcomplete header: %u", r);
+                LOGI("incomplete header: %u", r);
 #else
-                LOGI("imcomplete header: %zu", r);
+                LOGI("incomplete header: %zu", r);
 #endif
             }
             return;
@@ -1588,7 +1588,7 @@ int main(int argc, char **argv)
     LOGI("initializing ciphers... %s", method);
     int m = enc_init(password, method);
 
-    // inilitialize ev loop
+    // initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
 
     // setup udns
@@ -1606,7 +1606,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < nameserver_num; i++)
         LOGI("using nameserver: %s", nameservers[i]);
 
-    // inilitialize listen context
+    // initialize listen context
     listen_ctx_t listen_ctx_list[server_num];
 
     // bind to each interface

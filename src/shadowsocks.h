@@ -70,7 +70,7 @@ extern "C" {
  * Calling this function will block the current thread forever if the server
  * starts successfully.
  *
- * Make sure start the server in a seperate process to avoid any potential
+ * Make sure start the server in a separate process to avoid any potential
  * memory and socket leak.
  *
  * If failed, -1 is returned. Errors will output to the log file.
