@@ -26,6 +26,12 @@ See https://www.docker.com/
 $ docker run --name shadowsocks-app --detach --publish 58338:8338 shadowsocks/shadowsocks-libev -k "5ecret!"
 ```
 
+To publish UDP port for DNS tunnelling, run
+
+```bash
+$ docker run --name shadowsocks-app --detach --publish 58338:8338 --publish 58338:8338/udp shadowsocks/shadowsocks-libev -k "5ecret!"
+```
+
 To see all supported arguments, run
 
 ```bash
