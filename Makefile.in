@@ -84,11 +84,13 @@ DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/configure $(am__configure_deps) \
 	$(srcdir)/config.h.in $(srcdir)/shadowsocks-libev.pc.in \
 	AUTHORS COPYING INSTALL auto/ar-lib auto/compile \
-	auto/config.guess auto/config.sub auto/depcomp auto/install-sh \
-	auto/missing auto/ltmain.sh $(top_srcdir)/auto/ar-lib \
-	$(top_srcdir)/auto/compile $(top_srcdir)/auto/config.guess \
-	$(top_srcdir)/auto/config.sub $(top_srcdir)/auto/install-sh \
-	$(top_srcdir)/auto/ltmain.sh $(top_srcdir)/auto/missing
+	auto/config.guess auto/config.rpath auto/config.sub \
+	auto/depcomp auto/install-sh auto/missing auto/ltmain.sh \
+	$(top_srcdir)/auto/ar-lib $(top_srcdir)/auto/compile \
+	$(top_srcdir)/auto/config.guess \
+	$(top_srcdir)/auto/config.rpath $(top_srcdir)/auto/config.sub \
+	$(top_srcdir)/auto/install-sh $(top_srcdir)/auto/ltmain.sh \
+	$(top_srcdir)/auto/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_pthread.m4 \
 	$(top_srcdir)/m4/ax_tls.m4 $(top_srcdir)/m4/inet_ntop.m4 \
@@ -262,6 +264,7 @@ EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GREP = @GREP@
 GZIP = @GZIP@
+HAVE_LIBPCRE = @HAVE_LIBPCRE@
 INET_NTOP_LIB = @INET_NTOP_LIB@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -271,11 +274,16 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
+LIBPCRE = @LIBPCRE@
+LIBPCRE_CFLAGS = @LIBPCRE_CFLAGS@
+LIBPCRE_LIBS = @LIBPCRE_LIBS@
+LIBPCRE_PREFIX = @LIBPCRE_PREFIX@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
+LTLIBPCRE = @LTLIBPCRE@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
@@ -295,6 +303,9 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@

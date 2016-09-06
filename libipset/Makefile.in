@@ -14,24 +14,6 @@
 
 @SET_MAKE@
 
-# This file is part of libasyncns.
-#
-# Copyright 2005-2008 Lennart Poettering
-#
-# libasyncns is free software; you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as
-# published by the Free Software Foundation, either version 2.1 of the
-# License, or (at your option) any later version.
-#
-# libasyncns is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with libasyncns. If not, see
-# <http://www.gnu.org/licenses/>.
-
 VPATH = @srcdir@
 am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
 am__make_running_with_option = \
@@ -227,6 +209,7 @@ EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GREP = @GREP@
 GZIP = @GZIP@
+HAVE_LIBPCRE = @HAVE_LIBPCRE@
 INET_NTOP_LIB = @INET_NTOP_LIB@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -236,11 +219,16 @@ INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
+LIBPCRE = @LIBPCRE@
+LIBPCRE_CFLAGS = @LIBPCRE_CFLAGS@
+LIBPCRE_LIBS = @LIBPCRE_LIBS@
+LIBPCRE_PREFIX = @LIBPCRE_PREFIX@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
+LTLIBPCRE = @LTLIBPCRE@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
@@ -260,6 +248,9 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@

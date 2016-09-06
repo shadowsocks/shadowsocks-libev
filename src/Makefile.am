@@ -9,10 +9,11 @@ AM_CFLAGS += -I$(top_srcdir)/libsodium/src/libsodium/include
 endif
 AM_CFLAGS += -I$(top_srcdir)/libipset/include
 AM_CFLAGS += -I$(top_srcdir)/libcork/include
+AM_CFLAGS += $(LIBPCRE_CFLAGS)
 
 SS_COMMON_LIBS = $(top_builddir)/libipset/libipset.la \
                  $(top_builddir)/libcork/libcork.la \
-                 $(INET_NTOP_LIB)
+                 $(INET_NTOP_LIB) $(LIBPCRE_LIBS)
 if USE_SYSTEM_SHARED_LIB
 SS_COMMON_LIBS += -lev -lsodium -lm
 else
@@ -25,6 +26,11 @@ if !BUILD_WINCOMPAT
 bin_PROGRAMS += ss-server ss-manager
 endif
 
+sni_src = http.c \
+		  tls.c \
+		  rule.c \
+		  table.c
+
 ss_local_SOURCES = utils.c \
                    jconf.c \
                    json.c \
@@ -33,7 +39,8 @@ ss_local_SOURCES = utils.c \
                    cache.c \
                    acl.c \
                    netutils.c \
-                   local.c
+                   local.c \
+				   $(sni_src)
 
 ss_tunnel_SOURCES = utils.c \
                     jconf.c \
