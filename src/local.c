@@ -445,9 +445,10 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 balloc(abuf, BUF_SIZE);
 
                 abuf->array[abuf->len++] = request->atyp;
+                int atyp = request->atyp;
 
                 // get remote addr and port
-                if (request->atyp == 1) {
+                if (atyp == 1) {
                     // IP V4
                     size_t in_addr_len = sizeof(struct in_addr);
                     memcpy(abuf->array + abuf->len, buf->array + 4, in_addr_len + 2);
@@ -459,7 +460,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                                  ip, INET_ADDRSTRLEN);
                         sprintf(port, "%d", p);
                     }
-                } else if (request->atyp == 3) {
+                } else if (atyp == 3) {
                     // Domain name
                     uint8_t name_len = *(uint8_t *)(buf->array + 4);
                     abuf->array[abuf->len++] = name_len;
@@ -473,7 +474,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                         host[name_len] = '\0';
                         sprintf(port, "%d", p);
                     }
-                } else if (request->atyp == 4) {
+                } else if (atyp == 4) {
                     // IP V6
                     size_t in6_addr_len = sizeof(struct in6_addr);
                     memcpy(abuf->array + abuf->len, buf->array + 4, in6_addr_len + 2);
@@ -537,7 +538,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 size_t abuf_len = abuf->len;
                 int sni_detected = 0;
 
-                if (request->atyp == 1 || request->atyp == 4) {
+                if (atyp == 1 || atyp == 4) {
                     char *hostname;
                     uint16_t p = ntohs(*(uint16_t *)(abuf->array + abuf->len - 2));
                     int ret = 0;
@@ -581,11 +582,11 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
 
                 if (verbose) {
-                    if (sni_detected || request->atyp == 3)
+                    if (sni_detected || atyp == 3)
                         LOGI("connect to %s:%s", host, port);
-                    else if (request->atyp == 1)
+                    else if (atyp == 1)
                         LOGI("connect to %s:%s", ip, port);
-                    else if (request->atyp == 4)
+                    else if (atyp == 4)
                         LOGI("connect to [%s]:%s", ip, port);
                 }
 
@@ -610,16 +611,22 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 
                     if (bypass) {
                         if (verbose) {
-                            if (sni_detected || request->atyp == 3)
+                            if (sni_detected || atyp == 3)
                                 LOGI("bypass %s:%s", host, port);
-                            else if (request->atyp == 1)
+                            else if (atyp == 1)
                                 LOGI("bypass %s:%s", ip, port);
-                            else if (request->atyp == 4)
+                            else if (atyp == 4)
                                 LOGI("bypass [%s]:%s", ip, port);
                         }
                         struct sockaddr_storage storage;
+                        int err;
                         memset(&storage, 0, sizeof(struct sockaddr_storage));
-                        if (get_sockaddr(host, port, &storage, 1) != -1) {
+                        if (atyp == 1 || atyp == 4) {
+                            err = get_sockaddr(ip, port, &storage, 0);
+                        } else {
+                            err = get_sockaddr(host, port, &storage, 1);
+                        }
+                        if (err != -1) {
                             remote         = create_remote(server->listener, (struct sockaddr *)&storage);
                             remote->direct = 1;
                         }
