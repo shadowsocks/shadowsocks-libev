@@ -430,7 +430,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 close_and_free_server(EV_A_ server);
                 return;
             } else {
-                char host[257], port[16];
+                char host[257], ip[INET6_ADDRSTRLEN], port[16];
 
                 buffer_t ss_addr_to_send;
                 buffer_t *abuf = &ss_addr_to_send;
@@ -448,7 +448,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                     if (acl || verbose) {
                         uint16_t p = ntohs(*(uint16_t *)(buf->array + 4 + in_addr_len));
                         dns_ntop(AF_INET, (const void *)(buf->array + 4),
-                                 host, INET_ADDRSTRLEN);
+                                 ip, INET_ADDRSTRLEN);
                         sprintf(port, "%d", p);
                     }
                 } else if (request->atyp == 3) {
@@ -474,7 +474,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                     if (acl || verbose) {
                         uint16_t p = ntohs(*(uint16_t *)(buf->array + 4 + in6_addr_len));
                         dns_ntop(AF_INET6, (const void *)(buf->array + 4),
-                                 host, INET6_ADDRSTRLEN);
+                                 ip, INET6_ADDRSTRLEN);
                         sprintf(port, "%d", p);
                     }
                 } else {
@@ -527,6 +527,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
 
                 size_t abuf_len = abuf->len;
+                int sni_detected = 0;
 
                 if (request->atyp == 1 || request->atyp == 4) {
                     char *hostname;
@@ -543,7 +544,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                         bfree(abuf);
                         return;
                     } else if (ret > 0) {
-                        LOGI("host %s", hostname);
+                        sni_detected = 1;
 
                         // Reconstruct address buffer
                         abuf->len = 0;
@@ -572,23 +573,53 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
 
                 if (verbose) {
-                    if (request->atyp == 4)
-                        LOGI("connect to [%s]:%s", host, port);
-                    else
+                    if (sni_detected || request->atyp == 3)
                         LOGI("connect to %s:%s", host, port);
+                    else if (request->atyp == 1)
+                        LOGI("connect to %s:%s", ip, port);
+                    else if (request->atyp == 4)
+                        LOGI("connect to [%s]:%s", ip, port);
                 }
 
-                if ((acl && (request->atyp == 1 || request->atyp == 4) && acl_match_ip(host))) {
-                    if (verbose) {
-                        LOGI("bypass %s:%s", host, port);
+                if (acl) {
+                    int host_match = acl_match_host(host);
+                    int ip_match   = acl_match_host(ip);
+
+                    int bypass = get_acl_mode() == WHITE_LIST;
+
+                    if (get_acl_mode() == BLACK_LIST) {
+                        if (ip_match > 0) bypass = 1; // bypass IPs in black list
+
+                        if (host_match > 0) bypass = 1; // bypass hostnames in black list
+                        else if (host_match < 0) bypass = 0; // proxy hostnames in white list
+
+                    } else if (get_acl_mode() == WHITE_LIST) {
+                        if (ip_match < 0) bypass = 0; // proxy IPs in white list
+
+                        if (host_match < 0) bypass = 0; // proxy hostnames in white list
+                        else if (host_match > 0) bypass = 1; // bypass hostnames in black list
                     }
-                    struct sockaddr_storage storage;
-                    memset(&storage, 0, sizeof(struct sockaddr_storage));
-                    if (get_sockaddr(host, port, &storage, 0) != -1) {
-                        remote         = create_remote(server->listener, (struct sockaddr *)&storage);
-                        remote->direct = 1;
+
+                    if (bypass) {
+                        if (verbose) {
+                            if (sni_detected || request->atyp == 3)
+                                LOGI("bypass %s:%s", host, port);
+                            else if (request->atyp == 1)
+                                LOGI("bypass %s:%s", ip, port);
+                            else if (request->atyp == 4)
+                                LOGI("bypass [%s]:%s", ip, port);
+                        }
+                        struct sockaddr_storage storage;
+                        memset(&storage, 0, sizeof(struct sockaddr_storage));
+                        if (get_sockaddr(host, port, &storage, 1) != -1) {
+                            remote         = create_remote(server->listener, (struct sockaddr *)&storage);
+                            remote->direct = 1;
+                        }
                     }
-                } else {
+                }
+
+                // Not match ACL
+                if (remote == NULL) {
                     remote = create_remote(server->listener, NULL);
                 }
 
@@ -1081,10 +1112,10 @@ int main(int argc, char **argv)
     USE_TTY();
 
 #ifdef ANDROID
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:P:huUvVA",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:P:huUvwVA",
                             long_options, &option_index)) != -1) {
 #else
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUvA",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUvwA",
                             long_options, &option_index)) != -1) {
 #endif
         switch (c) {
@@ -1161,6 +1192,9 @@ int main(int argc, char **argv)
             exit(EXIT_SUCCESS);
         case 'A':
             auth = 1;
+            break;
+        case 'w':
+            set_acl_mode(WHITE_LIST);
             break;
 #ifdef ANDROID
         case 'V':

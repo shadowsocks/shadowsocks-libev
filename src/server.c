@@ -110,7 +110,6 @@ static int is_header_complete(const buffer_t *buf);
 
 int verbose = 0;
 
-static int white_list = 0;
 static int acl        = 0;
 static int mode       = TCP_ONLY;
 static int auth       = 0;
@@ -730,7 +729,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (peer_name) {
                     LOGE("authentication error from %s", peer_name);
                     if (acl) {
-                        if (acl_get_mode() == BLACK_LIST) {
+                        if (get_acl_mode() == BLACK_LIST) {
                             // Auto ban enabled only in black list mode
                             acl_add_ip(peer_name);
                             LOGE("add %s to the black list", peer_name);
@@ -1403,7 +1402,7 @@ static void accept_cb(EV_P_ ev_io *w, int revents)
 
     if (acl) {
         char *peer_name = get_peer_name(serverfd);
-        if (peer_name != NULL && acl_match_ip(peer_name)) {
+        if (peer_name != NULL && acl_match_host(peer_name)) {
             if (verbose)
                 LOGI("Access denied from %s", peer_name);
             close(serverfd);
@@ -1439,7 +1438,6 @@ int main(int argc, char **argv)
     char *method    = NULL;
     char *pid_path  = NULL;
     char *conf_path = NULL;
-    char *acl_path  = NULL;
     char *iface     = NULL;
 
     int server_num = 0;
@@ -1471,8 +1469,7 @@ int main(int argc, char **argv)
                 fast_open = 1;
             } else if (option_index == 1) {
                 LOGI("initializing acl...");
-                acl      = 1;
-                acl_path = optarg;
+                acl = !init_acl(optarg, BLACK_LIST);
             } else if (option_index == 2) {
                 manager_address = optarg;
             } else if (option_index == 3) {
@@ -1545,7 +1542,7 @@ int main(int argc, char **argv)
             auth = 1;
             break;
         case 'w':
-            white_list = 1;
+            set_acl_mode(WHITE_LIST);
             break;
         case '6':
             ipv6first = 1;
@@ -1563,7 +1560,6 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    acl = acl ? !init_acl(acl_path, white_list) : 0;
 
     if (argc == 1) {
         if (conf_path == NULL) {

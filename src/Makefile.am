@@ -27,9 +27,8 @@ bin_PROGRAMS += ss-server ss-manager
 endif
 
 sni_src = http.c \
-		  tls.c \
-		  rule.c \
-		  table.c
+          tls.c \
+          rule.c
 
 ss_local_SOURCES = utils.c \
                    jconf.c \
@@ -40,7 +39,7 @@ ss_local_SOURCES = utils.c \
                    acl.c \
                    netutils.c \
                    local.c \
-				   $(sni_src)
+                   $(sni_src)
 
 ss_tunnel_SOURCES = utils.c \
                     jconf.c \
@@ -60,7 +59,8 @@ ss_server_SOURCES = utils.c \
                     cache.c \
                     acl.c \
                     resolv.c \
-                    server.c
+                    server.c \
+                    $(sni_src)
 
 ss_manager_SOURCES = utils.c \
                      jconf.c \

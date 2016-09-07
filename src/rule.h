@@ -45,7 +45,6 @@ typedef struct rule {
 void add_rule(rule_head_t *, rule_t *);
 int init_rule(rule_t *);
 rule_t *lookup_rule(const rule_head_t *, const char *, size_t);
-void print_rule_config(FILE *, const rule_t *);
 void remove_rule(rule_head_t *, rule_t *);
 rule_t *new_rule();
 int accept_rule_arg(rule_t *, const char *);
