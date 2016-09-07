@@ -26,12 +26,9 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-struct Protocol {
-    const char *const name;
+typedef struct protocol {
     const int default_port;
     int (*const parse_packet)(const char*, size_t, char **);
-    const char *const abort_message;
-    const size_t abort_message_len;
-};
+} protocol_t;
 
 #endif

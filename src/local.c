@@ -64,6 +64,8 @@
 #include "utils.h"
 #include "socks5.h"
 #include "acl.h"
+#include "http.h"
+#include "tls.h"
 #include "local.h"
 
 #ifndef EAGAIN
@@ -210,7 +212,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         buf = remote->buf;
     }
 
-    r = recv(server->fd, buf->array, BUF_SIZE, 0);
+    r = recv(server->fd, buf->array + buf->len, BUF_SIZE - buf->len, 0);
 
     if (r == 0) {
         // connection closed
@@ -231,7 +233,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         }
     }
 
-    buf->len = r;
+    buf->len += r;
 
     while (1) {
         // local socks5 server
@@ -397,10 +399,11 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 continue;
             }
 
-            return;
-        } else if (server->stage == 1) {
-            struct socks5_request *request = (struct socks5_request *)buf->array;
+            buf->len = 0;
 
+            return;
+        } else if (server->stage == 1 || server->stage == 2) {
+            struct socks5_request *request = (struct socks5_request *)buf->array;
             struct sockaddr_in sock_addr;
             memset(&sock_addr, 0, sizeof(sock_addr));
 
@@ -482,11 +485,90 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                     return;
                 }
 
+                if (server->stage == 1) {
+                    // Fake reply
+                    struct socks5_response response;
+                    response.ver  = SVERSION;
+                    response.rep  = 0;
+                    response.rsv  = 0;
+                    response.atyp = 1;
+
+                    buffer_t resp_to_send;
+                    buffer_t *resp_buf = &resp_to_send;
+                    balloc(resp_buf, BUF_SIZE);
+
+                    memcpy(resp_buf->array, &response, sizeof(struct socks5_response));
+                    memcpy(resp_buf->array + sizeof(struct socks5_response),
+                            &sock_addr.sin_addr, sizeof(sock_addr.sin_addr));
+                    memcpy(resp_buf->array + sizeof(struct socks5_response) +
+                            sizeof(sock_addr.sin_addr),
+                            &sock_addr.sin_port, sizeof(sock_addr.sin_port));
+
+                    int reply_size = sizeof(struct socks5_response) +
+                        sizeof(sock_addr.sin_addr) + sizeof(sock_addr.sin_port);
+
+                    int s = send(server->fd, resp_buf->array, reply_size, 0);
+
+                    bfree(resp_buf);
+
+                    if (s < reply_size) {
+                        LOGE("failed to send fake reply");
+                        bfree(abuf);
+                        close_and_free_remote(EV_A_ remote);
+                        close_and_free_server(EV_A_ server);
+                        return;
+                    }
+                    if (udp_assc) {
+                        bfree(abuf);
+                        close_and_free_remote(EV_A_ remote);
+                        close_and_free_server(EV_A_ server);
+                        return;
+                    }
+                }
+
+                size_t abuf_len = abuf->len;
+
+                if (request->atyp == 1 || request->atyp == 4) {
+                    char *hostname;
+                    uint16_t p = ntohs(*(uint16_t *)(abuf->array + abuf->len - 2));
+                    int ret = 0;
+                    if (p == http_protocol->default_port)
+                        ret = http_protocol->parse_packet(buf->array + 3 + abuf->len,
+                                buf->len - 3 - abuf->len, &hostname);
+                    else if (p == tls_protocol->default_port)
+                        ret = tls_protocol->parse_packet(buf->array + 3 + abuf->len,
+                                buf->len - 3 - abuf->len, &hostname);
+                    if (ret == -1 || ret == -2) {
+                        server->stage = 2;
+                        bfree(abuf);
+                        return;
+                    } else if (ret > 0) {
+                        LOGI("host %s", hostname);
+
+                        // Reconstruct address buffer
+                        abuf->len = 0;
+                        abuf->array[abuf->len++] = 3;
+                        abuf->array[abuf->len++] = ret;
+                        memcpy(abuf->array + abuf->len, hostname, ret);
+                        abuf->len += ret;
+                        p = htons(p);
+                        memcpy(abuf->array + abuf->len, &p, 2);
+                        abuf->len += 2;
+
+                        if (acl || verbose) {
+                            memcpy(host, hostname, ret);
+                            host[ret] = '\0';
+                        }
+
+                        free(hostname);
+                    }
+                }
+
                 server->stage = 5;
 
-                buf->len -= (3 + abuf->len);
+                buf->len -= (3 + abuf_len);
                 if (buf->len > 0) {
-                    memmove(buf->array, buf->array + 3 + abuf->len, buf->len);
+                    memmove(buf->array, buf->array + 3 + abuf_len, buf->len);
                 }
 
                 if (verbose) {
@@ -544,37 +626,6 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 remote->server = server;
 
                 bfree(abuf);
-            }
-
-            // Fake reply
-            struct socks5_response response;
-            response.ver  = SVERSION;
-            response.rep  = 0;
-            response.rsv  = 0;
-            response.atyp = 1;
-
-            memcpy(server->buf->array, &response, sizeof(struct socks5_response));
-            memcpy(server->buf->array + sizeof(struct socks5_response),
-                   &sock_addr.sin_addr, sizeof(sock_addr.sin_addr));
-            memcpy(server->buf->array + sizeof(struct socks5_response) +
-                   sizeof(sock_addr.sin_addr),
-                   &sock_addr.sin_port, sizeof(sock_addr.sin_port));
-
-            int reply_size = sizeof(struct socks5_response) +
-                             sizeof(sock_addr.sin_addr) +
-                             sizeof(sock_addr.sin_port);
-            int s = send(server->fd, server->buf->array, reply_size, 0);
-            if (s < reply_size) {
-                LOGE("failed to send fake reply");
-                close_and_free_remote(EV_A_ remote);
-                close_and_free_server(EV_A_ server);
-                return;
-            }
-
-            if (udp_assc) {
-                close_and_free_remote(EV_A_ remote);
-                close_and_free_server(EV_A_ server);
-                return;
             }
         }
     }
