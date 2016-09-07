@@ -1469,7 +1469,7 @@ int main(int argc, char **argv)
                 fast_open = 1;
             } else if (option_index == 1) {
                 LOGI("initializing acl...");
-                acl = !init_acl(optarg, BLACK_LIST);
+                acl = !init_acl(optarg);
             } else if (option_index == 2) {
                 manager_address = optarg;
             } else if (option_index == 3) {

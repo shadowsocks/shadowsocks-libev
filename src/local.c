@@ -208,6 +208,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (remote == NULL) {
         buf = server->buf;
+
     } else {
         buf = remote->buf;
     }
@@ -346,6 +347,9 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                     } else if (s <= (int)(remote->buf->len)) {
                         remote->buf->len -= s;
                         remote->buf->idx  = s;
+                    } else {
+                        remote->buf->idx = 0;
+                        remote->buf->len = 0;
                     }
 
                     // Just connected
@@ -358,6 +362,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                     exit(1);
 #endif
                 }
+
             } else {
                 int s = send(remote->fd, remote->buf->array, remote->buf->len, 0);
                 if (s == -1) {
@@ -379,6 +384,9 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                     ev_io_stop(EV_A_ & server_recv_ctx->io);
                     ev_io_start(EV_A_ & remote->send_ctx->io);
                     return;
+                } else {
+                    remote->buf->idx = 0;
+                    remote->buf->len = 0;
                 }
             }
 
@@ -1124,7 +1132,7 @@ int main(int argc, char **argv)
                 fast_open = 1;
             } else if (option_index == 1) {
                 LOGI("initializing acl...");
-                acl = !init_acl(optarg, BLACK_LIST);
+                acl = !init_acl(optarg);
             } else if (option_index == 2) {
                 mtu = atoi(optarg);
                 LOGI("set MTU to %d", mtu);
@@ -1456,7 +1464,11 @@ int start_ss_local_server(profile_t profile)
     USE_LOGFILE(log);
 
     if (profile.acl != NULL) {
-        acl = !init_acl(profile.acl, BLACK_LIST);
+        acl = !init_acl(profile.acl);
+    }
+
+    if (profile.white_list) {
+        set_acl_mode(WHITE_LIST);
     }
 
     if (local_addr == NULL) {

@@ -58,10 +58,8 @@ static void parse_addr_cidr(const char *str, char *host, int *cidr)
     }
 }
 
-int init_acl(const char *path, int mode)
+int init_acl(const char *path)
 {
-    acl_mode = mode;
-
     // initialize ipset
     ipset_init_library();
 
@@ -164,7 +162,6 @@ int get_acl_mode(void)
 
 void set_acl_mode(int mode)
 {
-    LOGI("white");
     acl_mode = mode;
 }
 

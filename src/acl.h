@@ -26,7 +26,7 @@
 #define BLACK_LIST 0
 #define WHITE_LIST 1
 
-int init_acl(const char *path, int mode);
+int init_acl(const char *path);
 void free_acl(void);
 
 int acl_match_host(const char *ip);
