@@ -103,7 +103,7 @@ static void build_config(char *prefix, struct server *server)
         if (verbose) {
             LOGE("unable to open config file");
         }
-        free(path);
+        ss_free(path);
         return;
     }
     fprintf(f, "{\n");
@@ -111,7 +111,7 @@ static void build_config(char *prefix, struct server *server)
     fprintf(f, "\"password\":\"%s\",\n", server->password);
     fprintf(f, "}\n");
     fclose(f);
-    free(path);
+    ss_free(path);
 }
 
 static char *construct_command_line(struct manager_ctx *manager, struct server *server)
@@ -314,7 +314,7 @@ static void kill_server(char *prefix, char *pid_file)
         if (verbose) {
             LOGE("unable to open pid file");
         }
-        free(path);
+        ss_free(path);
         return;
     }
     if (fscanf(f, "%d", &pid) != EOF) {
@@ -322,7 +322,7 @@ static void kill_server(char *prefix, char *pid_file)
     }
     fclose(f);
     remove(path);
-    free(path);
+    ss_free(path);
 }
 
 static void stop_server(char *prefix, char *port)
@@ -336,14 +336,14 @@ static void stop_server(char *prefix, char *port)
         if (verbose) {
             LOGE("unable to open pid file");
         }
-        free(path);
+        ss_free(path);
         return;
     }
     if (fscanf(f, "%d", &pid) != EOF) {
         kill(pid, SIGTERM);
     }
     fclose(f);
-    free(path);
+    ss_free(path);
 }
 
 static void remove_server(char *prefix, char *port)
@@ -819,7 +819,7 @@ int main(int argc, char **argv)
     int err = mkdir(working_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (err != 0 && errno != EEXIST) {
         ERROR("mkdir");
-        free(working_dir);
+        ss_free(working_dir);
         FATAL("unable to create working directory");
     }
 
@@ -837,7 +837,7 @@ int main(int argc, char **argv)
         }
         closedir (dp);
     } else {
-        free(working_dir);
+        ss_free(working_dir);
         FATAL("Couldn't open the directory");
     }
 
@@ -860,7 +860,7 @@ int main(int argc, char **argv)
         struct sockaddr_un svaddr;
         sfd = socket(AF_UNIX, SOCK_DGRAM, 0);       /*  Create server socket */
         if (sfd == -1) {
-            free(working_dir);
+            ss_free(working_dir);
             FATAL("socket");
         }
 
@@ -868,7 +868,7 @@ int main(int argc, char **argv)
 
         if (remove(manager_address) == -1 && errno != ENOENT) {
             ERROR("bind");
-            free(working_dir);
+            ss_free(working_dir);
             exit(EXIT_FAILURE);
         }
 
@@ -878,13 +878,13 @@ int main(int argc, char **argv)
 
         if (bind(sfd, (struct sockaddr *)&svaddr, sizeof(struct sockaddr_un)) == -1) {
             ERROR("bind");
-            free(working_dir);
+            ss_free(working_dir);
             exit(EXIT_FAILURE);
         }
     } else {
         sfd = create_server_socket(ip_addr.host, ip_addr.port);
         if (sfd == -1) {
-            free(working_dir);
+            ss_free(working_dir);
             FATAL("socket");
         }
     }
@@ -917,7 +917,7 @@ int main(int argc, char **argv)
 
     ev_signal_stop(EV_DEFAULT, &sigint_watcher);
     ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
-    free(working_dir);
+    ss_free(working_dir);
 
     return 0;
 }

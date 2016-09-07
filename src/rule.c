@@ -115,8 +115,8 @@ free_rule(rule_t *rule) {
     if (rule == NULL)
         return;
 
-    free(rule->pattern);
+    ss_free(rule->pattern);
     if (rule->pattern_re != NULL)
         pcre_free(rule->pattern_re);
-    free(rule);
+    ss_free(rule);
 }

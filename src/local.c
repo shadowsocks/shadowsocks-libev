@@ -569,7 +569,7 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                             host[ret] = '\0';
                         }
 
-                        free(hostname);
+                        ss_free(hostname);
                     }
                 }
 

@@ -207,7 +207,7 @@ jconf_t *read_jconf(const char *file)
                 else
                     LOGI("ignore unknown mode: %s, use tcp_only as fallback",
                          mode_str);
-                free(mode_str);
+                ss_free(mode_str);
             } else if (strcmp(name, "mtu") == 0) {
                 conf.mtu = value->u.integer;
             } else if (strcmp(name, "mptcp") == 0) {
