@@ -24,7 +24,7 @@ Section: libdevel
 Breaks:
  shadowsocks-libev (<< 2.4.0),
 Depends:
- libshadowsocks-libev1 (= ${binary:Version}),
+ libshadowsocks-libev2 (= ${binary:Version}),
  ${misc:Depends},
 Description: lightweight and secure socks5 proxy (development files)
  Shadowsocks-libev is a lightweight and secure socks5 proxy for
@@ -36,7 +36,7 @@ Description: lightweight and secure socks5 proxy (development files)
  .
  This package provides C header files for the libraries.
 
-Package: libshadowsocks-libev1
+Package: libshadowsocks-libev2
 Architecture: any
 Multi-Arch: same
 Section: libs

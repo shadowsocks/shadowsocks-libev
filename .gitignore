@@ -25,7 +25,7 @@ debian/shadowsocks-libev.substvars
 debian/*.debhelper*
 .dirstamp
 shadowsocks-libev.pc
-debian/libshadowsocks-libev1.symbols
+debian/libshadowsocks-libev*.symbols
 libsodium/src/libsodium/include/sodium/version.h
 
 # Ignore per-project vim config
