@@ -52,6 +52,9 @@ typedef struct server {
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
+
+    char *hostname;
+    size_t hostname_len;
 } server_t;
 
 typedef struct remote_ctx {

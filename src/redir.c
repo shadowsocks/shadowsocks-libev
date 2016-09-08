@@ -46,6 +46,8 @@
 #include "config.h"
 #endif
 
+#include "http.h"
+#include "tls.h"
 #include "netutils.h"
 #include "utils.h"
 #include "common.h"
@@ -173,7 +175,8 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
     server_t *server              = server_recv_ctx->server;
     remote_t *remote              = server->remote;
 
-    ssize_t r = recv(server->fd, remote->buf->array, BUF_SIZE, 0);
+    ssize_t r = recv(server->fd, remote->buf->array + remote->buf->len,
+            BUF_SIZE - remote->buf->len, 0);
 
     if (r == 0) {
         // connection closed
@@ -193,6 +196,8 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         }
     }
 
+    remote->buf->len += r;
+
     if (verbose) {
         uint16_t port = 0;
         char ipstr[INET6_ADDRSTRLEN];
@@ -210,16 +215,33 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             port = ntohs(sa->sin6_port);
         }
 
-        LOGI("redir to %s:%d, len=%zd", ipstr, port, r);
+        LOGI("redir to %s:%d, len=%zd, recv=%zd", ipstr, port, remote->buf->len, r);
     }
-
-    remote->buf->len = r;
 
     if (auth) {
         ss_gen_hash(remote->buf, &remote->counter, server->e_ctx, BUF_SIZE);
     }
 
     if (!remote->send_ctx->connected) {
+        // SNI
+        int ret = 0;
+        uint16_t port = 0;
+
+        if (AF_INET6 == server->destaddr.ss_family) { // IPv6
+            port = ntohs(((struct sockaddr_in6 *)&(server->destaddr))->sin6_port);
+        } else {                             // IPv4
+            port = ntohs(((struct sockaddr_in *)&(server->destaddr))->sin_port);
+        }
+        if (port == http_protocol->default_port)
+            ret = http_protocol->parse_packet(remote->buf->array,
+                    remote->buf->len, &server->hostname);
+        else if (port == tls_protocol->default_port)
+            ret = tls_protocol->parse_packet(remote->buf->array,
+                    remote->buf->len, &server->hostname);
+        if (ret > 0) {
+            server->hostname_len = ret;
+        }
+
         ev_io_stop(EV_A_ & server_recv_ctx->io);
         ev_io_start(EV_A_ & remote->send_ctx->io);
         return;
@@ -255,6 +277,9 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
         ev_io_stop(EV_A_ & server_recv_ctx->io);
         ev_io_start(EV_A_ & remote->send_ctx->io);
         return;
+    } else {
+        remote->buf->idx = 0;
+        remote->buf->len = 0;
     }
 }
 
@@ -389,7 +414,23 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
             buffer_t *abuf = &ss_addr_to_send;
             balloc(abuf, BUF_SIZE);
 
-            if (AF_INET6 == server->destaddr.ss_family) { // IPv6
+            if (server->hostname_len > 0) { // HTTP/SNI
+                uint16_t port;
+                if (AF_INET6 == server->destaddr.ss_family) { // IPv6
+                    port = (((struct sockaddr_in6 *)&(server->destaddr))->sin6_port);
+                } else {                             // IPv4
+                    port = (((struct sockaddr_in *)&(server->destaddr))->sin_port);
+                }
+
+                abuf->array[abuf->len++] = 3;          // Type 3 is hostname
+                abuf->array[abuf->len++] = server->hostname_len;
+                memcpy(abuf->array + abuf->len, server->hostname, server->hostname_len);
+                abuf->len += server->hostname_len;
+                memcpy(abuf->array + abuf->len, &port, 2);
+
+                LOGI("Dest: %s:%d", server->hostname, ntohs(port));
+
+            } else if (AF_INET6 == server->destaddr.ss_family) { // IPv6
                 abuf->array[abuf->len++] = 4;          // Type 4 is IPv6 address
 
                 size_t in6_addr_len = sizeof(struct in6_addr);
@@ -410,6 +451,7 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
                 memcpy(abuf->array + abuf->len,
                        &((struct sockaddr_in *)&(server->destaddr))->sin_port, 2);
             }
+
             abuf->len += 2;
 
             if (auth) {
@@ -540,6 +582,9 @@ static server_t *new_server(int fd, int method)
     server->send_ctx->server    = server;
     server->send_ctx->connected = 0;
 
+    server->hostname            = NULL;
+    server->hostname_len        = 0;
+
     if (method) {
         server->e_ctx = ss_malloc(sizeof(enc_ctx_t));
         server->d_ctx = ss_malloc(sizeof(enc_ctx_t));
@@ -561,6 +606,9 @@ static server_t *new_server(int fd, int method)
 static void free_server(server_t *server)
 {
     if (server != NULL) {
+        if (server->hostname != NULL) {
+            ss_free(server->hostname);
+        }
         if (server->remote != NULL) {
             server->remote->server = NULL;
         }

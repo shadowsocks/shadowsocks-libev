@@ -216,7 +216,9 @@ ss_manager_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ss_manager_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am__ss_redir_SOURCES_DIST = utils.c jconf.c json.c encrypt.c \
-	netutils.c cache.c udprelay.c redir.c
+	netutils.c cache.c udprelay.c redir.c http.c tls.c rule.c
+am__objects_6 = ss_redir-http.$(OBJEXT) ss_redir-tls.$(OBJEXT) \
+	ss_redir-rule.$(OBJEXT)
 @BUILD_REDIRECTOR_TRUE@am_ss_redir_OBJECTS = ss_redir-utils.$(OBJEXT) \
 @BUILD_REDIRECTOR_TRUE@	ss_redir-jconf.$(OBJEXT) \
 @BUILD_REDIRECTOR_TRUE@	ss_redir-json.$(OBJEXT) \
@@ -224,21 +226,22 @@ am__ss_redir_SOURCES_DIST = utils.c jconf.c json.c encrypt.c \
 @BUILD_REDIRECTOR_TRUE@	ss_redir-netutils.$(OBJEXT) \
 @BUILD_REDIRECTOR_TRUE@	ss_redir-cache.$(OBJEXT) \
 @BUILD_REDIRECTOR_TRUE@	ss_redir-udprelay.$(OBJEXT) \
-@BUILD_REDIRECTOR_TRUE@	ss_redir-redir.$(OBJEXT)
+@BUILD_REDIRECTOR_TRUE@	ss_redir-redir.$(OBJEXT) \
+@BUILD_REDIRECTOR_TRUE@	$(am__objects_6)
 ss_redir_OBJECTS = $(am_ss_redir_OBJECTS)
 @BUILD_REDIRECTOR_TRUE@ss_redir_DEPENDENCIES = $(am__DEPENDENCIES_2) \
 @BUILD_REDIRECTOR_TRUE@	$(am__DEPENDENCIES_1) $(am__append_15)
 ss_redir_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ss_redir_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-am__objects_6 = ss_server-http.$(OBJEXT) ss_server-tls.$(OBJEXT) \
+am__objects_7 = ss_server-http.$(OBJEXT) ss_server-tls.$(OBJEXT) \
 	ss_server-rule.$(OBJEXT)
 am_ss_server_OBJECTS = ss_server-utils.$(OBJEXT) \
 	ss_server-netutils.$(OBJEXT) ss_server-jconf.$(OBJEXT) \
 	ss_server-json.$(OBJEXT) ss_server-encrypt.$(OBJEXT) \
 	ss_server-udprelay.$(OBJEXT) ss_server-cache.$(OBJEXT) \
 	ss_server-acl.$(OBJEXT) ss_server-resolv.$(OBJEXT) \
-	ss_server-server.$(OBJEXT) $(am__objects_6)
+	ss_server-server.$(OBJEXT) $(am__objects_7)
 ss_server_OBJECTS = $(am_ss_server_OBJECTS)
 ss_server_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1) \
 	$(am__append_10)
@@ -247,12 +250,12 @@ ss_server_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am__ss_tunnel_SOURCES_DIST = utils.c jconf.c json.c encrypt.c \
 	udprelay.c cache.c netutils.c tunnel.c win32.c
-@BUILD_WINCOMPAT_TRUE@am__objects_7 = ss_tunnel-win32.$(OBJEXT)
+@BUILD_WINCOMPAT_TRUE@am__objects_8 = ss_tunnel-win32.$(OBJEXT)
 am_ss_tunnel_OBJECTS = ss_tunnel-utils.$(OBJEXT) \
 	ss_tunnel-jconf.$(OBJEXT) ss_tunnel-json.$(OBJEXT) \
 	ss_tunnel-encrypt.$(OBJEXT) ss_tunnel-udprelay.$(OBJEXT) \
 	ss_tunnel-cache.$(OBJEXT) ss_tunnel-netutils.$(OBJEXT) \
-	ss_tunnel-tunnel.$(OBJEXT) $(am__objects_7)
+	ss_tunnel-tunnel.$(OBJEXT) $(am__objects_8)
 ss_tunnel_OBJECTS = $(am_ss_tunnel_OBJECTS)
 ss_tunnel_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1) \
 	$(am__append_9)
@@ -512,7 +515,8 @@ ss_manager_CFLAGS = $(AM_CFLAGS) -DMODULE_MANAGER
 @BUILD_REDIRECTOR_TRUE@                   netutils.c \
 @BUILD_REDIRECTOR_TRUE@                   cache.c \
 @BUILD_REDIRECTOR_TRUE@                   udprelay.c \
-@BUILD_REDIRECTOR_TRUE@                   redir.c
+@BUILD_REDIRECTOR_TRUE@                   redir.c \
+@BUILD_REDIRECTOR_TRUE@                   $(sni_src)
 
 @BUILD_REDIRECTOR_TRUE@ss_redir_CFLAGS = $(AM_CFLAGS) -DMODULE_REDIR
 @BUILD_REDIRECTOR_TRUE@ss_redir_LDADD = $(SS_COMMON_LIBS) \
@@ -738,10 +742,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_manager-utils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-encrypt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-http.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-jconf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-json.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-netutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-redir.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-rule.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-tls.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-udprelay.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-utils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_server-acl.Po@am__quote@
@@ -1231,6 +1238,48 @@ ss_redir-redir.obj: redir.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='redir.c' object='ss_redir-redir.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -c -o ss_redir-redir.obj `if test -f 'redir.c'; then $(CYGPATH_W) 'redir.c'; else $(CYGPATH_W) '$(srcdir)/redir.c'; fi`
+
+ss_redir-http.o: http.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -MT ss_redir-http.o -MD -MP -MF $(DEPDIR)/ss_redir-http.Tpo -c -o ss_redir-http.o `test -f 'http.c' || echo '$(srcdir)/'`http.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_redir-http.Tpo $(DEPDIR)/ss_redir-http.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='http.c' object='ss_redir-http.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -c -o ss_redir-http.o `test -f 'http.c' || echo '$(srcdir)/'`http.c
+
+ss_redir-http.obj: http.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -MT ss_redir-http.obj -MD -MP -MF $(DEPDIR)/ss_redir-http.Tpo -c -o ss_redir-http.obj `if test -f 'http.c'; then $(CYGPATH_W) 'http.c'; else $(CYGPATH_W) '$(srcdir)/http.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_redir-http.Tpo $(DEPDIR)/ss_redir-http.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='http.c' object='ss_redir-http.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -c -o ss_redir-http.obj `if test -f 'http.c'; then $(CYGPATH_W) 'http.c'; else $(CYGPATH_W) '$(srcdir)/http.c'; fi`
+
+ss_redir-tls.o: tls.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -MT ss_redir-tls.o -MD -MP -MF $(DEPDIR)/ss_redir-tls.Tpo -c -o ss_redir-tls.o `test -f 'tls.c' || echo '$(srcdir)/'`tls.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_redir-tls.Tpo $(DEPDIR)/ss_redir-tls.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tls.c' object='ss_redir-tls.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -c -o ss_redir-tls.o `test -f 'tls.c' || echo '$(srcdir)/'`tls.c
+
+ss_redir-tls.obj: tls.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -MT ss_redir-tls.obj -MD -MP -MF $(DEPDIR)/ss_redir-tls.Tpo -c -o ss_redir-tls.obj `if test -f 'tls.c'; then $(CYGPATH_W) 'tls.c'; else $(CYGPATH_W) '$(srcdir)/tls.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_redir-tls.Tpo $(DEPDIR)/ss_redir-tls.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='tls.c' object='ss_redir-tls.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -c -o ss_redir-tls.obj `if test -f 'tls.c'; then $(CYGPATH_W) 'tls.c'; else $(CYGPATH_W) '$(srcdir)/tls.c'; fi`
+
+ss_redir-rule.o: rule.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -MT ss_redir-rule.o -MD -MP -MF $(DEPDIR)/ss_redir-rule.Tpo -c -o ss_redir-rule.o `test -f 'rule.c' || echo '$(srcdir)/'`rule.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_redir-rule.Tpo $(DEPDIR)/ss_redir-rule.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rule.c' object='ss_redir-rule.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -c -o ss_redir-rule.o `test -f 'rule.c' || echo '$(srcdir)/'`rule.c
+
+ss_redir-rule.obj: rule.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -MT ss_redir-rule.obj -MD -MP -MF $(DEPDIR)/ss_redir-rule.Tpo -c -o ss_redir-rule.obj `if test -f 'rule.c'; then $(CYGPATH_W) 'rule.c'; else $(CYGPATH_W) '$(srcdir)/rule.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_redir-rule.Tpo $(DEPDIR)/ss_redir-rule.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rule.c' object='ss_redir-rule.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_redir_CFLAGS) $(CFLAGS) -c -o ss_redir-rule.obj `if test -f 'rule.c'; then $(CYGPATH_W) 'rule.c'; else $(CYGPATH_W) '$(srcdir)/rule.c'; fi`
 
 ss_server-utils.o: utils.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_server_CFLAGS) $(CFLAGS) -MT ss_server-utils.o -MD -MP -MF $(DEPDIR)/ss_server-utils.Tpo -c -o ss_server-utils.o `test -f 'utils.c' || echo '$(srcdir)/'`utils.c

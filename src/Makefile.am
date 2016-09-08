@@ -101,7 +101,8 @@ ss_redir_SOURCES = utils.c \
                    netutils.c \
                    cache.c \
                    udprelay.c \
-                   redir.c
+                   redir.c \
+                   $(sni_src)
 ss_redir_CFLAGS = $(AM_CFLAGS) -DMODULE_REDIR
 ss_redir_LDADD = $(SS_COMMON_LIBS)
 if USE_SYSTEM_SHARED_LIB
