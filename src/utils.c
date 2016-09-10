@@ -244,6 +244,8 @@ usage()
     printf(
         "                                  aes-128-cfb, aes-192-cfb, aes-256-cfb,\n");
     printf(
+        "                                  aes-128-ctr, aes-192-ctr, aes-256-ctr,\n");
+    printf(
         "                                  bf-cfb, camellia-128-cfb, camellia-192-cfb,\n");
     printf(
         "                                  camellia-256-cfb, cast5-cfb, des-cfb,\n");

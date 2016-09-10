@@ -41,9 +41,10 @@ Set the password. The server and the client should use the same password.
 -m <encrypt_method>::
 Set the cipher.
 +
-*Shadowsocks-libev* accepts 18 different ciphers:
+*Shadowsocks-libev* accepts 21 different ciphers:
 +
-table, rc4, rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb, bf-cfb,
+table, rc4, rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb,
+aes-128-ctr, aes-192-ctr, aes-256-ctr, bf-cfb,
 camellia-128-cfb, camellia-192-cfb, camellia-256-cfb, cast5-cfb, des-cfb,
 idea-cfb, rc2-cfb, seed-cfb, salsa20, chacha20 and chacha20-ietf.
 +
