@@ -7,17 +7,18 @@ MAINTAINER kev <noreply@datageek.info>
 
 ENV SS_URL https://github.com/shadowsocks/shadowsocks-libev.git
 ENV SS_DIR shadowsocks-libev
-ENV SS_DEP git autoconf build-base curl libtool linux-headers openssl-dev asciidoc xmlto
+ENV SS_DEP pcre
+ENV SS_BUILD_DEP git autoconf build-base curl libtool linux-headers openssl-dev asciidoc xmlto pcre-dev
 
 RUN set -ex \
-    && apk add --update $SS_DEP \
+    && apk add --update $SS_DEP $SS_BUILD_DEP\
     && git clone $SS_URL \
     && cd $SS_DIR \
         && ./configure \
         && make install \
         && cd .. \
         && rm -rf $SS_DIR \
-    && apk del --purge $SS_DEP \
+    && apk del --purge $SS_BUILD_DEP \
     && rm -rf /var/cache/apk/*
 
 ENV SERVER_ADDR 0.0.0.0
@@ -39,4 +40,4 @@ CMD ss-server -s $SERVER_ADDR \
               --fast-open \
               -d $DNS_ADDR \
               -d $DNS_ADDR_2 \
-              -u
+-u
