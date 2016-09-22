@@ -781,6 +781,8 @@ main(int argc, char **argv)
 
     opterr = 0;
 
+    USE_TTY();
+
     while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:huUvA",
                             long_options, &option_index)) != -1) {
         switch (c) {
