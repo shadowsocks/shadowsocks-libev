@@ -11,6 +11,7 @@
 
 [Unit]
 Description=Shadowsocks-Libev Custom Client Service Tunnel Mode for %I
+Documentation=man:ss-tunnel(1)
 After=network.target
 
 [Service]

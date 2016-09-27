@@ -9,4 +9,4 @@ URL: http://shadowsocks.org
 Version: @VERSION@
 Requires:
 Cflags: -I${includedir}
-Libs: -L${libdir} -lshadowsocks -lcrypto
+Libs: -L${libdir} -lshadowsocks-libev -lcrypto

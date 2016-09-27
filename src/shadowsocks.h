@@ -38,6 +38,8 @@ typedef struct {
     int fast_open;        // enable tcp fast open
     int mode;             // enable udp relay
     int auth;             // enable one-time authentication
+    int mtu;              // MTU of interface
+    int mptcp;            // enable multipath TCP
     int verbose;          // verbose mode
 } profile_t;
 
@@ -70,7 +72,7 @@ extern "C" {
  * Calling this function will block the current thread forever if the server
  * starts successfully.
  *
- * Make sure start the server in a seperate process to avoid any potential
+ * Make sure start the server in a separate process to avoid any potential
  * memory and socket leak.
  *
  * If failed, -1 is returned. Errors will output to the log file.
@@ -83,5 +85,7 @@ int start_ss_local_server(profile_t profile);
 
 // To stop the service on posix system, just kill the daemon process
 // kill(pid, SIGKILL);
+// Otherwise, If you start the service in a thread, you may need to send a signal SIGUSER1 to the thread.
+// pthread_kill(pthread_t, SIGUSR1);
 
 #endif // _SHADOWSOCKS_H

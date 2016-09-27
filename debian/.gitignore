@@ -1,5 +1,5 @@
 *.substvars
-libshadowsocks1/
-libshadowsocks-dbg/
-libshadowsocks-dev/
+debhelper-build-stamp
+libshadowsocks-libev*/
+libshadowsocks-libev-dev/
 tmp/

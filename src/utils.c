@@ -53,7 +53,8 @@ int use_syslog = 0;
 #endif
 
 #ifndef __MINGW32__
-void ERROR(const char *s)
+void
+ERROR(const char *s)
 {
     char *msg = strerror(errno);
     LOGE("%s: %s", s, msg);
@@ -63,7 +64,8 @@ void ERROR(const char *s)
 
 int use_tty = 1;
 
-char *ss_itoa(int i)
+char *
+ss_itoa(int i)
 {
     /* Room for INT_DIGITS digits, - and '\0' */
     static char buf[INT_DIGITS + 2];
@@ -87,7 +89,8 @@ char *ss_itoa(int i)
 /*
  * setuid() and setgid() for a specified user.
  */
-int run_as(const char *user)
+int
+run_as(const char *user)
 {
 #ifndef __MINGW32__
     if (user[0]) {
@@ -164,7 +167,8 @@ int run_as(const char *user)
     return 1;
 }
 
-char *ss_strndup(const char *s, size_t n)
+char *
+ss_strndup(const char *s, size_t n)
 {
     size_t len = strlen(s);
     char *ret;
@@ -179,13 +183,36 @@ char *ss_strndup(const char *s, size_t n)
     return ret;
 }
 
-void FATAL(const char *msg)
+void
+FATAL(const char *msg)
 {
     LOGE("%s", msg);
     exit(-1);
 }
 
-void usage()
+void *
+ss_malloc(size_t size)
+{
+    void *tmp = malloc(size);
+    if (tmp == NULL)
+        exit(EXIT_FAILURE);
+    return tmp;
+}
+
+void *
+ss_realloc(void *ptr, size_t new_size)
+{
+    void *new = realloc(ptr, new_size);
+    if (new == NULL) {
+        free(ptr);
+        ptr = NULL;
+        exit(EXIT_FAILURE);
+    }
+    return new;
+}
+
+void
+usage()
 {
     printf("\n");
     printf("shadowsocks-libev %s\n\n", VERSION);
@@ -217,6 +244,8 @@ void usage()
     printf(
         "                                  aes-128-cfb, aes-192-cfb, aes-256-cfb,\n");
     printf(
+        "                                  aes-128-ctr, aes-192-ctr, aes-256-ctr,\n");
+    printf(
         "                                  bf-cfb, camellia-128-cfb, camellia-192-cfb,\n");
     printf(
         "                                  camellia-256-cfb, cast5-cfb, des-cfb,\n");
@@ -243,28 +272,22 @@ void usage()
     printf(
         "       [-i <interface>]           Network interface to bind.\n");
 #endif
-#ifndef MODULE_REMOTE
     printf(
         "       [-b <local_address>]       Local address to bind.\n");
-#endif
     printf("\n");
     printf(
-        "       [-u]                       Enable UDP relay,\n");
+        "       [-u]                       Enable UDP relay.\n");
 #ifdef MODULE_REDIR
     printf(
         "                                  TPROXY is required in redir mode.\n");
 #endif
-#ifndef MODULE_LOCAL
     printf(
         "       [-U]                       Enable UDP relay and disable TCP relay.\n");
-#endif
     printf(
         "       [-A]                       Enable onetime authentication.\n");
 #ifdef MODULE_REMOTE
     printf(
         "       [-6]                       Resovle hostname to IPv6 address first.\n");
-    printf(
-        "       [-w]                       Enable white list mode (when ACL enabled).\n");
 #endif
     printf("\n");
 #ifdef MODULE_TUNNEL
@@ -293,6 +316,10 @@ void usage()
     printf(
         "       [--executable <path>]      Path to the executable of ss-server.\n");
 #endif
+    printf(
+        "       [--mtu <MTU>]              MTU of your network interface.\n");
+    printf(
+        "       [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.\n");
     printf("\n");
     printf(
         "       [-v]                       Verbose mode.\n");
@@ -301,7 +328,8 @@ void usage()
     printf("\n");
 }
 
-void daemonize(const char *path)
+void
+daemonize(const char *path)
 {
 #ifndef __MINGW32__
     /* Our process ID and Session ID */
@@ -352,7 +380,8 @@ void daemonize(const char *path)
 }
 
 #ifdef HAVE_SETRLIMIT
-int set_nofile(int nofile)
+int
+set_nofile(int nofile)
 {
     struct rlimit limit = { nofile, nofile }; /* set both soft and hard limit */
 

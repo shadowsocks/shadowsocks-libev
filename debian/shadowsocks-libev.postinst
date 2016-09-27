@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+	configure|reconfigure)
+		if [ ! -f /etc/shadowsocks-libev/config.json ]; then
+			passwd=$(apg -n 1 -M ncl)
+			mkdir -p /etc/shadowsocks-libev
+			sed "s/barfoo!/$passwd/" /usr/share/shadowsocks-libev/config.json \
+				> /etc/shadowsocks-libev/config.json
+		fi
+		;;
+	abort-upgrade|abort-remove|abort-deconfigure)
+		exit 0
+		;;
+	*)
+		echo "postinst called with unknown argument \`$1'" >&2
+		exit 0
+		;;
+esac
+
+#DEBHELPER#
+
+exit 0

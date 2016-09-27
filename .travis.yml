@@ -2,6 +2,11 @@ language: c
 compiler:
     - gcc
     - clang
+addons:
+    apt:
+        packages:
+            - asciidoc
+            - xmlto
 script: "./configure && make"
 branches:
     only:

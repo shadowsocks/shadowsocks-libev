@@ -10,14 +10,14 @@
 
 [Unit]
 Description=Shadowsocks-libev Default Server Service
+Documentation=man:shadowsocks-libev(8)
 After=network.target
 
 [Service]
 Type=simple
 EnvironmentFile=/etc/default/shadowsocks-libev
 User=root
-#Group=$GROUP
-#LimitNOFILE=$MAXFD
+LimitNOFILE=32768
 ExecStart=/usr/bin/ss-server -a $USER -c $CONFFILE $DAEMON_ARGS
 
 [Install]

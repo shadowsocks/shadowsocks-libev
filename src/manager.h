@@ -49,6 +49,7 @@ struct manager_ctx {
     int host_num;
     char **nameservers;
     int nameserver_num;
+    int mtu;
 };
 
 struct server {

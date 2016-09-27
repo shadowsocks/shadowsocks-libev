@@ -183,7 +183,8 @@ public:
         }
     }
 
-    inline operator json_int_t() const
+    inline operator
+    json_int_t() const
     {
         switch (type) {
         case json_integer:
@@ -197,7 +198,8 @@ public:
         }
     }
 
-    inline operator bool() const
+    inline operator
+    bool() const
     {
         if (type != json_boolean) {
             return false;

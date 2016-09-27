@@ -46,6 +46,7 @@
 
 #include "resolv.h"
 #include "utils.h"
+#include "netutils.h"
 
 /*
  * Implement DNS resolution interface using libudns
@@ -82,7 +83,8 @@ static struct sockaddr *choose_ipv4_first(struct ResolvQuery *);
 static struct sockaddr *choose_ipv6_first(struct ResolvQuery *);
 static struct sockaddr *choose_any(struct ResolvQuery *);
 
-int resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, int ipv6first)
+int
+resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, int ipv6first)
 {
     if (ipv6first)
         resolv_mode = MODE_IPV6_FIRST;
@@ -107,6 +109,17 @@ int resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, in
         FATAL("Failed to open DNS resolver socket");
     }
 
+    if (nameserver_num == 1 && nameservers != NULL) {
+        if (strncmp("127.0.0.1", nameservers[0], 9) == 0
+            || strncmp("::1", nameservers[0], 3) == 0) {
+            if (verbose) {
+                LOGI("bind UDP resolver to %s", nameservers[0]);
+            }
+            if (bind_to_address(sockfd, nameservers[0]) == -1)
+                ERROR("bind_to_address");
+        }
+    }
+
 #ifdef __MINGW32__
     setnonblocking(sockfd);
 #else
@@ -127,7 +140,8 @@ int resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, in
     return sockfd;
 }
 
-void resolv_shutdown(struct ev_loop *loop)
+void
+resolv_shutdown(struct ev_loop *loop)
 {
     struct dns_ctx *ctx = (struct dns_ctx *)resolv_io_watcher.data;
 
@@ -140,9 +154,10 @@ void resolv_shutdown(struct ev_loop *loop)
     dns_close(ctx);
 }
 
-struct ResolvQuery *resolv_query(const char *hostname, void (*client_cb)(struct sockaddr *, void *),
-                                 void (*client_free_cb)(void *), void *client_cb_data,
-                                 uint16_t port)
+struct ResolvQuery *
+resolv_query(const char *hostname, void (*client_cb)(struct sockaddr *, void *),
+             void (*client_free_cb)(void *), void *client_cb_data,
+             uint16_t port)
 {
     struct dns_ctx *ctx = (struct dns_ctx *)resolv_io_watcher.data;
 
@@ -193,7 +208,8 @@ struct ResolvQuery *resolv_query(const char *hostname, void (*client_cb)(struct 
     return cb_data;
 }
 
-void resolv_cancel(struct ResolvQuery *query_handle)
+void
+resolv_cancel(struct ResolvQuery *query_handle)
 {
     struct ResolvQuery *cb_data = (struct ResolvQuery *)query_handle;
     struct dns_ctx *ctx         = (struct dns_ctx *)resolv_io_watcher.data;
@@ -215,7 +231,8 @@ void resolv_cancel(struct ResolvQuery *query_handle)
 /*
  * DNS UDP socket activity callback
  */
-static void resolv_sock_cb(struct ev_loop *loop, struct ev_io *w, int revents)
+static void
+resolv_sock_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 {
     struct dns_ctx *ctx = (struct dns_ctx *)w->data;
 
@@ -227,7 +244,8 @@ static void resolv_sock_cb(struct ev_loop *loop, struct ev_io *w, int revents)
 /*
  * Wrapper for client callback we provide to udns
  */
-static void dns_query_v4_cb(struct dns_ctx *ctx, struct dns_rr_a4 *result, void *data)
+static void
+dns_query_v4_cb(struct dns_ctx *ctx, struct dns_rr_a4 *result, void *data)
 {
     struct ResolvQuery *cb_data = (struct ResolvQuery *)data;
 
@@ -273,7 +291,8 @@ static void dns_query_v4_cb(struct dns_ctx *ctx, struct dns_rr_a4 *result, void 
     }
 }
 
-static void dns_query_v6_cb(struct dns_ctx *ctx, struct dns_rr_a6 *result, void *data)
+static void
+dns_query_v6_cb(struct dns_ctx *ctx, struct dns_rr_a6 *result, void *data)
 {
     struct ResolvQuery *cb_data = (struct ResolvQuery *)data;
 
@@ -322,7 +341,8 @@ static void dns_query_v6_cb(struct dns_ctx *ctx, struct dns_rr_a6 *result, void 
 /*
  * Called once all queries have been completed
  */
-static void process_client_callback(struct ResolvQuery *cb_data)
+static void
+process_client_callback(struct ResolvQuery *cb_data)
 {
     struct sockaddr *best_address = NULL;
 
@@ -346,7 +366,8 @@ static void process_client_callback(struct ResolvQuery *cb_data)
     ss_free(cb_data);
 }
 
-static struct sockaddr *choose_ipv4_first(struct ResolvQuery *cb_data)
+static struct sockaddr *
+choose_ipv4_first(struct ResolvQuery *cb_data)
 {
     for (int i = 0; i < cb_data->response_count; i++)
         if (cb_data->responses[i]->sa_family == AF_INET) {
@@ -356,7 +377,8 @@ static struct sockaddr *choose_ipv4_first(struct ResolvQuery *cb_data)
     return choose_any(cb_data);
 }
 
-static struct sockaddr *choose_ipv6_first(struct ResolvQuery *cb_data)
+static struct sockaddr *
+choose_ipv6_first(struct ResolvQuery *cb_data)
 {
     for (int i = 0; i < cb_data->response_count; i++)
         if (cb_data->responses[i]->sa_family == AF_INET6) {
@@ -366,7 +388,8 @@ static struct sockaddr *choose_ipv6_first(struct ResolvQuery *cb_data)
     return choose_any(cb_data);
 }
 
-static struct sockaddr *choose_any(struct ResolvQuery *cb_data)
+static struct sockaddr *
+choose_any(struct ResolvQuery *cb_data)
 {
     if (cb_data->response_count >= 1) {
         return cb_data->responses[0];
@@ -378,7 +401,8 @@ static struct sockaddr *choose_any(struct ResolvQuery *cb_data)
 /*
  * DNS timeout callback
  */
-static void resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
+static void
+resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
     struct dns_ctx *ctx = (struct dns_ctx *)w->data;
 
@@ -390,7 +414,8 @@ static void resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int reve
 /*
  * Callback to setup DNS timeout callback
  */
-static void dns_timer_setup_cb(struct dns_ctx *ctx, int timeout, void *data)
+static void
+dns_timer_setup_cb(struct dns_ctx *ctx, int timeout, void *data)
 {
     struct ev_loop *loop = (struct ev_loop *)data;
 
@@ -404,7 +429,8 @@ static void dns_timer_setup_cb(struct dns_ctx *ctx, int timeout, void *data)
     }
 }
 
-static inline int all_queries_are_null(struct ResolvQuery *cb_data)
+static inline int
+all_queries_are_null(struct ResolvQuery *cb_data)
 {
     int result = 1;
 

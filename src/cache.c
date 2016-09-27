@@ -45,8 +45,9 @@
  *
  *  @return EINVAL if dst is NULL, ENOMEM if malloc fails, 0 otherwise
  */
-int cache_create(struct cache **dst, const size_t capacity,
-                 void (*free_cb)(void *element))
+int
+cache_create(struct cache **dst, const size_t capacity,
+             void (*free_cb)(void *element))
 {
     struct cache *new = NULL;
 
@@ -75,7 +76,8 @@ int cache_create(struct cache **dst, const size_t capacity,
  *
  *  @return EINVAL if cache is NULL, 0 otherwise
  */
-int cache_delete(struct cache *cache, int keep_data)
+int
+cache_delete(struct cache *cache, int keep_data)
 {
     struct cache_entry *entry, *tmp;
 
@@ -91,6 +93,8 @@ int cache_delete(struct cache *cache, int keep_data)
             if (entry->data != NULL) {
                 if (cache->free_cb) {
                     cache->free_cb(entry->data);
+                } else {
+                    ss_free(tmp->data);
                 }
             }
             ss_free(entry->key);
@@ -115,7 +119,8 @@ int cache_delete(struct cache *cache, int keep_data)
  *
  *  @return EINVAL if cache is NULL, 0 otherwise
  */
-int cache_remove(struct cache *cache, char *key, size_t key_len)
+int
+cache_remove(struct cache *cache, char *key, size_t key_len)
 {
     struct cache_entry *tmp;
 
@@ -161,7 +166,8 @@ int cache_remove(struct cache *cache, char *key, size_t key_len)
  *
  *  @return EINVAL if cache is NULL, 0 otherwise
  */
-int cache_lookup(struct cache *cache, char *key, size_t key_len, void *result)
+int
+cache_lookup(struct cache *cache, char *key, size_t key_len, void *result)
 {
     struct cache_entry *tmp = NULL;
     char **dirty_hack       = result;
@@ -182,7 +188,8 @@ int cache_lookup(struct cache *cache, char *key, size_t key_len, void *result)
     return 0;
 }
 
-int cache_key_exist(struct cache *cache, char *key, size_t key_len)
+int
+cache_key_exist(struct cache *cache, char *key, size_t key_len)
 {
     struct cache_entry *tmp = NULL;
 
@@ -218,7 +225,8 @@ int cache_key_exist(struct cache *cache, char *key, size_t key_len)
  *
  *  @return EINVAL if cache is NULL, ENOMEM if malloc fails, 0 otherwise
  */
-int cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
+int
+cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
 {
     struct cache_entry *entry     = NULL;
     struct cache_entry *tmp_entry = NULL;

@@ -1,1 +1,380 @@
-debian/changelog
+shadowsocks-libev (2.5.3-1) unstable; urgency=medium
+
+  * Fix TCP Fast Open on macOS.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 21 Sep 2016 19:31:57 +0800
+
+shadowsocks-libev (2.5.2-1) unstable; urgency=medium
+
+  * Fix a bug of UDP relay mode of ss-local.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 12 Sep 2016 12:54:33 +0800
+
+shadowsocks-libev (2.5.1-1) unstable; urgency=medium
+
+  * Refine ACL feature with hostname support.
+  * Add HTTP/SNI parser for ss-local/ss-redir.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 10 Sep 2016 17:06:49 +0800
+
+shadowsocks-libev (2.5.0-1) unstable; urgency=medium
+
+  * Fix several bugs of the command line interface.
+  * Add aes-128/192/256-ctr ciphers.
+  * Add option MTU for UDP relay.
+  * Add MultiPath TCP support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 29 Aug 2016 13:07:51 +0800
+
+shadowsocks-libev (2.4.8-1) unstable; urgency=low
+
+  * Update manual pages with asciidoc.
+  * Fix issues of bind_address option.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 20 Jul 2016 09:25:50 +0800
+
+shadowsocks-libev (2.4.7-1) unstable; urgency=low
+
+  * Add ss-nat, a helper script to set up NAT rules for ss-redir.
+  * Fix several issues for debian package.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 1 Jun 2016 18:21:45 +0800
+
+shadowsocks-libev (2.4.6-1) unstable; urgency=low
+
+  * Update manual pages.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 21 Apr 2016 17:33:34 +0800
+
+shadowsocks-libev (2.4.5-1) unstable; urgency=low
+
+  * Fix build issues on OpenWRT.
+  * Reduce the latency of redir mode.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 01 Feb 2016 13:22:50 +0800
+
+shadowsocks-libev (2.4.4-1) unstable; urgency=low
+
+  * Fix a potential memory leak.
+  * Fix some compiler related issues.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 13 Jan 2016 11:50:12 +0800
+
+shadowsocks-libev (2.4.3-1) unstable; urgency=high
+
+  * Refine the buffer allocation.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 19 Dec 2015 12:30:21 +0900
+
+shadowsocks-libev (2.4.1-1) unstable; urgency=high
+
+  * Fix a security bug.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 29 Oct 2015 15:42:47 +0900
+
+shadowsocks-libev (2.4.0-1) unstable; urgency=low
+
+  * Update the one-time authentication
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 24 Sep 2015 14:11:05 +0900
+
+shadowsocks-libev (2.3.3-1) unstable; urgency=low
+
+  * Refine the onetime authentication of header.
+  * Enforce CRC16 on the payload.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 18 Sep 2015 10:38:21 +0900
+
+shadowsocks-libev (2.3.2-1) unstable; urgency=low
+
+  * Fix minor issues of build scripts.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 13 Sep 2015 15:22:28 +0900
+
+shadowsocks-libev (2.3.1-1) unstable; urgency=low
+
+  * Fix an issue of connection cache of UDP relay.
+  * Add support of onetime authentication for header verification.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 04 Sep 2015 07:54:02 +0900
+
+shadowsocks-libev (2.3.0-1) unstable; urgency=low
+
+  * Add manager mode to support multi-user and traffic stat.
+  * Fix a build issue on OS X El Capitan.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 30 Jul 2015 17:30:43 +0900
+
+shadowsocks-libev (2.2.3-1) unstable; urgency=high
+
+  * Fix the multiple UDP source port issue.
+  * Allow working in UDP only mode.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 11 Jul 2015 08:31:02 +0900
+
+shadowsocks-libev (2.2.2-1) unstable; urgency=low
+
+  * Fix the timer of UDP relay.
+  * Check name_len in the header.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 15 Jun 2015 10:26:40 +0900
+
+shadowsocks-libev (2.2.1-1) unstable; urgency=low
+
+  * Fix an issue of UDP relay.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 10 May 2015 21:23:44 +0900
+
+shadowsocks-libev (2.2.0-1) unstable; urgency=low
+
+  * Add TPROXY support in redir mode.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 04 May 2015 02:44:17 -0300
+
+shadowsocks-libev (2.1.4-1) unstable; urgency=low
+
+  * Fix a bug of server mode ACL.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 08 Feb 2015 20:24:43 +0900
+
+shadowsocks-libev (2.1.3-1) unstable; urgency=low
+
+  * Add ACL support to remote server.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 08 Feb 2015 10:59:44 +0900
+
+shadowsocks-libev (2.1.2-1) unstable; urgency=low
+
+  * Refine multiple port binding.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 31 Jan 2015 18:56:25 +0900
+
+shadowsocks-libev (2.1.1-1) unstable; urgency=low
+
+  * Fix a memory leak.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 21 Jan 2015 21:40:58 +0900
+
+shadowsocks-libev (2.1.0-1) unstable; urgency=low
+
+  * Fix a bug of tunnel mode.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 19 Jan 2015 09:59:52 +0900
+
+shadowsocks-libev (2.0.8-1) unstable; urgency=low
+
+  * Fix a bug of IPv6.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 16 Jan 2015 10:58:12 +0900
+
+shadowsocks-libev (2.0.7-1) unstable; urgency=low
+
+  * Fix some performance issue.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 13 Jan 2015 13:17:58 +0900
+
+shadowsocks-libev (2.0.6-1) unstable; urgency=high
+
+  * Fix a critical issue in redir mode.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 12 Jan 2015 21:51:19 +0900
+
+shadowsocks-libev (2.0.5-1) unstable; urgency=low
+
+  * Refine local, tunnel, and redir modes.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 12 Jan 2015 12:39:05 +0800
+
+shadowsocks-libev (2.0.4-1) unstable; urgency=low
+
+  * Fix building issues with MinGW32.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 11 Jan 2015 13:33:31 +0900
+
+shadowsocks-libev (2.0.3-1) unstable; urgency=high
+
+  * Fix some issues.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 10 Jan 2015 16:27:54 +0800
+
+shadowsocks-libev (2.0.2-1) unstable; urgency=low
+
+  * Fix issues with MinGW.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 10 Jan 2015 15:17:10 +0800
+
+shadowsocks-libev (2.0.1-1) unstable; urgency=low
+
+  * Implement a real asynchronous DNS resolver.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 10 Jan 2015 10:04:28 +0800
+
+shadowsocks-libev (1.6.4-1) unstable; urgency=low
+
+  * Update documents.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 07 Jan 2015 21:48:58 +0900
+
+shadowsocks-libev (1.6.3-1) unstable; urgency=low
+
+  * Refine ss-redir.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 04 Jan 2015 19:23:52 +0900
+
+shadowsocks-libev (1.6.2-1) unstable; urgency=low
+
+  * Fix some build issues.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 30 Dec 2014 10:30:28 +0800
+
+shadowsocks-libev (1.6.1-1) unstable; urgency=high
+
+  * Add salsa20 and chacha20 support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 13 Dec 2014 15:11:34 +0800
+
+shadowsocks-libev (1.6.0-1) unstable; urgency=low
+
+  * Solve conflicts with other shadowsocks portings.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 17 Nov 2014 14:10:21 +0800
+
+shadowsocks-libev (1.5.3-2) unstable; urgency=low
+
+  * rename as shadowsocks-libev.
+
+ -- Symeon Huang <hzwhuang@gmail.com>  Sat, 15 Nov 2014 14:55:28 +0000
+
+shadowsocks (1.5.3-1) unstable; urgency=low
+
+  * Fix log on Win32.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 14 Nov 2014 09:10:06 +0800
+
+shadowsocks (1.5.2-1) unstable; urgency=low
+
+  * Handle SIGTERM and SIGKILL nicely.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 12 Nov 2014 13:11:29 +0800
+
+shadowsocks (1.5.1-1) unstable; urgency=low
+
+  * Fix a bug of tcp fast open.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 08 Nov 2014 19:45:37 +0900
+
+shadowsocks (1.5.0-1) unstable; urgency=low
+
+  * Support to build static or shared library.
+  * Supprot IPv6 NAT in redirect mode.
+  * Refine the cache size of UDPRelay.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 07 Nov 2014 09:33:19 +0800
+
+shadowsocks (1.4.8-1) unstable; urgency=low
+
+  * Fix a bug of tcp fast open.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 08 Oct 2014 18:02:02 +0800
+
+shadowsocks (1.4.7-1) unstable; urgency=low
+
+  * Add a new encryptor rc4-md5.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 09 Sep 2014 07:50:10 +0800
+
+shadowsocks (1.4.6-1) unstable; urgency=low
+
+  * Add ACL support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 03 May 2014 04:37:10 -0400
+
+shadowsocks (1.4.5-1) unstable; urgency=high
+
+  * Fix the compatibility issue of udprelay.
+  * Enhance asyncns to reduce the latency.
+  * Add TCP_FASTOPEN support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 20 Apr 2014 08:12:45 +0800
+
+shadowsocks (1.4.4-1) unstable; urgency=low
+
+  * Add CommonCrypto support for darwin.
+  * Fix some config related issues.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 26 Mar 2014 13:29:03 +0800
+
+shadowsocks (1.4.3-1) unstable; urgency=low
+
+  * Add tunnel mode with local port forwarding feature.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 21 Feb 2014 11:52:13 +0900
+
+shadowsocks (1.4.2-1) unstable; urgency=high
+
+  * Fix the UDP relay issues.
+  * Add syslog support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 05 Jan 2014 10:05:29 +0900
+
+shadowsocks (1.4.1-1) unstable; urgency=low
+
+  * Add multi-port support.
+  * Add PolarSSL support by @linusyang.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 12 Nov 2013 03:57:21 +0000
+
+shadowsocks (1.4.0-1) unstable; urgency=low
+
+  * Add standard socks5 udp support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 08 Sep 2013 02:20:40 +0000
+
+shadowsocks (1.3.3-1) unstable; urgency=high
+
+  * Provide more info in verbose mode.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 21 Jun 2013 09:59:20 +0800
+
+shadowsocks (1.3.2-1) unstable; urgency=high
+
+  * Fix some ciphers by @linusyang.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 09 Jun 2013 09:52:31 +0000
+
+shadowsocks (1.3.1-1) unstable; urgency=low
+
+  * Support more cihpers: camellia, idea, rc2 and seed.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 04 Jun 2013 00:56:17 +0000
+
+shadowsocks (1.3-1) unstable; urgency=low
+
+  * Able to bind connections to specific interface.
+  * Support more ciphers: aes-128-cfb, aes-192-cfb, aes-256-cfb, bf-cfb, cast5-cfb, des-cfb.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 16 May 2013 10:51:15 +0800
+
+shadowsocks (1.2-2) unstable; urgency=low
+
+  * Close timeouted TCP connections.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 07 May 2013 14:10:33 +0800
+
+shadowsocks (1.2-1) unstable; urgency=low
+
+  * Fix a high load issue.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 18 Apr 2013 10:52:34 +0800
+
+shadowsocks (1.1-1) unstable; urgency=low
+
+  * Fix a IPV6 resolve issue.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 10 Apr 2013 12:11:36 +0800
+
+shadowsocks (1.0-2) unstable; urgency=low
+
+  * Initial release.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 06 Apr 2013 16:59:15 +0800

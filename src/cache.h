@@ -1,5 +1,5 @@
 /*
- * cache.c - Define the cache manager interface
+ * cache.h - Define the cache manager interface
  *
  * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *

@@ -39,7 +39,7 @@
 #ifdef __cplusplus
 const struct _json_value json_value_none; /* zero-d by ctor */
 #else
-const struct _json_value json_value_none = { NULL, 0, {0}, {NULL} };
+const struct _json_value json_value_none = { NULL, 0, { 0 }, { NULL } };
 #endif
 
 #include <stdio.h>
@@ -49,7 +49,8 @@ const struct _json_value json_value_none = { NULL, 0, {0}, {NULL} };
 
 typedef unsigned short json_uchar;
 
-static unsigned char hex_value(json_char c)
+static unsigned char
+hex_value(json_char c)
 {
     if (isdigit((uint8_t)c)) {
         return c - '0';
@@ -89,17 +90,20 @@ typedef struct {
     int first_pass;
 } json_state;
 
-static void *default_alloc(size_t size, int zero, void *user_data)
+static void *
+default_alloc(size_t size, int zero, void *user_data)
 {
     return zero ? calloc(1, size) : ss_malloc(size);
 }
 
-static void default_free(void *ptr, void *user_data)
+static void
+default_free(void *ptr, void *user_data)
 {
     ss_free(ptr);
 }
 
-static void *json_alloc(json_state *state, unsigned long size, int zero)
+static void *
+json_alloc(json_state *state, unsigned long size, int zero)
 {
     if ((state->ulong_max - state->used_memory) < size) {
         return 0;
@@ -113,8 +117,9 @@ static void *json_alloc(json_state *state, unsigned long size, int zero)
     return state->settings.mem_alloc(size, zero, state->settings.user_data);
 }
 
-static int new_value(json_state *state, json_value **top, json_value **root,
-                     json_value **alloc, json_type type)
+static int
+new_value(json_state *state, json_value **top, json_value **root,
+          json_value **alloc, json_type type)
 {
     json_value *value;
     int values_size;
@@ -231,16 +236,17 @@ static const long
     flag_line_comment   = 1 << 13,
     flag_block_comment  = 1 << 14;
 
-json_value *json_parse_ex(json_settings *settings,
-                          const json_char *json,
-                          size_t length,
-                          char *error_buf)
+json_value *
+json_parse_ex(json_settings *settings,
+              const json_char *json,
+              size_t length,
+              char *error_buf)
 {
     json_char error[json_error_max];
     unsigned int cur_line;
     const json_char *cur_line_begin, *i, *end;
     json_value *top, *root, *alloc = 0;
-    json_state state = { 0UL, 0U, 0UL, {0UL, 0, NULL, NULL, NULL}, 0 };
+    json_state state = { 0UL, 0U, 0UL, { 0UL, 0, NULL, NULL, NULL }, 0 };
     long flags;
     long num_digits         = 0, num_e = 0;
     json_int_t num_fraction = 0;
@@ -932,13 +938,15 @@ e_failed:
     return 0;
 }
 
-json_value *json_parse(const json_char *json, size_t length)
+json_value *
+json_parse(const json_char *json, size_t length)
 {
     json_settings settings = { 0UL, 0, NULL, NULL, NULL };
     return json_parse_ex(&settings, json, length, 0);
 }
 
-void json_value_free_ex(json_settings *settings, json_value *value)
+void
+json_value_free_ex(json_settings *settings, json_value *value)
 {
     json_value *cur_value;
 
@@ -985,7 +993,8 @@ void json_value_free_ex(json_settings *settings, json_value *value)
     }
 }
 
-void json_value_free(json_value *value)
+void
+json_value_free(json_value *value)
 {
     json_settings settings = { 0UL, 0, NULL, NULL, NULL };
     settings.mem_free = default_free;

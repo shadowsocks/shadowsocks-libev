@@ -1,3 +1,45 @@
+shadowsocks-libev (2.5.3-1) unstable; urgency=medium
+
+  * Fix TCP Fast Open on macOS.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 21 Sep 2016 19:31:57 +0800
+
+shadowsocks-libev (2.5.2-1) unstable; urgency=medium
+
+  * Fix a bug of UDP relay mode of ss-local.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 12 Sep 2016 12:54:33 +0800
+
+shadowsocks-libev (2.5.1-1) unstable; urgency=medium
+
+  * Refine ACL feature with hostname support.
+  * Add HTTP/SNI parser for ss-local/ss-redir.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 10 Sep 2016 17:06:49 +0800
+
+shadowsocks-libev (2.5.0-1) unstable; urgency=medium
+
+  * Fix several bugs of the command line interface.
+  * Add aes-128/192/256-ctr ciphers.
+  * Add option MTU for UDP relay.
+  * Add MultiPath TCP support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 29 Aug 2016 13:07:51 +0800
+
+shadowsocks-libev (2.4.8-1) unstable; urgency=low
+
+  * Update manual pages with asciidoc.
+  * Fix issues of bind_address option.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 20 Jul 2016 09:25:50 +0800
+
+shadowsocks-libev (2.4.7-1) unstable; urgency=low
+
+  * Add ss-nat, a helper script to set up NAT rules for ss-redir.
+  * Fix several issues for debian package.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 1 Jun 2016 18:21:45 +0800
+
 shadowsocks-libev (2.4.6-1) unstable; urgency=low
 
   * Update manual pages.

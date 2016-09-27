@@ -11,11 +11,12 @@
 
 [Unit]
 Description=Shadowsocks-Libev Custom Client Service Redir Mode for %I
+Documentation=man:ss-redir(1)
 After=network.target
 
 [Service]
 Type=simple
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
 ExecStart=/usr/bin/ss-redir -c /etc/shadowsocks-libev/%i.json
 
 [Install]

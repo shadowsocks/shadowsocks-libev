@@ -22,4 +22,4 @@ USER=root
 GROUP=root
 
 # Number of maximum file descriptors
-MAXFD=1024
+MAXFD=32768

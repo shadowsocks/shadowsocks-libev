@@ -2,55 +2,75 @@ Source: shadowsocks-libev
 Section: net
 Priority: extra
 Maintainer: Max Lv <max.c.lv@gmail.com>
-Build-Depends: debhelper (>= 9), dh-systemd (>= 1.5), pkg-config, libssl-dev (>= 0.9.8), autotools-dev, mime-support, gawk
-Standards-Version: 3.9.6
-Homepage: http://www.shadowsocks.org
+Build-Depends:
+ asciidoc,
+ autotools-dev,
+ debhelper (>= 9),
+ dh-systemd (>= 1.5),
+ gawk,
+ libpcre3-dev,
+ libssl-dev (>= 0.9.8),
+ mime-support,
+ pkg-config,
+ xmlto,
+Standards-Version: 3.9.8
+Homepage: https://www.shadowsocks.org
 Vcs-Git: https://github.com/shadowsocks/shadowsocks-libev.git
 Vcs-Browser: https://github.com/shadowsocks/shadowsocks-libev
 
-Package: shadowsocks-libev
-Replaces: shadowsocks (<< 1.5.3-2)
-Breaks: shadowsocks (<< 1.5.3-2)
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: lightweight and secure socks5 proxy
- Shadowsocks-libev is a lightweight and secure socks5 proxy for
- embedded devices and low end boxes.
-
-Package: libshadowsocks1
-Architecture: any
-Multi-Arch: same
-Section: libs
-Priority: extra
-Breaks: shadowsocks-libev (<< 2.4.0)
-Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: lightweight and secure socks5 proxy (shared library)
- Shadowsocks-libev is a lightweight and secure socks5 proxy for
- embedded devices and low end boxes.
- .
- This package provides shared libraries.
-
-Package: libshadowsocks-dev
+Package: libshadowsocks-libev-dev
 Architecture: any
 Section: libdevel
-Priority: extra
-Breaks: shadowsocks-libev (<< 2.4.0)
-Depends: libshadowsocks1 (= ${binary:Version}), ${misc:Depends}
+Breaks:
+ shadowsocks-libev (<< 2.4.0),
+Depends:
+ libshadowsocks-libev2 (= ${binary:Version}),
+ ${misc:Depends},
 Description: lightweight and secure socks5 proxy (development files)
  Shadowsocks-libev is a lightweight and secure socks5 proxy for
  embedded devices and low end boxes.
  .
+ Shadowsocks-libev was inspired by Shadowsock (in Python). It's rewritten
+ in pure C and only depends on libev, mbedTLS and a few other tiny
+ libraries.
+ .
  This package provides C header files for the libraries.
 
-Package: libshadowsocks-dbg
+Package: libshadowsocks-libev2
 Architecture: any
-Section: debug
-Priority: extra
-Breaks: shadowsocks-libev (<< 2.4.0)
-Depends: libshadowsocks1 (= ${binary:Version}), ${misc:Depends}
-Description: debugging symbols for the libshadowsocks1 library
+Multi-Arch: same
+Section: libs
+Breaks:
+ shadowsocks-libev (<< 2.4.0),
+Pre-Depends:
+ ${misc:Pre-Depends},
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: lightweight and secure socks5 proxy (shared library)
  Shadowsocks-libev is a lightweight and secure socks5 proxy for
  embedded devices and low end boxes.
  .
- This package contains the debugging symbols for libshadowsocks1.
+ Shadowsocks-libev was inspired by Shadowsock (in Python). It's rewritten
+ in pure C and only depends on libev, mbedTLS and a few other tiny
+ libraries.
+ .
+ This package provides shared libraries.
+
+Package: shadowsocks-libev
+Replaces:
+ shadowsocks (<< 1.5.3-2),
+Breaks:
+ shadowsocks (<< 1.5.3-2),
+Architecture: any
+Depends:
+ apg,
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: lightweight and secure socks5 proxy
+ Shadowsocks-libev is a lightweight and secure socks5 proxy for
+ embedded devices and low end boxes.
+ .
+ Shadowsocks-libev was inspired by Shadowsock (in Python). It's rewritten
+ in pure C and only depends on libev, mbedTLS and a few other tiny
+ libraries.
