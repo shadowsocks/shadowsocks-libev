@@ -20,6 +20,21 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#if defined(USE_CRYPTO_OPENSSL)
+
+#include <openssl/opensslv.h>
+#define USING_CRYPTO OPENSSL_VERSION_TEXT
+
+#elif defined(USE_CRYPTO_POLARSSL)
+#include <polarssl/version.h>
+#define USING_CRYPTO POLARSSL_VERSION_STRING_FULL
+
+#elif defined(USE_CRYPTO_MBEDTLS)
+#include <mbedtls/version.h>
+#define USING_CRYPTO MBEDTLS_VERSION_STRING_FULL
+
+#endif
+
 #ifndef _UTILS_H
 #define _UTILS_H
 
