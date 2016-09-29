@@ -78,10 +78,10 @@ cork_raw_array_done(struct cork_raw_array *array)
         }
     }
     if (array->items != NULL) {
-        free(array->items);
+        cork_free(array->items, array->priv->allocated_size);
     }
     cork_free_user_data(array->priv);
-    free(array->priv);
+    cork_delete(struct cork_array_priv, array->priv);
 }
 
 void
@@ -179,7 +179,8 @@ cork_raw_array_ensure_size(struct cork_raw_array *array, size_t desired_count)
 
         DEBUG("--- Array %p: Reallocating %zu->%zu bytes",
               array, array->priv->allocated_size, new_size);
-        array->items = cork_realloc(array->items, new_size);
+        array->items =
+            cork_realloc(array->items, array->priv->allocated_size, new_size);
 
         array->priv->allocated_count = new_count;
         array->priv->allocated_size = new_size;
@@ -318,13 +319,20 @@ pointer__remove(void *user_data, void *vvalue)
     *value = NULL;
 }
 
+static void
+pointer__free(void *user_data)
+{
+    struct cork_pointer_array  *ptr_array = user_data;
+    cork_delete(struct cork_pointer_array, ptr_array);
+}
+
 void
 cork_raw_pointer_array_init(struct cork_raw_array *array, cork_free_f free_ptr)
 {
     struct cork_pointer_array  *ptr_array = cork_new(struct cork_pointer_array);
     ptr_array->free = free_ptr;
     cork_raw_array_init(array, sizeof(void *));
-    cork_array_set_callback_data(array, ptr_array, free);
+    cork_array_set_callback_data(array, ptr_array, pointer__free);
     cork_array_set_init(array, pointer__init);
     cork_array_set_done(array, pointer__done);
     cork_array_set_remove(array, pointer__remove);

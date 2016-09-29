@@ -1,10 +1,9 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2011, RedJack, LLC.
+ * Copyright © 2011-2014, RedJack, LLC.
  * All rights reserved.
  *
- * Please see the COPYING file in this distribution for license
- * details.
+ * Please see the COPYING file in this distribution for license details.
  * ----------------------------------------------------------------------
  */
 
@@ -120,7 +119,7 @@ struct cork_gc_header {
         if ((hdr)->iface->free != NULL) { \
             (hdr)->iface->free(cork_gc_get_object((hdr))); \
         } \
-        free((hdr)); \
+        cork_free((hdr), (hdr)->allocated_size); \
     } while (0)
 
 #define cork_gc_recurse(gc, hdr, recurser) \

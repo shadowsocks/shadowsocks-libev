@@ -75,10 +75,10 @@
 #endif
 
 /* Thread-local storage has been available since GCC 3.3, but not on Mac
- * OS X. Also disable TLS for uClibc*/
+ * OS X. */
 
 #if !(defined(__APPLE__) && defined(__MACH__))
-#if CORK_CONFIG_GCC_VERSION >= 30300 && defined(TLS)
+#if CORK_CONFIG_GCC_VERSION >= 30300
 #define CORK_CONFIG_HAVE_THREAD_STORAGE_CLASS  1
 #else
 #define CORK_CONFIG_HAVE_THREAD_STORAGE_CLASS  0

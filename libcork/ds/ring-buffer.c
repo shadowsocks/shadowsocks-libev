@@ -1,10 +1,9 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2011, RedJack, LLC.
+ * Copyright © 2011-2014, RedJack, LLC.
  * All rights reserved.
  *
- * Please see the COPYING file in this distribution for license
- * details.
+ * Please see the COPYING file in this distribution for license details.
  * ----------------------------------------------------------------------
  */
 
@@ -37,14 +36,14 @@ cork_ring_buffer_new(size_t size)
 void
 cork_ring_buffer_done(struct cork_ring_buffer *self)
 {
-    free(self->elements);
+    cork_cfree(self->elements, self->allocated_size, sizeof(void *));
 }
 
 void
 cork_ring_buffer_free(struct cork_ring_buffer *buf)
 {
     cork_ring_buffer_done(buf);
-    free(buf);
+    cork_delete(struct cork_ring_buffer, buf);
 }
 
 int
