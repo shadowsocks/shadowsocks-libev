@@ -5,7 +5,7 @@ orig_CFLAGS="$CFLAGS"
 AC_CONFIG_SRCDIR([ev_epoll.c])
 
 dnl also update ev.h!
-AM_INIT_AUTOMAKE(libev,4.20)
+AM_INIT_AUTOMAKE(libev,4.22)
 AC_CONFIG_HEADERS([config.h])
 AM_MAINTAINER_MODE
 

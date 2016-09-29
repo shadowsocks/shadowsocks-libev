@@ -575,7 +575,7 @@ namespace ev {
       }
   #endif
 
-  /* using a template here would require quite a bit more lines,
+  /* using a template here would require quite a few more lines,
    * so a macro solution was chosen */
   #define EV_BEGIN_WATCHER(cppstem,cstem)	                                        \
                                                                                         \

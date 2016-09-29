@@ -418,8 +418,8 @@ without a system call and thus I<very> fast, but my GNU/Linux system also has
 C<pthread_atfork> which is even faster).
 
 The big advantage of this flag is that you can forget about fork (and
-forget about forgetting to tell libev about forking) when you use this
-flag.
+forget about forgetting to tell libev about forking, although you still
+have to ignore C<SIGPIPE>) when you use this flag.
 
 This flag setting cannot be overridden or specified in the C<LIBEV_FLAGS>
 environment variable.
@@ -690,6 +690,9 @@ the name, you can call it anytime you are allowed to start or stop
 watchers (except inside an C<ev_prepare> callback), but it makes most
 sense after forking, in the child process. You I<must> call it (or use
 C<EVFLAG_FORKCHECK>) in the child before resuming or calling C<ev_run>.
+
+In addition, if you want to reuse a loop (via this function or
+C<EVFLAG_FORKCHECK>), you I<also> have to ignore C<SIGPIPE>.
 
 Again, you I<have> to call it on I<any> loop that you want to re-use after
 a fork, I<even if you do not plan to use the loop in the parent>. This is
