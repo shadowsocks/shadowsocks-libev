@@ -1,10 +1,9 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2012-2013, RedJack, LLC.
+ * Copyright © 2012-2014, RedJack, LLC.
  * All rights reserved.
  *
- * Please see the COPYING file in this distribution for license
- * details.
+ * Please see the COPYING file in this distribution for license details.
  * ----------------------------------------------------------------------
  */
 
@@ -14,6 +13,7 @@
 #include <stdarg.h>
 
 #include <libcork/core/api.h>
+#include <libcork/core/callbacks.h>
 #include <libcork/core/types.h>
 #include <libcork/ds/stream.h>
 #include <libcork/threads/basics.h>
@@ -126,7 +126,8 @@ struct cork_subprocess;
 
 /* Takes control of body */
 CORK_API struct cork_subprocess *
-cork_subprocess_new(struct cork_thread_body *body,
+cork_subprocess_new(void *user_data, cork_free_f free_user_data,
+                    cork_run_f run,
                     struct cork_stream_consumer *stdout_consumer,
                     struct cork_stream_consumer *stderr_consumer,
                     int *exit_code);

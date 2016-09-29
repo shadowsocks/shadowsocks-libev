@@ -1,10 +1,9 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
- * Please see the COPYING file in this distribution for license
- * details.
+ * Please see the COPYING file in this distribution for license details.
  * ----------------------------------------------------------------------
  */
 
@@ -94,7 +93,7 @@ cork_exec_free(struct cork_exec *exec)
         cork_strfree(exec->cwd);
     }
     cork_buffer_done(&exec->description);
-    free(exec);
+    cork_delete(struct cork_exec, exec);
 }
 
 const char *

@@ -1,10 +1,9 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2011-2012, RedJack, LLC.
+ * Copyright © 2011-2014, RedJack, LLC.
  * All rights reserved.
  *
- * Please see the COPYING file in this distribution for license
- * details.
+ * Please see the COPYING file in this distribution for license details.
  * ----------------------------------------------------------------------
  */
 
@@ -42,7 +41,7 @@ void
 cork_buffer_done(struct cork_buffer *buffer)
 {
     if (buffer->buf != NULL) {
-        free(buffer->buf);
+        cork_free(buffer->buf, buffer->allocated_size);
         buffer->buf = NULL;
     }
     buffer->size = 0;
@@ -54,7 +53,7 @@ void
 cork_buffer_free(struct cork_buffer *buffer)
 {
     cork_buffer_done(buffer);
-    free(buffer);
+    cork_delete(struct cork_buffer, buffer);
 }
 
 
@@ -89,7 +88,7 @@ cork_buffer_ensure_size_int(struct cork_buffer *buffer, size_t desired_size)
         new_size = desired_size;
     }
 
-    buffer->buf = cork_realloc(buffer->buf, new_size);
+    buffer->buf = cork_realloc(buffer->buf, buffer->allocated_size, new_size);
     buffer->allocated_size = new_size;
 }
 
@@ -388,7 +387,7 @@ cork_buffer__managed_free(struct cork_managed_buffer *vself)
     struct cork_buffer__managed_buffer  *self =
         cork_container_of(vself, struct cork_buffer__managed_buffer, parent);
     cork_buffer_free(self->buffer);
-    free(self);
+    cork_delete(struct cork_buffer__managed_buffer, self);
 }
 
 static struct cork_managed_buffer_iface  CORK_BUFFER__MANAGED_BUFFER = {
@@ -440,11 +439,6 @@ cork_buffer_stream_consumer_data(struct cork_stream_consumer *consumer,
 {
     struct cork_buffer__stream_consumer  *bconsumer = cork_container_of
         (consumer, struct cork_buffer__stream_consumer, consumer);
-
-    if (is_first_chunk) {
-        cork_buffer_clear(bconsumer->buffer);
-    }
-
     cork_buffer_append(bconsumer->buffer, buf, size);
     return 0;
 }
@@ -461,7 +455,7 @@ cork_buffer_stream_consumer_free(struct cork_stream_consumer *consumer)
     struct cork_buffer__stream_consumer  *bconsumer =
         cork_container_of
         (consumer, struct cork_buffer__stream_consumer, consumer);
-    free(bconsumer);
+    cork_delete(struct cork_buffer__stream_consumer, bconsumer);
 }
 
 struct cork_stream_consumer *

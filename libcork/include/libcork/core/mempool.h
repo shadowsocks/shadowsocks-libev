@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2012-2013, RedJack, LLC.
+ * Copyright © 2012-2015, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -41,6 +41,18 @@ CORK_API void
 cork_mempool_free(struct cork_mempool *mp);
 
 
+CORK_API void
+cork_mempool_set_user_data(struct cork_mempool *mp,
+                           void *user_data, cork_free_f free_user_data);
+
+CORK_API void
+cork_mempool_set_init_object(struct cork_mempool *mp, cork_init_f init_object);
+
+CORK_API void
+cork_mempool_set_done_object(struct cork_mempool *mp, cork_done_f done_object);
+
+/* Deprecated; you should now use separate calls to cork_mempool_set_user_data,
+ * cork_mempool_set_init_object, and cork_mempool_set_done_object. */
 CORK_API void
 cork_mempool_set_callbacks(struct cork_mempool *mp,
                            void *user_data, cork_free_f free_user_data,

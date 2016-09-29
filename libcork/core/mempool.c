@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2012-2013, RedJack, LLC.
+ * Copyright © 2012-2015, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -96,16 +96,37 @@ cork_mempool_free(struct cork_mempool *mp)
 
     for (curr = mp->blocks; curr != NULL; ) {
         struct cork_mempool_block  *next = curr->next_block;
-        free(curr);
+        cork_free(curr, mp->block_size);
         /* Do this here instead of in the for statement to avoid
          * accessing the just-freed block. */
         curr = next;
     }
 
     cork_free_user_data(mp);
-    free(mp);
+    cork_delete(struct cork_mempool, mp);
 }
 
+
+void
+cork_mempool_set_user_data(struct cork_mempool *mp,
+                           void *user_data, cork_free_f free_user_data)
+{
+    cork_free_user_data(mp);
+    mp->user_data = user_data;
+    mp->free_user_data = free_user_data;
+}
+
+void
+cork_mempool_set_init_object(struct cork_mempool *mp, cork_init_f init_object)
+{
+    mp->init_object = init_object;
+}
+
+void
+cork_mempool_set_done_object(struct cork_mempool *mp, cork_done_f done_object)
+{
+    mp->done_object = done_object;
+}
 
 void
 cork_mempool_set_callbacks(struct cork_mempool *mp,
@@ -113,11 +134,9 @@ cork_mempool_set_callbacks(struct cork_mempool *mp,
                            cork_init_f init_object,
                            cork_done_f done_object)
 {
-    cork_free_user_data(mp);
-    mp->user_data = user_data;
-    mp->free_user_data = free_user_data;
-    mp->init_object = init_object;
-    mp->done_object = done_object;
+    cork_mempool_set_user_data(mp, user_data, free_user_data);
+    cork_mempool_set_init_object(mp, init_object);
+    cork_mempool_set_done_object(mp, done_object);
 }
 
 

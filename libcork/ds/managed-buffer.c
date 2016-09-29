@@ -1,10 +1,9 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2011-2012, RedJack, LLC.
+ * Copyright © 2011-2014, RedJack, LLC.
  * All rights reserved.
  *
- * Please see the COPYING file in this distribution for license
- * details.
+ * Please see the COPYING file in this distribution for license details.
  * ----------------------------------------------------------------------
  */
 
@@ -50,7 +49,7 @@ cork_managed_buffer_wrapped__free(struct cork_managed_buffer *vself)
     struct cork_managed_buffer_wrapped  *self =
         cork_container_of(vself, struct cork_managed_buffer_wrapped, parent);
     self->free(self->buf, self->size);
-    free(self);
+    cork_delete(struct cork_managed_buffer_wrapped, self);
 }
 
 static struct cork_managed_buffer_iface  CORK_MANAGED_BUFFER_WRAPPED = {
@@ -94,7 +93,9 @@ cork_managed_buffer_copied__free(struct cork_managed_buffer *vself)
 {
     struct cork_managed_buffer_copied  *self =
         cork_container_of(vself, struct cork_managed_buffer_copied, parent);
-    free(self);
+    size_t  allocated_size =
+        cork_managed_buffer_copied_sizeof(self->parent.size);
+    cork_free(self, allocated_size);
 }
 
 static struct cork_managed_buffer_iface  CORK_MANAGED_BUFFER_COPIED = {
@@ -105,7 +106,7 @@ struct cork_managed_buffer *
 cork_managed_buffer_new_copy(const void *buf, size_t size)
 {
     size_t  allocated_size = cork_managed_buffer_copied_sizeof(size);
-    struct cork_managed_buffer_copied  *self = malloc(allocated_size);
+    struct cork_managed_buffer_copied  *self = cork_malloc(allocated_size);
     if (self == NULL) {
         return NULL;
     }
