@@ -1,10 +1,9 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2012, RedJack, LLC.
+ * Copyright © 2012-2014, RedJack, LLC.
  * All rights reserved.
  *
- * Please see the COPYING file in this distribution for license
- * details.
+ * Please see the COPYING file in this distribution for license details.
  * ----------------------------------------------------------------------
  */
 
@@ -126,7 +125,7 @@ cork_file_consumer__free(struct cork_stream_consumer *vself)
 {
     struct cork_file_consumer  *self =
         cork_container_of(vself, struct cork_file_consumer, parent);
-    free(self);
+    cork_delete(struct cork_file_consumer, self);
 }
 
 struct cork_stream_consumer *
@@ -183,7 +182,7 @@ cork_fd_consumer__free(struct cork_stream_consumer *vself)
 {
     struct cork_fd_consumer  *self =
         cork_container_of(vself, struct cork_fd_consumer, parent);
-    free(self);
+    cork_delete(struct cork_fd_consumer, self);
 }
 
 struct cork_stream_consumer *

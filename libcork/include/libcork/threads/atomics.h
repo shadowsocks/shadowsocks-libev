@@ -23,14 +23,19 @@
 
 #define cork_int_atomic_add        __sync_add_and_fetch
 #define cork_uint_atomic_add       __sync_add_and_fetch
+#define cork_size_atomic_add       __sync_add_and_fetch
 #define cork_int_atomic_pre_add    __sync_fetch_and_add
 #define cork_uint_atomic_pre_add   __sync_fetch_and_add
+#define cork_size_atomic_pre_add   __sync_fetch_and_add
 #define cork_int_atomic_sub        __sync_sub_and_fetch
 #define cork_uint_atomic_sub       __sync_sub_and_fetch
+#define cork_size_atomic_sub       __sync_sub_and_fetch
 #define cork_int_atomic_pre_sub    __sync_fetch_and_sub
 #define cork_uint_atomic_pre_sub   __sync_fetch_and_sub
+#define cork_size_atomic_pre_sub   __sync_fetch_and_sub
 #define cork_int_cas               __sync_val_compare_and_swap
 #define cork_uint_cas              __sync_val_compare_and_swap
+#define cork_size_cas              __sync_val_compare_and_swap
 #define cork_ptr_cas               __sync_val_compare_and_swap
 
 

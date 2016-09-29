@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -38,6 +38,9 @@ typedef void
 
 typedef void *
 (*cork_new_f)(void *user_data);
+
+typedef int
+(*cork_run_f)(void *user_data);
 
 
 #endif /* LIBCORK_CORE_CALLBACKS_H */

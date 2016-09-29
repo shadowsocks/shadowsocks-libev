@@ -1,6 +1,6 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
  * Please see the COPYING file in this distribution for license details.
@@ -39,8 +39,8 @@ cork_bitset_new(size_t bit_count)
 void
 cork_bitset_free(struct cork_bitset *set)
 {
-    free(set->bits);
-    free(set);
+    cork_free(set->bits, set->byte_count);
+    cork_delete(struct cork_bitset, set);
 }
 
 void

@@ -286,6 +286,13 @@ cork_ipv6_init(struct cork_ipv6 *addr, const char *str)
      * final parse. */
     DEBUG("%2u:\t", (unsigned int) (ch-str));
     if (CORK_LIKELY(digits_seen > 0)) {
+        /* If there are trailing digits that would form a ninth hextet
+         * (regardless of the placement of a double-colon), then we have a parse
+         * error. */
+        if (CORK_UNLIKELY(hextets_seen == 8)) {
+            goto parse_error;
+        }
+
         DEBUG("hextet %u = %04x\n\t", hextets_seen, digit);
         *(dest++) = CORK_UINT16_HOST_TO_BIG(digit);
         hextets_seen++;

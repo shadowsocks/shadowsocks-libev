@@ -1,10 +1,9 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
- * Please see the COPYING file in this distribution for license
- * details.
+ * Please see the COPYING file in this distribution for license details.
  * ----------------------------------------------------------------------
  */
 
@@ -54,7 +53,7 @@ cork_env_var_free(void *vvar)
     struct cork_env_var  *var = vvar;
     cork_strfree(var->name);
     cork_strfree(var->value);
-    free(var);
+    cork_delete(struct cork_env_var, var);
 }
 
 
@@ -122,7 +121,7 @@ cork_env_free(struct cork_env *env)
 {
     cork_hash_table_free(env->variables);
     cork_buffer_done(&env->buffer);
-    free(env);
+    cork_delete(struct cork_env, env);
 }
 
 const char *

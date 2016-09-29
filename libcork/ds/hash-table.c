@@ -1,10 +1,9 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2011-2013, RedJack, LLC.
+ * Copyright © 2011-2014, RedJack, LLC.
  * All rights reserved.
  *
- * Please see the COPYING file in this distribution for license
- * details.
+ * Please see the COPYING file in this distribution for license details.
  * ----------------------------------------------------------------------
  */
 
@@ -13,7 +12,6 @@
 
 #include "libcork/core/callbacks.h"
 #include "libcork/core/hash.h"
-#include "libcork/core/mempool.h"
 #include "libcork/core/types.h"
 #include "libcork/ds/dllist.h"
 #include "libcork/ds/hash-table.h"
@@ -51,7 +49,6 @@ struct cork_hash_table {
     size_t  bin_count;
     size_t  bin_mask;
     size_t  entry_count;
-    struct cork_mempool  *pool;
     void  *user_data;
     cork_free_f  free_user_data;
     cork_hash_f  hash;
@@ -122,7 +119,7 @@ cork_hash_table_new_entry(struct cork_hash_table *table,
                           cork_hash hash, void *key, void *value)
 {
     struct cork_hash_table_entry_priv  *entry =
-        cork_mempool_new_object(table->pool);
+        cork_new(struct cork_hash_table_entry_priv);
     cork_dllist_add(&table->insertion_order, &entry->insertion_order);
     entry->public.hash = hash;
     entry->public.key = key;
@@ -141,7 +138,7 @@ cork_hash_table_free_entry(struct cork_hash_table *table,
         table->free_value(entry->public.value);
     }
     cork_dllist_remove(&entry->insertion_order);
-    cork_mempool_free_object(table->pool, entry);
+    cork_delete(struct cork_hash_table_entry_priv, entry);
 }
 
 
@@ -156,7 +153,6 @@ cork_hash_table_new(size_t initial_size, unsigned int flags)
     table->equals = cork_hash_table__default_equals;
     table->free_key = NULL;
     table->free_value = NULL;
-    table->pool = cork_mempool_new(struct cork_hash_table_entry_priv);
     cork_dllist_init(&table->insertion_order);
     if (initial_size < CORK_HASH_TABLE_DEFAULT_INITIAL_SIZE) {
         initial_size = CORK_HASH_TABLE_DEFAULT_INITIAL_SIZE;
@@ -197,9 +193,8 @@ void
 cork_hash_table_free(struct cork_hash_table *table)
 {
     cork_hash_table_clear(table);
-    cork_mempool_free(table->pool);
-    free(table->bins);
-    free(table);
+    cork_cfree(table->bins, table->bin_count, sizeof(struct cork_dllist));
+    cork_delete(struct cork_hash_table, table);
 }
 
 size_t
@@ -270,7 +265,7 @@ cork_hash_table_ensure_size(struct cork_hash_table *table, size_t desired_count)
                 }
             }
 
-            free(old_bins);
+            cork_cfree(old_bins, old_bin_count, sizeof(struct cork_dllist));
         }
     }
 }
@@ -619,6 +614,7 @@ cork_hash_table_map(struct cork_hash_table *table, void *user_data,
         } else if (result == CORK_HASH_TABLE_MAP_DELETE) {
             DEBUG("      Delete requested");
             cork_dllist_remove(curr);
+            cork_dllist_remove(&entry->in_bucket);
             table->entry_count--;
             cork_hash_table_free_entry(table, entry);
         }

@@ -1,10 +1,9 @@
 /* -*- coding: utf-8 -*-
  * ----------------------------------------------------------------------
- * Copyright © 2013, RedJack, LLC.
+ * Copyright © 2013-2014, RedJack, LLC.
  * All rights reserved.
  *
- * Please see the COPYING file in this distribution for license
- * details.
+ * Please see the COPYING file in this distribution for license details.
  * ----------------------------------------------------------------------
  */
 
@@ -50,15 +49,42 @@ static void
 cork_cleanup_entry_free(struct cork_cleanup_entry *self)
 {
     cork_strfree(self->name);
-    free(self);
+    cork_delete(struct cork_cleanup_entry, self);
 }
 
 static struct cork_dllist  cleanup_entries = CORK_DLLIST_INIT(cleanup_entries);
+static bool  cleanup_registered = false;
+
+static void
+cork_cleanup_call_one(struct cork_dllist_item *item, void *user_data)
+{
+    struct cork_cleanup_entry  *entry =
+        cork_container_of(item, struct cork_cleanup_entry, item);
+    cork_cleanup_function  function = entry->function;
+    DEBUG("Call cleanup function [%d] %s\n", entry->priority, entry->name);
+    /* We need to free the entry before calling the entry's function, since one
+     * of the functions that libcork registers frees the allocator instance that
+     * we'd use to free the entry.  If we called the function first, the
+     * allocator would be freed before we could use it to free the entry. */
+    cork_cleanup_entry_free(entry);
+    function();
+}
+
+static void
+cork_cleanup_call_all(void)
+{
+    cork_dllist_map(&cleanup_entries, cork_cleanup_call_one, NULL);
+}
 
 static void
 cork_cleanup_entry_add(struct cork_cleanup_entry *entry)
 {
     struct cork_dllist_item  *curr;
+
+    if (CORK_UNLIKELY(!cleanup_registered)) {
+        atexit(cork_cleanup_call_all);
+        cleanup_registered = true;
+    }
 
     /* Linear search through the list of existing cleanup functions.  When we
      * find the first existing function with a higher priority, we've found
@@ -78,27 +104,6 @@ cork_cleanup_entry_add(struct cork_cleanup_entry *entry)
     cork_dllist_add(&cleanup_entries, &entry->item);
 }
 
-static void
-cork_cleanup_call_one(struct cork_dllist_item *item, void *user_data)
-{
-    struct cork_cleanup_entry  *entry =
-        cork_container_of(item, struct cork_cleanup_entry, item);
-    DEBUG("Call cleanup function [%d] %s\n", entry->priority, entry->name);
-    entry->function();
-    cork_cleanup_entry_free(entry);
-}
-
-static void
-cork_cleanup_call_all(void)
-{
-    cork_dllist_map(&cleanup_entries, cork_cleanup_call_one, NULL);
-}
-
-
-CORK_INITIALIZER(cleanup_init)
-{
-    atexit(cork_cleanup_call_all);
-}
 
 CORK_API void
 cork_cleanup_at_exit_named(const char *name, int priority,
