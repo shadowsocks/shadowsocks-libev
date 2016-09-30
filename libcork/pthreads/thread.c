@@ -169,7 +169,7 @@ cork_thread_start(struct cork_thread *self)
 {
     int  rc;
     pthread_t  thread_id;
-#if defined(__linux)
+#if defined(__linux) && ((__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 12))
     char  thread_name[PTHREADS_MAX_THREAD_NAME_LENGTH];
 #endif
 
@@ -181,8 +181,11 @@ cork_thread_start(struct cork_thread *self)
         return -1;
     }
 
-#if defined(__linux)
-    /* On Linux we choose which thread to name via an explicit thread ID. */
+#if defined(__linux) && ((__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 12))
+    /* On Linux we choose which thread to name via an explicit thread ID.
+     * However, pthread_setname_np() isn't supported on versions of glibc
+     * earlier than 2.12. So we need to check for a MINOR version of 12 or
+     * higher. */
     strncpy(thread_name, self->name, PTHREADS_MAX_THREAD_NAME_LENGTH);
     thread_name[PTHREADS_MAX_THREAD_NAME_LENGTH - 1] = '\0';
     pthread_setname_np(thread_id, thread_name);
