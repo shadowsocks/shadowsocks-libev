@@ -40,7 +40,9 @@ Package: libshadowsocks-libev2
 Architecture: any
 Multi-Arch: same
 Section: libs
+Replaces: libshadowsocks-libev1
 Breaks:
+ libshadowsocks-libev1,
  shadowsocks-libev (<< 2.4.0),
 Pre-Depends:
  ${misc:Pre-Depends},
