@@ -46,6 +46,7 @@ mkdir -p %{buildroot}%{_sysconfdir}/default
 mkdir -p %{buildroot}%{_unitdir}
 install -m 644 %{_builddir}/%{buildsubdir}/debian/shadowsocks-libev.default %{buildroot}%{_sysconfdir}/default/shadowsocks-libev
 install -m 644 %{_builddir}/%{buildsubdir}/debian/shadowsocks-libev.service %{buildroot}%{_unitdir}/shadowsocks-libev.service
+install -m 644 %{_builddir}/%{buildsubdir}/debian/shadowsocks-libev-*.service %{buildroot}%{_unitdir}/
 %endif
 install -m 644 %{_builddir}/%{buildsubdir}/debian/config.json %{buildroot}%{_sysconfdir}/shadowsocks-libev/config.json
 
@@ -82,6 +83,7 @@ fi
 %{_initddir}/shadowsocks-libev
 %else
 %{_unitdir}/shadowsocks-libev.service
+%{_unitdir}/shadowsocks-libev-*.service
 %config(noreplace) %{_sysconfdir}/default/shadowsocks-libev
 %endif
 
