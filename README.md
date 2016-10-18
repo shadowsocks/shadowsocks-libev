@@ -91,18 +91,26 @@ in the system during compilation and linking.
 
 **Note: The repositories doesn't always contain the latest version. Please build from source if you want the latest version (see below)**
 
-Using official repository for Debian unstable:
+Shadowsocks-libev is available in the official repository for Debian 9("Stretch"), unstable, Ubuntu 16.10 and later derivatives:
 
 ```bash
 sudo apt update
 sudo apt install shadowsocks-libev
 ```
 
+For Debian Jessie users, please install it from `jessie-backports`:
+
+```bash
+sudo sh -c 'printf "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
+sudo apt update
+sudo apt -t jessie-backports install shadowsocks-libev
+```
+
 #### Build deb package from source
 
 Supported Platforms:
 
-* Debian 7 (see below), 8, unstable
+* Debian 7 (see below), 8, 9, unstable
 * Ubuntu 14.04 (see below), Ubuntu 14.10, 15.04, 15.10 or higher
 
 **Note for Ubuntu 14.04 users**:
