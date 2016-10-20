@@ -38,28 +38,18 @@ do
     esac
 done
 
-get_att_val()
-{
-    att=$1
-    val=$2
-
-    if [ -z $(eval echo \$$att) ]; then
-        eval $att=$val
-    fi
-}
-
-get_att_val version "2.5.5"
-get_att_val format "tar.gz"
+: ${version:=2.5.5}
+: ${format:=tar.gz}
 
 name="shadowsocks-libev"
 spec_name="shadowsocks-libev.spec"
 
 pushd `git rev-parse --show-toplevel`
-git archive v${version} --format=${format} --prefix=${name}-${version}/ -o rpm/SOURCES/${name}-${version}.${format}
+git archive "v${version}" --format="${format}" --prefix="${name}-${version}/" -o rpm/SOURCES/"${name}-${version}.${format}"
 pushd rpm
 
 sed -e "s/^\(Version:	\).*$/\1${version}/" \
     -e "s/^\(Source0:	\).*$/\1${name}-${version}.${format}/" \
-    SPECS/${spec_name}.in > SPECS/${spec_name}
+    SPECS/"${spec_name}".in > SPECS/"${spec_name}"
 
-rpmbuild -bb SPECS/${spec_name} --define "%_topdir `pwd`"
+rpmbuild -bb SPECS/"${spec_name}" --define "%_topdir `pwd`"
