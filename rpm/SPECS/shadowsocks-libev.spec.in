@@ -8,7 +8,7 @@ License:	GPLv3+
 URL:		https://github.com/shadowsocks/%{name}
 Source0:	%{url}/archive/v%{version}.tar.gz
 
-BuildRequires:	openssl-devel
+BuildRequires: make automake gcc openssl-devel pcre-devel asciidoc xmlto
 Requires:	openssl
 
 %if 0%{?rhel} != 6
