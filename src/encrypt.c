@@ -697,128 +697,9 @@ bytes_to_key(const cipher_kt_t *cipher, const digest_type_t *md,
 int
 rand_bytes(uint8_t *output, int len)
 {
-#if defined(USE_CRYPTO_OPENSSL)
-    return RAND_bytes(output, len);
-#elif defined(USE_CRYPTO_POLARSSL)
-    static entropy_context ec = {};
-    static ctr_drbg_context cd_ctx = {};
-    static unsigned char rand_initialised = 0;
-    const size_t blen                     = min(len, CTR_DRBG_MAX_REQUEST);
-
-    if (!rand_initialised) {
-#ifdef _WIN32
-        HCRYPTPROV hProvider;
-        union {
-            unsigned __int64 seed;
-            BYTE buffer[8];
-        } rand_buffer;
-
-        hProvider = 0;
-        if (CryptAcquireContext(&hProvider, 0, 0, PROV_RSA_FULL, \
-                                CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
-            CryptGenRandom(hProvider, 8, rand_buffer.buffer);
-            CryptReleaseContext(hProvider, 0);
-        } else {
-            rand_buffer.seed = (unsigned __int64)clock();
-        }
-#else
-        FILE *urand;
-        union {
-            uint64_t seed;
-            uint8_t buffer[8];
-        } rand_buffer;
-
-        urand = fopen("/dev/urandom", "r");
-        if (urand) {
-            int read = fread(&rand_buffer.seed, sizeof(rand_buffer.seed), 1,
-                             urand);
-            fclose(urand);
-            if (read <= 0) {
-                rand_buffer.seed = (uint64_t)clock();
-            }
-        } else {
-            rand_buffer.seed = (uint64_t)clock();
-        }
-#endif
-        entropy_init(&ec);
-        if (ctr_drbg_init(&cd_ctx, entropy_func, &ec,
-                          (const unsigned char *)rand_buffer.buffer, 8) != 0) {
-#if POLARSSL_VERSION_NUMBER >= 0x01030000
-            entropy_free(&ec);
-#endif
-            FATAL("Failed to initialize random generator");
-        }
-        rand_initialised = 1;
-    }
-    while (len > 0) {
-        if (ctr_drbg_random(&cd_ctx, output, blen) != 0) {
-            return 0;
-        }
-        output += blen;
-        len    -= blen;
-    }
-    return 1;
-#elif defined(USE_CRYPTO_MBEDTLS)
-    static mbedtls_entropy_context ec = {};
-    // XXX: ctr_drbg_context changed, [if defined(MBEDTLS_THREADING_C)    mbedtls_threading_mutex_t mutex;]
-    static mbedtls_ctr_drbg_context cd_ctx = {};
-    static unsigned char rand_initialised = 0;
-    const size_t blen                     = min(len, MBEDTLS_CTR_DRBG_MAX_REQUEST);
-
-    if (!rand_initialised) {
-#ifdef _WIN32
-        HCRYPTPROV hProvider;
-        union {
-            unsigned __int64 seed;
-            BYTE buffer[8];
-        } rand_buffer;
-
-        hProvider = 0;
-        if (CryptAcquireContext(&hProvider, 0, 0, PROV_RSA_FULL, \
-                                CRYPT_VERIFYCONTEXT | CRYPT_SILENT)) {
-            CryptGenRandom(hProvider, 8, rand_buffer.buffer);
-            CryptReleaseContext(hProvider, 0);
-        } else {
-            rand_buffer.seed = (unsigned __int64)clock();
-        }
-#else
-        FILE *urand;
-        union {
-            uint64_t seed;
-            uint8_t buffer[8];
-        } rand_buffer;
-
-        urand = fopen("/dev/urandom", "r");
-        if (urand) {
-            int read = fread(&rand_buffer.seed, sizeof(rand_buffer.seed), 1,
-                             urand);
-            fclose(urand);
-            if (read <= 0) {
-                rand_buffer.seed = (uint64_t)clock();
-            }
-        } else {
-            rand_buffer.seed = (uint64_t)clock();
-        }
-#endif
-        mbedtls_entropy_init(&ec);
-        // XXX: ctr_drbg_init changed, seems we should initialize it before calling mbedtls_ctr_drbg_seed()
-        mbedtls_ctr_drbg_init(&cd_ctx);
-        if (mbedtls_ctr_drbg_seed(&cd_ctx, mbedtls_entropy_func, &ec,
-                                  (const unsigned char *)rand_buffer.buffer, 8) != 0) {
-            mbedtls_entropy_free(&ec);
-            FATAL("mbed TLS: Failed to initialize random generator");
-        }
-        rand_initialised = 1;
-    }
-    while (len > 0) {
-        if (mbedtls_ctr_drbg_random(&cd_ctx, output, blen) != 0) {
-            return 0;
-        }
-        output += blen;
-        len    -= blen;
-    }
-    return 1;
-#endif
+    randombytes_buf(output, len);
+    // always return success
+    return 0;
 }
 
 const cipher_kt_t *
@@ -1507,10 +1388,12 @@ enc_key_init(int method, const char *pass)
     cipher_kt_t *cipher;
     cipher_kt_t cipher_info;
 
+    // Initialize sodium for random generator
+    if (sodium_init() == -1) {
+        FATAL("Failed to initialize sodium");
+    }
+    
     if (method == SALSA20 || method == CHACHA20 || method == CHACHA20IETF) {
-        if (sodium_init() == -1) {
-            FATAL("Failed to initialize sodium");
-        }
         // Fake cipher
         cipher = (cipher_kt_t *)&cipher_info;
 #if defined(USE_CRYPTO_OPENSSL)
