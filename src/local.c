@@ -1315,6 +1315,10 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    if (method == NULL) {
+        method = "table";
+    }
+
     if (timeout == NULL) {
         timeout = "60";
     }
