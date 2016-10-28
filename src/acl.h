@@ -46,4 +46,7 @@ void init_block_list();
 int check_block_list(char* addr, int err_level);
 int remove_from_block_list(char *addr);
 
+int init_outbound_block(const char *path);
+int outbound_block_match_host(const char *host);
+
 #endif // _ACL_H

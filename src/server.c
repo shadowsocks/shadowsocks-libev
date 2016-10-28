@@ -115,6 +115,8 @@ static int mode      = TCP_ONLY;
 static int auth      = 0;
 static int ipv6first = 0;
 
+static int outbound_block = 0;
+
 static int fast_open = 0;
 #ifdef HAVE_SETRLIMIT
 static int nofile = 0;
@@ -463,14 +465,69 @@ create_and_bind(const char *host, const char *port, int mptcp)
     return listen_sock;
 }
 
+void print_addrinfo(struct addrinfo *ai)
+{
+    // TODO: move this function to somewhere like 'debug.c'
+    char ipstr[INET6_ADDRSTRLEN];
+    unsigned short int port = 0;
+    bzero(ipstr, INET6_ADDRSTRLEN);
+
+    printf("addrinfo=>{");
+    printf("ai_flags=");
+    switch (ai->ai_flags) {
+        case AI_PASSIVE:   printf("AI_PASSIVE");   break;
+        case AI_CANONNAME: printf("AI_CANONNAME"); break;
+        default: printf("ERROR(%d)", ai->ai_flags);
+    }
+    printf(", ai_family=");
+    switch (ai->ai_family) {
+        case AF_INET:
+            inet_ntop(AF_INET, &(((struct sockaddr_in *)ai->ai_addr)->sin_addr), ipstr, INET_ADDRSTRLEN);
+            port = htons(((struct sockaddr_in *)ai->ai_addr)->sin_port);
+            printf("AF_INET");
+            break;
+        case AF_INET6:
+            inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr), ipstr, INET6_ADDRSTRLEN);
+            port = htons(((struct sockaddr_in6 *)ai->ai_addr)->sin6_port);
+            printf("AF_INET6");
+            break;
+        case AF_UNSPEC: printf("AF_UNSPEC"); break;
+        default: printf("ERROR(%d)", ai->ai_family);
+    }
+    printf(", ai_socktype=");
+    switch (ai->ai_socktype) {
+        case SOCK_STREAM: printf("SOCK_STREAM"); break;
+        case SOCK_DGRAM:  printf("SOCK_SGRAM");  break;
+        default: printf("ERROR(%d)", ai->ai_socktype);
+    }
+    printf(", ai_protocol=%d", ai->ai_protocol);
+    printf(", ai_addrlen=%d", ai->ai_addrlen);
+    printf(", ai_addr=%s:%d", ipstr, port);
+    printf(", ai_canonname=%s", ai->ai_canonname);
+    printf(", ai_next=%p", ai->ai_next);
+    printf("}\n");
+}
+
 static remote_t *
 connect_to_remote(struct addrinfo *res,
                   server_t *server)
 {
+    print_addrinfo(res);
     int sockfd;
 #ifdef SET_INTERFACE
     const char *iface = server->listen_ctx->iface;
 #endif
+
+    if (outbound_block) {
+        char ipstr[INET6_ADDRSTRLEN];
+        bzero(ipstr, INET6_ADDRSTRLEN);
+
+        inet_ntop(AF_INET, &(((struct sockaddr_in *)res->ai_addr)->sin_addr), ipstr, INET_ADDRSTRLEN);
+        if (outbound_block_match_host(ipstr) == 1) {
+            LOGI("outbound blocked %s", ipstr);
+            return NULL;
+        }
+    }
 
     // initialize remote socks
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -1499,6 +1556,7 @@ main(int argc, char **argv)
         { "mtu",             required_argument, 0, 0 },
         { "mptcp",           no_argument,       0, 0 },
         { "help",            no_argument,       0, 0 },
+        { "outbound-block",  required_argument, 0, 0 },
         {                 0,                 0, 0, 0 }
     };
 
@@ -1526,6 +1584,9 @@ main(int argc, char **argv)
             } else if (option_index == 5) {
                 usage();
                 exit(EXIT_SUCCESS);
+            } else if (option_index == 6) {
+                LOGI("initializing outbound block...");
+                outbound_block = !init_outbound_block(optarg);
             }
             break;
         case 's':
