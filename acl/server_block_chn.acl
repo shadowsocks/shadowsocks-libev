@@ -6,6 +6,7 @@
 # `ss-server -s:: -p 8388 -k123456 --outbound-block acl/server_block_chn.acl`
 
 [outbound_block_list]
+103.235.44.0/22
 1.0.1.0/24
 1.0.2.0/23
 1.0.8.0/21
