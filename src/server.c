@@ -512,7 +512,6 @@ static remote_t *
 connect_to_remote(struct addrinfo *res,
                   server_t *server)
 {
-    print_addrinfo(res);
     int sockfd;
 #ifdef SET_INTERFACE
     const char *iface = server->listen_ctx->iface;
@@ -1110,7 +1109,8 @@ server_resolve_cb(struct sockaddr *addr, void *data)
         remote_t *remote = connect_to_remote(&info, server);
 
         if (remote == NULL) {
-            LOGE("connect error");
+            if (!outbound_block)
+                LOGE("connect error");
             close_and_free_server(EV_A_ server);
         } else {
             server->remote = remote;
