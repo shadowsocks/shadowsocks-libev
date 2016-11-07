@@ -121,7 +121,7 @@ check_block_list(char *addr, int err_level)
         *count = 1;
         cache_insert(block_list, addr, addr_len, count);
 #ifdef __linux__
-        set_iptables_rules(addr, err_level);
+        set_iptables_rules(addr, 1);
 #endif
     }
 
