@@ -45,6 +45,38 @@ static struct ip_set outbound_block_list_ipv4;
 static struct ip_set outbound_block_list_ipv6;
 static struct cork_dllist outbound_block_list_rules;
 
+#ifdef __linux__
+
+#include <unistd.h>
+
+static int run_cmd(const char * cmdstring)
+{
+    pid_t pid;
+    int status;
+    if(cmdstring == NULL){
+        return (1);
+    }
+    if((pid = fork())<0){
+        status = -1;
+    }
+    else if(pid == 0){
+        execl("/bin/sh", "sh", "-c", cmdstring, (char *)0);
+        _exit(127);
+    }
+    return status;
+}
+
+static int set_iptables_rules(char *addr, int add)
+{
+    char cli[256];
+    if (add)
+        sprintf(cli, "iptables -A OUTPUT -p tcp -d %s --tcp-flags FIN FIN -j DROP", addr);
+    else
+        sprintf(cli, "iptables -D OUTPUT -p tcp -d %s --tcp-flags FIN FIN -j DROP", addr);
+    return run_cmd(cli);
+}
+#endif
+
 void
 init_block_list()
 {
@@ -56,6 +88,11 @@ int
 remove_from_block_list(char *addr)
 {
     size_t addr_len = strlen(addr);
+
+#ifdef __linux__
+    if (cache_key_exist(block_list, addr, addr_len))
+        set_iptables_rules(addr, 0);
+#endif
 
     return cache_remove(block_list, addr, addr_len);
 }
@@ -83,6 +120,9 @@ check_block_list(char *addr, int err_level)
         int *count = (int *)ss_malloc(sizeof(int));
         *count = 1;
         cache_insert(block_list, addr, addr_len, count);
+#ifdef __linux__
+        set_iptables_rules(addr, err_level);
+#endif
     }
 
     return 0;
