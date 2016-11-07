@@ -1866,6 +1866,9 @@ main(int argc, char **argv)
         LOGI("closed gracefully");
     }
 
+    // Free block list
+    free_block_list();
+
     if (manager_address != NULL) {
         ev_timer_stop(EV_DEFAULT, &stat_update_watcher);
     }
