@@ -159,7 +159,7 @@ The config file equivalent of command line options is listed as example below.
 | -s some.server.net                  | "server": "some.server.net"
 | -s some.server.net -p 1234 (client) | "server": "some.server.net:1234"
 | -p 1234 -k "PasSworD" (server)      | "port_password": {"1234":"PasSworD"}
-| -p 1234                             | "server_port": "1234"
+| -p 1234                             | "port": "1234"
 | -b 0.0.0.0                          | "local_adress": "0.0.0.0"
 | -l 4321                             | "local_port": "4321"
 | -k "PasSworD"                       | "password": "PasSworD"
