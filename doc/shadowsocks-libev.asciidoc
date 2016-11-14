@@ -160,12 +160,13 @@ The config file equivalent of command line options is listed as example below.
 | -s some.server.net -p 1234 (client) | "server": "some.server.net:1234"
 | -p 1234 -k "PasSworD" (server)      | "port_password": {"1234":"PasSworD"}
 | -p 1234                             | "server_port": "1234"
-| -b 0.0.0.0                          | "local_adress": "0.0.0.0"
+| -b 0.0.0.0                          | "local_address": "0.0.0.0"
 | -l 4321                             | "local_port": "4321"
 | -k "PasSworD"                       | "password": "PasSworD"
 | -m "aes-256-cfb"                    | "method": "aes-256-cfb"
 | -t 60                               | "timeout": 60
 | --fast-open                         | "fast_open": true
+| -6                                  | "ipv6_first": true
 | -A                                  | "auth": true
 | -n "/etc/nofile"                    | "nofile": "/etc/nofile"
 | -d "8.8.8.8"                        | "nameserver": "8.8.8.8"

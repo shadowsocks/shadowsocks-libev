@@ -216,6 +216,8 @@ read_jconf(const char *file)
                 conf.mtu = value->u.integer;
             } else if (strcmp(name, "mptcp") == 0) {
                 conf.mptcp = value->u.boolean;
+            } else if (strcmp(name, "ipv6_first") == 0) {
+                conf.ipv6_first = value->u.boolean;
             }
         }
     } else {
