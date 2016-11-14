@@ -130,7 +130,11 @@ init_firewall()
     if (pclose(fp) == 0) {
         mode = FIREWALLD_MODE;
     } else {
-        sprintf(cli, "iptables --version 2>&1");
+        /* Check whether we have permission to operate iptables. 
+	 * Note that checking `iptables --version` is insufficient:
+         * eg, running within a child user namespace.
+	 */
+        sprintf(cli, "iptables -L 2>&1");
         fp = popen(cli, "r");
         if (fp == NULL)
             return -1;
