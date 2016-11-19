@@ -83,7 +83,8 @@ fi
 /usr/share/doc/shadowsocks-libev/ss-server.html
 /usr/share/doc/shadowsocks-libev/ss-tunnel.html
 %{_bindir}/*
-%{_libdir}/*
+%{_libdir}/*.so.*
+%{_libdir}/pkgconfig/*.pc
 %config(noreplace) %{_sysconfdir}/shadowsocks-libev/config.json
 %doc %{_mandir}/*
 %if 0%{?rhel} == 6
@@ -98,12 +99,15 @@ fi
 Summary:    Development files for shadowsocks-libev
 Group:      Applications/Internet
 License:    GPLv3+
+Requires:   shadowsocks-libev == %{version}-%{release}
 
 %description devel
 Development files for shadowsocks-libev
 
 %files devel
 %{_includedir}/*
+%{_libdir}/libshadowsocks-libev.la
+%{_libdir}/libshadowsocks-libev.so
 
 %changelog
 
