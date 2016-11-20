@@ -118,6 +118,7 @@ run_as(const char *user)
 
 #ifdef HAVE_GETPWNAM_R
         struct passwd pwdbuf, *pwd;
+        memset(&pwdbuf, 0, sizeof(struct passwd));
         size_t buflen;
         int err;
 

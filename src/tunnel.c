@@ -373,7 +373,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
 
     if (!remote_send_ctx->connected) {
         struct sockaddr_storage addr;
-        socklen_t len = sizeof addr;
+        socklen_t len = sizeof(struct sockaddr_storage);
 
         int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
         if (r == 0) {
@@ -391,6 +391,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 if (ip.version == 4) {
                     // send as IPv4
                     struct in_addr host;
+                    memset(&host, 0, sizeof(struct in_addr));
                     int host_len = sizeof(struct in_addr);
 
                     if (dns_pton(AF_INET, sa->host, &host) == -1) {
@@ -402,6 +403,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 } else if (ip.version == 6) {
                     // send as IPv6
                     struct in6_addr host;
+                    memset(&host, 0, sizeof(struct in6_addr));
                     int host_len = sizeof(struct in6_addr);
 
                     if (dns_pton(AF_INET6, sa->host, &host) == -1) {
@@ -978,6 +980,7 @@ main(int argc, char **argv)
 
     // Setup proxy context
     struct listen_ctx listen_ctx;
+    memset(&listen_ctx, 0, sizeof(struct listen_ctx));
     listen_ctx.tunnel_addr = tunnel_addr;
     listen_ctx.remote_num  = remote_num;
     listen_ctx.remote_addr = ss_malloc(sizeof(struct sockaddr *) * remote_num);

@@ -344,7 +344,7 @@ create_remote_socket(int ipv6)
     if (ipv6) {
         // Try to bind IPv6 first
         struct sockaddr_in6 addr;
-        memset(&addr, 0, sizeof(addr));
+        memset(&addr, 0, sizeof(struct sockaddr_in6));
         addr.sin6_family = AF_INET6;
         addr.sin6_addr   = in6addr_any;
         addr.sin6_port   = 0;
@@ -360,7 +360,7 @@ create_remote_socket(int ipv6)
     } else {
         // Or else bind to IPv4
         struct sockaddr_in addr;
-        memset(&addr, 0, sizeof(addr));
+        memset(&addr, 0, sizeof(struct sockaddr_in));
         addr.sin_family      = AF_INET;
         addr.sin_addr.s_addr = INADDR_ANY;
         addr.sin_port        = 0;
@@ -668,7 +668,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     struct sockaddr_storage src_addr;
-    socklen_t src_addr_len = sizeof(src_addr);
+    socklen_t src_addr_len = sizeof(struct sockaddr_storage);
     memset(&src_addr, 0, src_addr_len);
 
     buffer_t *buf = ss_malloc(sizeof(buffer_t));
@@ -845,6 +845,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef MODULE_REDIR
     char control_buffer[64] = { 0 };
     struct msghdr msg;
+    memset(&msg, 0, sizeof(struct msghdr));
     struct iovec iov[1];
     struct sockaddr_storage dst_addr;
     memset(&dst_addr, 0, sizeof(struct sockaddr_storage));
@@ -989,6 +990,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         if (ip.version == 4) {
             // send as IPv4
             struct in_addr host_addr;
+            memset(&host_addr, 0, sizeof(struct in_addr));
             int host_len = sizeof(struct in_addr);
 
             if (dns_pton(AF_INET, host, &host_addr) == -1) {
@@ -1000,6 +1002,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         } else if (ip.version == 6) {
             // send as IPv6
             struct in6_addr host_addr;
+            memset(&host_addr, 0, sizeof(struct in6_addr));
             int host_len = sizeof(struct in6_addr);
 
             if (dns_pton(AF_INET6, host, &host_addr) == -1) {
@@ -1264,7 +1267,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
     } else {
         struct addrinfo hints;
-        memset(&hints, 0, sizeof(hints));
+        memset(&hints, 0, sizeof(struct addrinfo));
         hints.ai_family   = AF_UNSPEC;
         hints.ai_socktype = SOCK_DGRAM;
         hints.ai_protocol = IPPROTO_UDP;

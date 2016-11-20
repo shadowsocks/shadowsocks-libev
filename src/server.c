@@ -284,7 +284,7 @@ get_peer_name(int fd)
 {
     static char peer_name[INET6_ADDRSTRLEN] = { 0 };
     struct sockaddr_storage addr;
-    socklen_t len = sizeof addr;
+    socklen_t len = sizeof(struct sockaddr_storage);
     memset(&addr, 0, len);
     memset(peer_name, 0, INET6_ADDRSTRLEN);
     int err = getpeername(fd, (struct sockaddr *)&addr, &len);
@@ -307,6 +307,7 @@ static void
 set_linger(int fd)
 {
     struct linger so_linger;
+    memset(&so_linger, 0, sizeof(struct linger));
     so_linger.l_onoff  = 1;
     so_linger.l_linger = 0;
     setsockopt(fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger);
@@ -1229,7 +1230,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
 
     if (!remote_send_ctx->connected) {
         struct sockaddr_storage addr;
-        socklen_t len = sizeof addr;
+        socklen_t len = sizeof(struct sockaddr_storage);
         memset(&addr, 0, len);
         int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
         if (r == 0) {

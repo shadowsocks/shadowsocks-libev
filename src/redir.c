@@ -415,6 +415,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
 
     if (!remote_send_ctx->connected) {
         struct sockaddr_storage addr;
+        memset(&addr, 0, sizeof(struct sockaddr_storage));
         socklen_t len = sizeof addr;
         int r         = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
         if (r == 0) {
@@ -666,6 +667,8 @@ accept_cb(EV_P_ ev_io *w, int revents)
 {
     listen_ctx_t *listener = (listen_ctx_t *)w;
     struct sockaddr_storage destaddr;
+    memset(&destaddr, 0, sizeof(struct sockaddr_storage));
+
     int err;
 
     int serverfd = accept(listener->fd, NULL, NULL);
