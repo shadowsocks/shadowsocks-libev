@@ -533,8 +533,11 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 
 #ifdef SET_INTERFACE
     if (iface) {
-        if (setinterface(sockfd, iface) == -1)
+        if (setinterface(sockfd, iface) == -1) {
             ERROR("setinterface");
+            close(sockfd);
+            return NULL;
+        }
     }
 #endif
 
