@@ -1699,6 +1699,9 @@ main(int argc, char **argv)
         if (timeout == NULL) {
             timeout = conf->timeout;
         }
+        if (user == NULL) {
+            user = conf->user;
+        }
         if (auth == 0) {
             auth = conf->auth;
         }

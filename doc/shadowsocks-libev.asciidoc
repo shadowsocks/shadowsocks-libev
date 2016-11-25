@@ -165,6 +165,7 @@ The config file equivalent of command line options is listed as example below.
 | -k "PasSworD"                       | "password": "PasSworD"
 | -m "aes-256-cfb"                    | "method": "aes-256-cfb"
 | -t 60                               | "timeout": 60
+| -a nobody                           | "user": "nobody"
 | --fast-open                         | "fast_open": true
 | -6                                  | "ipv6_first": true
 | -A                                  | "auth": true

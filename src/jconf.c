@@ -197,6 +197,8 @@ read_jconf(const char *file)
                 conf.method = to_string(value);
             } else if (strcmp(name, "timeout") == 0) {
                 conf.timeout = to_string(value);
+            } else if (strcmp(name, "user") == 0) {
+                conf.user = to_string(value);
             } else if (strcmp(name, "fast_open") == 0) {
                 check_json_value_type(value, json_boolean,
                         "invalid config file: option 'fast_open' must be a boolean");

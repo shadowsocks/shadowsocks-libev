@@ -744,6 +744,9 @@ main(int argc, char **argv)
         if (timeout == NULL) {
             timeout = conf->timeout;
         }
+        if (user == NULL) {
+            user = conf->user;
+        }
 #ifdef TCP_FASTOPEN
         if (fast_open == 0) {
             fast_open = conf->fast_open;
