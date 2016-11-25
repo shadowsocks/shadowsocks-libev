@@ -17,7 +17,7 @@ Requires:       pcre
 Requires:       libopenssl1_0_0
 BuildRequires:  libopenssl-devel
 %else
-Requires:       openssl-libs
+Requires:       openssl
 BuildRequires:  openssl-devel
 %endif
 
@@ -84,10 +84,12 @@ install -m 644 %{_builddir}/%{buildsubdir}/completions/bash/* %{buildroot}%{_dat
 %post
 %if ! 0%{?use_systemd}
 /sbin/chkconfig --add shadowsocks-libev > /dev/null 2>&1 || :
-%elif 0%{?suse_version}
+%else
+%if 0%{?suse_version}
 %service_add_post shadowsocks-libev.service
 %else
 %systemd_post shadowsocks-libev.service
+%endif
 %endif
 
 %preun
@@ -96,20 +98,22 @@ if [ $1 -eq 0 ]; then
     /sbin/service shadowsocks-libev stop  > /dev/null 2>&1 || :
     /sbin/chkconfig --del shadowsocks-libev > /dev/null 2>&1 || :
 fi
-%elif 0%{?suse_version}
+%else
+%if 0%{?suse_version}
 %service_del_preun shadowsocks-libev.service
 %else
 %systemd_preun shadowsocks-libev.service
 %endif
+%endif
 
 %postun
-%if ! 0%{?use_systemd}
-%elif 0%{?suse_version}
+%if 0%{?use_systemd}
+%if 0%{?suse_version}
 %service_del_postun shadowsocks-libev.service
 %else
 %systemd_postun_with_restart shadowsocks-libev.service
 %endif
-
+%endif
 
 %files
 /usr/share/doc/shadowsocks-libev/shadowsocks-libev.html
