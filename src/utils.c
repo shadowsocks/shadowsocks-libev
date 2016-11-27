@@ -35,6 +35,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <grp.h>
 
 #include "utils.h"
 
@@ -134,20 +135,25 @@ run_as(const char *user)
                 if (setgid(pwd->pw_gid) != 0) {
                     LOGE(
                         "Could not change group id to that of run_as user '%s': %s",
-                        user, strerror(errno));
+                        pwd->pw_name, strerror(errno));
+                    return 0;
+                }
+
+                if (initgroups(pwd->pw_name, pwd->pw_gid) == -1) {
+                    LOGE("Could not change supplementary groups for user '%s'.", pwd->pw_name);
                     return 0;
                 }
 
                 if (setuid(pwd->pw_uid) != 0) {
                     LOGE(
                         "Could not change user id to that of run_as user '%s': %s",
-                        user, strerror(errno));
+                        pwd->pw_name, strerror(errno));
                     return 0;
                 }
                 break;
             } else if (err != ERANGE) {
                 if (err) {
-                    LOGE("run_as user '%s' could not be found: %s", user, strerror(
+                    LOGE("run_as user '%s' could not be found: %s", pwd->pw_name, strerror(
                              err));
                 } else {
                     LOGE("run_as user '%s' could not be found.", user);
@@ -174,12 +180,16 @@ run_as(const char *user)
         /* setgid first, because we may not allowed to do it anymore after setuid */
         if (setgid(pwd->pw_gid) != 0) {
             LOGE("Could not change group id to that of run_as user '%s': %s",
-                 user, strerror(errno));
+                 pwd->pw_name, strerror(errno));
+            return 0;
+        }
+        if (initgroups(pwd->pw_name, pwd->pw_gid) == -1) {
+            LOGE("Could not change supplementary groups for user '%s'.", pwd->pw_name);
             return 0;
         }
         if (setuid(pwd->pw_uid) != 0) {
             LOGE("Could not change user id to that of run_as user '%s': %s",
-                 user, strerror(errno));
+                 pwd->pw_name, strerror(errno));
             return 0;
         }
 #endif
