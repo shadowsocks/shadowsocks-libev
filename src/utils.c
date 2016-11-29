@@ -153,8 +153,8 @@ run_as(const char *user)
                 break;
             } else if (err != ERANGE) {
                 if (err) {
-                    LOGE("run_as user '%s' could not be found: %s", pwd->pw_name, strerror(
-                             err));
+                    LOGE("run_as user '%s' could not be found: %s", user,
+                            strerror(err));
                 } else {
                     LOGE("run_as user '%s' could not be found.", user);
                 }
