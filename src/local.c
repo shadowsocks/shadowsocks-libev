@@ -744,7 +744,7 @@ stat_update_cb()
 static void
 remote_timeout_cb(EV_P_ ev_timer *watcher, int revents)
 {
-    remote_ctx_t *remote_ctx = (remote_ctx_t *)(((void *)watcher)
+    remote_ctx_t *remote_ctx = (remote_ctx_t *)(((char *)watcher)
                                                 - sizeof(ev_io));
     remote_t *remote = remote_ctx->remote;
     server_t *server = remote->server;
@@ -1565,9 +1565,10 @@ start_ss_local_server(profile_t profile)
     // Setup proxy context
     struct ev_loop *loop = EV_DEFAULT;
 
+    struct sockaddr **remote_addr_tmp = ss_malloc(sizeof(struct sockaddr *));
     listen_ctx_t listen_ctx;
     listen_ctx.remote_num     = 1;
-    listen_ctx.remote_addr    = ss_malloc(sizeof(struct sockaddr *));
+    listen_ctx.remote_addr    = remote_addr_tmp;
     listen_ctx.remote_addr[0] = (struct sockaddr *)storage;
     listen_ctx.timeout        = timeout;
     listen_ctx.method         = m;
@@ -1629,7 +1630,7 @@ start_ss_local_server(profile_t profile)
     }
 
     ss_free(listen_ctx.remote_addr[0]);
-    ss_free(listen_ctx.remote_addr);
+    ss_free(remote_addr_tmp);
 
 #ifdef __MINGW32__
     winsock_cleanup();

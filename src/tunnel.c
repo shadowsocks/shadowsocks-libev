@@ -284,7 +284,7 @@ server_send_cb(EV_P_ ev_io *w, int revents)
 static void
 remote_timeout_cb(EV_P_ ev_timer *watcher, int revents)
 {
-    remote_ctx_t *remote_ctx = (remote_ctx_t *)(((void *)watcher)
+    remote_ctx_t *remote_ctx = (remote_ctx_t *)(((char *)watcher)
                                                 - sizeof(ev_io));
     remote_t *remote = remote_ctx->remote;
     server_t *server = remote->server;

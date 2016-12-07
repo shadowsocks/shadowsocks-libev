@@ -529,7 +529,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
             ERROR("bind_to_address");
             close(sockfd);
             return NULL;
-        } 
+        }
 
 #ifdef SET_INTERFACE
     if (iface) {
@@ -542,7 +542,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 #endif
 
     remote_t *remote = new_remote(sockfd);
-  
+
 #ifdef TCP_FASTOPEN
     if (fast_open) {
 #ifdef __APPLE__
@@ -1049,7 +1049,7 @@ block_list_clear_cb(EV_P_ ev_timer *watcher, int revents)
 static void
 server_timeout_cb(EV_P_ ev_timer *watcher, int revents)
 {
-    server_ctx_t *server_ctx = (server_ctx_t *)(((void *)watcher)
+    server_ctx_t *server_ctx = (server_ctx_t *)(((char *)watcher)
                                                 - sizeof(ev_io));
     server_t *server = server_ctx->server;
     remote_t *remote = server->remote;
