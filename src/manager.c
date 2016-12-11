@@ -98,7 +98,7 @@ build_config(char *prefix, struct server *server)
     char *path    = NULL;
     int path_size = strlen(prefix) + strlen(server->port) + 20;
 
-    path = malloc(path_size);
+    path = ss_malloc(path_size);
     snprintf(path, path_size, "%s/.shadowsocks_%s.conf", prefix, server->port);
     FILE *f = fopen(path, "w+");
     if (f == NULL) {
@@ -243,7 +243,7 @@ get_server(char *buf, int len)
         return NULL;
     }
 
-    struct server *server = (struct server *)malloc(sizeof(struct server));
+    struct server *server = ss_malloc(sizeof(struct server));
     memset(server, 0, sizeof(struct server));
     if (obj->type == json_object) {
         int i = 0;
@@ -322,7 +322,7 @@ kill_server(char *prefix, char *pid_file)
 {
     char *path = NULL;
     int pid, path_size = strlen(prefix) + strlen(pid_file) + 2;
-    path = malloc(path_size);
+    path = ss_malloc(path_size);
     snprintf(path, path_size, "%s/%s", prefix, pid_file);
     FILE *f = fopen(path, "r");
     if (f == NULL) {
@@ -345,7 +345,7 @@ stop_server(char *prefix, char *port)
 {
     char *path = NULL;
     int pid, path_size = strlen(prefix) + strlen(port) + 20;
-    path = malloc(path_size);
+    path = ss_malloc(path_size);
     snprintf(path, path_size, "%s/.shadowsocks_%s.pid", prefix, port);
     FILE *f = fopen(path, "r");
     if (f == NULL) {
@@ -861,7 +861,7 @@ main(int argc, char **argv)
     struct passwd *pw   = getpwuid(getuid());
     const char *homedir = pw->pw_dir;
     working_dir_size = strlen(homedir) + 15;
-    working_dir      = malloc(working_dir_size);
+    working_dir      = ss_malloc(working_dir_size);
     snprintf(working_dir, working_dir_size, "%s/.shadowsocks", homedir);
 
     int err = mkdir(working_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
@@ -894,7 +894,8 @@ main(int argc, char **argv)
 
     if (conf != NULL) {
         for (i = 0; i < conf->port_password_num; i++) {
-            struct server *server = (struct server *)malloc(sizeof(struct server));
+            struct server *server = ss_malloc(sizeof(struct server));
+            memset(server, 0, sizeof(struct server));
             strncpy(server->port, conf->port_password[i].port, 8);
             strncpy(server->password, conf->port_password[i].password, 128);
             add_server(&manager, server);

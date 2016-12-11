@@ -969,7 +969,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 ev_io_start(EV_A_ & remote->send_ctx->io);
             }
         } else {
-            query_t *query = (query_t *)ss_malloc(sizeof(query_t));
+            query_t *query = ss_malloc(sizeof(query_t));
+            memset(query, 0, sizeof(query_t));
             query->server = server;
             snprintf(query->hostname, 256, "%s", host);
 
@@ -1311,12 +1312,15 @@ new_remote(int fd)
         remote_conn++;
     }
 
-    remote_t *remote;
+    remote_t *remote = ss_malloc(sizeof(remote_t));
+    memset(remote, 0, sizeof(remote_t));
 
-    remote                      = ss_malloc(sizeof(remote_t));
     remote->recv_ctx            = ss_malloc(sizeof(remote_ctx_t));
     remote->send_ctx            = ss_malloc(sizeof(remote_ctx_t));
     remote->buf                 = ss_malloc(sizeof(buffer_t));
+    balloc(remote->buf, BUF_SIZE);
+    memset(remote->recv_ctx, 0, sizeof(remote_ctx_t));
+    memset(remote->send_ctx, 0, sizeof(remote_ctx_t));
     remote->fd                  = fd;
     remote->recv_ctx->remote    = remote;
     remote->recv_ctx->connected = 0;
@@ -1326,8 +1330,6 @@ new_remote(int fd)
 
     ev_io_init(&remote->recv_ctx->io, remote_recv_cb, fd, EV_READ);
     ev_io_init(&remote->send_ctx->io, remote_send_cb, fd, EV_WRITE);
-
-    balloc(remote->buf, BUF_SIZE);
 
     return remote;
 }
@@ -1378,6 +1380,10 @@ new_server(int fd, listen_ctx_t *listener)
     server->send_ctx            = ss_malloc(sizeof(server_ctx_t));
     server->buf                 = ss_malloc(sizeof(buffer_t));
     server->header_buf          = ss_malloc(sizeof(buffer_t));
+    memset(server->recv_ctx, 0, sizeof(server_ctx_t));
+    memset(server->send_ctx, 0, sizeof(server_ctx_t));
+    balloc(server->buf, BUF_SIZE);
+    balloc(server->header_buf, BUF_SIZE);
     server->fd                  = fd;
     server->recv_ctx->server    = server;
     server->recv_ctx->connected = 0;
@@ -1406,10 +1412,7 @@ new_server(int fd, listen_ctx_t *listener)
     ev_timer_init(&server->recv_ctx->watcher, server_timeout_cb,
                   request_timeout, listener->timeout);
 
-    balloc(server->buf, BUF_SIZE);
-    balloc(server->header_buf, BUF_SIZE);
-
-    server->chunk = (chunk_t *)malloc(sizeof(chunk_t));
+    server->chunk = ss_malloc(sizeof(chunk_t));
     memset(server->chunk, 0, sizeof(chunk_t));
     server->chunk->buf = ss_malloc(sizeof(buffer_t));
     memset(server->chunk->buf, 0, sizeof(buffer_t));

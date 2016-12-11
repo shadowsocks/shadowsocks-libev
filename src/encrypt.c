@@ -726,7 +726,8 @@ cipher_context_init(cipher_ctx_t *ctx, int method, int enc)
         FATAL("Cannot initialize PolarSSL cipher context");
     }
 #elif defined(USE_CRYPTO_MBEDTLS)
-    ctx->evp = (cipher_evp_t *)ss_malloc(sizeof(cipher_evp_t));
+    ctx->evp = ss_malloc(sizeof(cipher_evp_t));
+    memset(ctx->evp, 0, sizeof(cipher_evp_t));
     cipher_evp_t *evp = ctx->evp;
 
     if (cipher == NULL) {
