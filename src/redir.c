@@ -89,13 +89,14 @@ static void close_and_free_server(EV_P_ server_t *server);
 int verbose        = 0;
 int keep_resolving = 1;
 
-static int obfs      = 0;
 static int ipv6first = 0;
 static int mode      = TCP_ONLY;
 static int auth      = 0;
 #ifdef HAVE_SETRLIMIT
-static int nofile = 0;
+static int nofile    = 0;
 #endif
+
+static obfs_para_t *obfs = NULL;
 
 int
 getdestaddr(int fd, struct sockaddr_storage *destaddr)
@@ -265,6 +266,10 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
+    if (obfs) {
+        obfs->obfs_request(remote->buf, BUF_SIZE, server->obfs);
+    }
+
     int s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
 
     if (s == -1) {
@@ -375,14 +380,13 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     server->buf->len = r;
 
-    if (server->obfs) {
-        if (obfs_http->deobfs_response(server->buf, BUF_SIZE)) {
+    if (obfs) {
+        if (obfs->deobfs_response(server->buf, BUF_SIZE, server->obfs)) {
             LOGE("invalid obfuscating");
             close_and_free_remote(EV_A_ remote);
             close_and_free_server(EV_A_ server);
             return;
         }
-        server->obfs = 0;
     }
 
     int err = ss_decrypt(server->buf, server->d_ctx, BUF_SIZE);
@@ -499,7 +503,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             }
 
             if (obfs) {
-                obfs_http->obfs_request(remote->buf, BUF_SIZE);
+                obfs->obfs_request(remote->buf, BUF_SIZE, server->obfs);
             }
 
             ev_io_start(EV_A_ & remote->recv_ctx->io);
@@ -575,18 +579,16 @@ new_remote(int fd, int timeout)
 static void
 free_remote(remote_t *remote)
 {
-    if (remote != NULL) {
-        if (remote->server != NULL) {
-            remote->server->remote = NULL;
-        }
-        if (remote->buf != NULL) {
-            bfree(remote->buf);
-            ss_free(remote->buf);
-        }
-        ss_free(remote->recv_ctx);
-        ss_free(remote->send_ctx);
-        ss_free(remote);
+    if (remote->server != NULL) {
+        remote->server->remote = NULL;
     }
+    if (remote->buf != NULL) {
+        bfree(remote->buf);
+        ss_free(remote->buf);
+    }
+    ss_free(remote->recv_ctx);
+    ss_free(remote->send_ctx);
+    ss_free(remote);
 }
 
 static void
@@ -619,10 +621,14 @@ new_server(int fd, int method)
     server->recv_ctx->connected = 0;
     server->send_ctx->server    = server;
     server->send_ctx->connected = 0;
-    server->obfs                = obfs;
 
     server->hostname     = NULL;
     server->hostname_len = 0;
+
+    if (obfs != NULL) {
+        server->obfs = (obfs_t *)ss_malloc(sizeof(obfs_t));
+        memset(server->obfs, 0, sizeof(obfs_t));
+    }
 
     if (method) {
         server->e_ctx = ss_malloc(sizeof(enc_ctx_t));
@@ -643,29 +649,31 @@ new_server(int fd, int method)
 static void
 free_server(server_t *server)
 {
-    if (server != NULL) {
-        if (server->hostname != NULL) {
-            ss_free(server->hostname);
-        }
-        if (server->remote != NULL) {
-            server->remote->server = NULL;
-        }
-        if (server->e_ctx != NULL) {
-            cipher_context_release(&server->e_ctx->evp);
-            ss_free(server->e_ctx);
-        }
-        if (server->d_ctx != NULL) {
-            cipher_context_release(&server->d_ctx->evp);
-            ss_free(server->d_ctx);
-        }
-        if (server->buf != NULL) {
-            bfree(server->buf);
-            ss_free(server->buf);
-        }
-        ss_free(server->recv_ctx);
-        ss_free(server->send_ctx);
-        ss_free(server);
+    if (server->obfs != NULL) {
+        bfree(server->obfs->buf);
+        ss_free(server->obfs);
     }
+    if (server->hostname != NULL) {
+        ss_free(server->hostname);
+    }
+    if (server->remote != NULL) {
+        server->remote->server = NULL;
+    }
+    if (server->e_ctx != NULL) {
+        cipher_context_release(&server->e_ctx->evp);
+        ss_free(server->e_ctx);
+    }
+    if (server->d_ctx != NULL) {
+        cipher_context_release(&server->d_ctx->evp);
+        ss_free(server->d_ctx);
+    }
+    if (server->buf != NULL) {
+        bfree(server->buf);
+        ss_free(server->buf);
+    }
+    ss_free(server->recv_ctx);
+    ss_free(server->send_ctx);
+    ss_free(server);
 }
 
 static void
@@ -819,8 +827,8 @@ main(int argc, char **argv)
                 mptcp = 1;
                 LOGI("enable multipath TCP");
             } else if (option_index == 2) {
-                if (strcmp(optarg, OBFS_HTTP_NAME) == 0)
-                    obfs = OBFS_HTTP;
+                if (strcmp(optarg, obfs_http->name) == 0)
+                    obfs = obfs_http;
                 LOGI("obfuscating enabled");
             } else if (option_index == 3) {
                 obfs_arg = optarg;
@@ -994,8 +1002,8 @@ main(int argc, char **argv)
     }
 
     if (obfs) {
-        obfs_http->host = obfs_arg;
-        obfs_http->port = atoi(remote_port);
+        obfs->host = obfs_arg;
+        obfs->port = atoi(remote_port);
         LOGI("obfuscating arg: %s", obfs_arg);
     }
 

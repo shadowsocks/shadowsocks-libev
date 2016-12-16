@@ -51,10 +51,10 @@ typedef struct server_ctx {
 
 typedef struct server {
     int fd;
-
     int stage;
-    int obfs;
     int auth;
+
+    obfs_t *obfs;
 
     buffer_t *buf;
     buffer_t *header_buf;

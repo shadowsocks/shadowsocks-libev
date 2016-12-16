@@ -94,10 +94,11 @@ char *prefix;
 
 static int acl       = 0;
 static int auth      = 0;
-static int obfs      = 0;
 static int mode      = TCP_ONLY;
 static int ipv6first = 0;
 static int fast_open = 0;
+
+static obfs_para_t *obfs  = NULL;
 
 #ifdef HAVE_SETRLIMIT
 #ifndef LIB_ONLY
@@ -269,8 +270,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
 
                 if (!remote->send_ctx->connected) {
-                    if (server->obfs)
-                        obfs_http->obfs_request(remote->buf, BUF_SIZE);
+                    if (obfs)
+                        obfs->obfs_request(remote->buf, BUF_SIZE, server->obfs);
                 }
             }
 
@@ -804,14 +805,13 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef ANDROID
         rx += server->buf->len;
 #endif
-        if (server->obfs) {
-            if (obfs_http->deobfs_response(server->buf, BUF_SIZE)) {
+        if (obfs) {
+            if (obfs->deobfs_response(server->buf, BUF_SIZE, server->obfs)) {
                 LOGE("invalid obfuscating");
                 close_and_free_remote(EV_A_ remote);
                 close_and_free_server(EV_A_ server);
                 return;
             }
-            server->obfs = 0;
         }
 
         int err = ss_decrypt(server->buf, server->d_ctx, BUF_SIZE);
@@ -991,7 +991,11 @@ new_server(int fd, int method)
     server->fd                  = fd;
     server->recv_ctx->server    = server;
     server->send_ctx->server    = server;
-    server->obfs                = obfs;
+
+    if (obfs != NULL) {
+        server->obfs = (obfs_t *)ss_malloc(sizeof(obfs_t));
+        memset(server->obfs, 0, sizeof(obfs_t));
+    }
 
     if (method) {
         server->e_ctx = ss_malloc(sizeof(struct enc_ctx));
@@ -1016,6 +1020,10 @@ free_server(server_t *server)
 {
     cork_dllist_remove(&server->entries);
 
+    if (server->obfs != NULL) {
+        bfree(server->obfs->buf);
+        ss_free(server->obfs);
+    }
     if (server->remote != NULL) {
         server->remote->server = NULL;
     }
@@ -1201,8 +1209,8 @@ main(int argc, char **argv)
                 mptcp = 1;
                 LOGI("enable multipath TCP");
             } else if (option_index == 4) {
-                if (strcmp(optarg, OBFS_HTTP_NAME) == 0)
-                    obfs = OBFS_HTTP;
+                if (strcmp(optarg, obfs_http->name) == 0)
+                    obfs = obfs_http;
                 LOGI("obfuscating enabled");
             } else if (option_index == 5) {
                 obfs_arg = optarg;
@@ -1400,8 +1408,8 @@ main(int argc, char **argv)
     }
 
     if (obfs) {
-        obfs_http->host = obfs_arg;
-        obfs_http->port = atoi(remote_port);
+        obfs->host = obfs_arg;
+        obfs->port = atoi(remote_port);
         LOGI("obfuscating arg: %s", obfs_arg);
     }
 

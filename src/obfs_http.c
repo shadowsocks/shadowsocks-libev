@@ -47,14 +47,14 @@ static const char *http_response_template =
     "Sec-WebSocket-Accept: %s\r\n"
     "\r\n";
 
-static int obfs_http_request(buffer_t *, size_t);
-static int obfs_http_response(buffer_t *, size_t);
-static int deobfs_http_header(buffer_t *, size_t);
+static int obfs_http_request(buffer_t *, size_t, obfs_t *);
+static int obfs_http_response(buffer_t *, size_t, obfs_t *);
+static int deobfs_http_header(buffer_t *, size_t, obfs_t *);
 static int check_http_header(buffer_t *buf);
 
-static obfs_t obfs_http_st = {
+static obfs_para_t obfs_http_st = {
     .name            = "http",
-    .port            =                  80,
+    .port            = 80,
     .obfs_request    = &obfs_http_request,
     .obfs_response   = &obfs_http_response,
     .deobfs_request  = &deobfs_http_header,
@@ -62,11 +62,15 @@ static obfs_t obfs_http_st = {
     .check_obfs      = &check_http_header
 };
 
-obfs_t *const obfs_http = &obfs_http_st;
+obfs_para_t *const obfs_http = &obfs_http_st;
 
 static int
-obfs_http_request(buffer_t *buf, size_t cap)
+obfs_http_request(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
+
+    if (obfs == NULL || obfs->obfs_stage > 0) return 0;
+    obfs->obfs_stage++;
+
     static int major_version = 0;
     static int minor_version = 0;
 
@@ -102,8 +106,11 @@ obfs_http_request(buffer_t *buf, size_t cap)
 }
 
 static int
-obfs_http_response(buffer_t *buf, size_t cap)
+obfs_http_response(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
+    if (obfs == NULL || obfs->obfs_stage > 0) return 0;
+    obfs->obfs_stage++;
+
     static int major_version = 0;
     static int minor_version = 0;
 
@@ -141,8 +148,11 @@ obfs_http_response(buffer_t *buf, size_t cap)
 }
 
 static int
-deobfs_http_header(buffer_t *buf, size_t cap)
+deobfs_http_header(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
+    if (obfs == NULL || obfs->deobfs_stage > 0) return 0;
+    obfs->deobfs_stage++;
+
     char *data = buf->data;
     int len    = buf->len;
     int err    = -1;

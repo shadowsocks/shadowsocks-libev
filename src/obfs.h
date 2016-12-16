@@ -25,20 +25,23 @@
 
 #include "encrypt.h"
 
-#define OBFS_NONE 0
-#define OBFS_HTTP 1
-
-#define OBFS_HTTP_NAME "http"
-
 typedef struct obfs {
+    int obfs_stage;
+    int deobfs_stage;
+    buffer_t *buf;
+} obfs_t;
+
+typedef struct obfs_para {
     const char *name;
     const char *host;
     uint16_t port;
-    int(*const obfs_request)(buffer_t *, size_t);
-    int(*const obfs_response)(buffer_t *, size_t);
-    int(*const deobfs_request)(buffer_t *, size_t);
-    int(*const deobfs_response)(buffer_t *, size_t);
+
+    int(*const obfs_request)(buffer_t *, size_t, obfs_t *);
+    int(*const obfs_response)(buffer_t *, size_t, obfs_t *);
+    int(*const deobfs_request)(buffer_t *, size_t, obfs_t *);
+    int(*const deobfs_response)(buffer_t *, size_t, obfs_t *);
     int(*const check_obfs)(buffer_t *);
-} obfs_t;
+} obfs_para_t;
+
 
 #endif
