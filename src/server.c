@@ -1417,6 +1417,11 @@ new_server(int fd, listen_ctx_t *listener)
     server->listen_ctx          = listener;
     server->remote              = NULL;
 
+    if (obfs != NULL) {
+        server->obfs = (obfs_t *)ss_malloc(sizeof(obfs_t));
+        memset(server->obfs, 0, sizeof(obfs_t));
+    }
+
     if (listener->method) {
         server->e_ctx = ss_malloc(sizeof(enc_ctx_t));
         server->d_ctx = ss_malloc(sizeof(enc_ctx_t));
@@ -1450,6 +1455,10 @@ free_server(server_t *server)
 {
     cork_dllist_remove(&server->entries);
 
+    if (server->obfs != NULL) {
+        bfree(server->obfs->buf);
+        ss_free(server->obfs);
+    }
     if (server->chunk != NULL) {
         if (server->chunk->buf != NULL) {
             bfree(server->chunk->buf);
