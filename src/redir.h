@@ -45,8 +45,8 @@ typedef struct server_ctx {
 
 typedef struct server {
     int fd;
-    int obfs_stage;
-    int deobfs_stage;
+
+    obfs_t *obfs;
 
     buffer_t *buf;
     struct sockaddr_storage destaddr;
