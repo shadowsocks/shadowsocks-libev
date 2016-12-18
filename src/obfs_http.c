@@ -25,6 +25,7 @@
 #endif
 
 #include <strings.h>
+#include <time.h>
 
 #include "obfs_http.h"
 #include "base64.h"
