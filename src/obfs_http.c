@@ -26,8 +26,9 @@
 
 #include <strings.h>
 
-#include "obfs_http.h"
 #include "base64.h"
+#include "utils.h"
+#include "obfs_http.h"
 
 static const char *http_request_template =
     "GET / HTTP/1.1\r\n"
