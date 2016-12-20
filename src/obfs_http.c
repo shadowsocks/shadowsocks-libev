@@ -69,7 +69,7 @@ static int
 obfs_http_request(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
 
-    if (obfs == NULL || obfs->obfs_stage > 0) return 0;
+    if (obfs == NULL || obfs->obfs_stage != 0) return 0;
     obfs->obfs_stage++;
 
     static int major_version = 0;
@@ -109,7 +109,7 @@ obfs_http_request(buffer_t *buf, size_t cap, obfs_t *obfs)
 static int
 obfs_http_response(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
-    if (obfs == NULL || obfs->obfs_stage > 0) return 0;
+    if (obfs == NULL || obfs->obfs_stage != 0) return 0;
     obfs->obfs_stage++;
 
     static int major_version = 0;
@@ -151,7 +151,7 @@ obfs_http_response(buffer_t *buf, size_t cap, obfs_t *obfs)
 static int
 deobfs_http_header(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
-    if (obfs == NULL || obfs->deobfs_stage > 0) return 0;
+    if (obfs == NULL || obfs->deobfs_stage != 0) return 0;
     obfs->deobfs_stage++;
 
     char *data = buf->data;

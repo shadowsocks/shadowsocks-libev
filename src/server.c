@@ -676,6 +676,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 // obfs is enabled
                 if (obfs->deobfs_request(buf, BUF_SIZE, server->obfs))
                     return; // wait for more
+            } else {
+                server->obfs->deobfs_stage = -1; // disable deobfs
             }
         }
 
