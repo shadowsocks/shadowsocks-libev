@@ -677,7 +677,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (obfs->deobfs_request(buf, BUF_SIZE, server->obfs))
                     return; // wait for more
             } else {
-                server->obfs->deobfs_stage = -1; // disable deobfs
+                server->obfs->obfs_stage = -1;
+                server->obfs->deobfs_stage = -1;
             }
         }
 

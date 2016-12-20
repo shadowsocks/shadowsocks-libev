@@ -152,7 +152,6 @@ static int
 deobfs_http_header(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
     if (obfs == NULL || obfs->deobfs_stage != 0) return 0;
-    obfs->deobfs_stage++;
 
     char *data = buf->data;
     int len    = buf->len;
@@ -173,6 +172,7 @@ deobfs_http_header(buffer_t *buf, size_t cap, obfs_t *obfs)
     if (!err) {
         memmove(buf->data, data, len);
         buf->len = len;
+        obfs->deobfs_stage++;
     }
 
     return err;
