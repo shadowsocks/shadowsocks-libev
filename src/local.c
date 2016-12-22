@@ -68,6 +68,16 @@
 #include "tls.h"
 #include "local.h"
 
+#ifndef LIB_ONLY
+#ifdef __APPLE__
+#include <AvailabilityMacros.h>
+#if defined(MAC_OS_X_VERSION_10_10) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
+#include <launch.h>
+#define HAVE_LAUNCHD
+#endif
+#endif
+#endif
+
 #ifndef EAGAIN
 #define EAGAIN EWOULDBLOCK
 #endif
@@ -112,6 +122,9 @@ static void accept_cb(EV_P_ ev_io *w, int revents);
 static void signal_cb(EV_P_ ev_signal *w, int revents);
 
 static int create_and_bind(const char *addr, const char *port);
+#ifdef HAVE_LAUNCHD
+static int launch_or_create(const char *addr, const char *port);
+#endif
 static remote_t *create_remote(listen_ctx_t *listener, struct sockaddr *addr);
 static void free_remote(remote_t *remote);
 static void close_and_free_remote(EV_P_ remote_t *remote);
@@ -189,6 +202,36 @@ create_and_bind(const char *addr, const char *port)
 
     return listen_sock;
 }
+
+#ifdef HAVE_LAUNCHD
+int
+launch_or_create(const char *addr, const char *port)
+{
+    int *fds;
+    size_t cnt;
+    int error = launch_activate_socket("Listeners", &fds, &cnt);
+    if (error == 0) {
+        if (cnt == 1) {
+            return fds[0];
+        } else {
+            FATAL("please don't specify multi entry");
+        }
+    } else if (error == ESRCH || error == ENOENT) {
+        /* ESRCH:  The calling process is not managed by launchd(8).
+         * ENOENT: The socket name specified does not exist
+         *          in the caller's launchd.plist(5).
+         */
+        if (port == NULL) {
+            usage();
+            exit(EXIT_FAILURE);
+        }
+        return create_and_bind(addr, port);
+    } else {
+        FATAL("launch_activate_socket() error");
+    }
+    return -1;
+}
+#endif
 
 static void
 free_connections(struct ev_loop *loop)
@@ -1316,7 +1359,10 @@ main(int argc, char **argv)
     }
 
     if (remote_num == 0 || remote_port == NULL ||
-        local_port == NULL || password == NULL) {
+#ifndef HAVE_LAUNCHD
+        local_port == NULL ||
+#endif
+        password == NULL) {
         usage();
         exit(EXIT_FAILURE);
     }
@@ -1415,7 +1461,11 @@ main(int argc, char **argv)
     if (mode != UDP_ONLY) {
         // Setup socket
         int listenfd;
+#ifdef HAVE_LAUNCHD
+        listenfd = launch_or_create(local_addr, local_port);
+#else
         listenfd = create_and_bind(local_addr, local_port);
+#endif
         if (listenfd == -1) {
             FATAL("bind() error");
         }
@@ -1437,6 +1487,11 @@ main(int argc, char **argv)
                       get_sockaddr_len(listen_ctx.remote_addr[0]), mtu, m, auth, listen_ctx.timeout, iface);
     }
 
+#ifdef HAVE_LAUNCHD
+    if (local_port == NULL)
+        LOGI("listening through launchd");
+    else
+#endif
     if (strcmp(local_addr, ":") > 0)
         LOGI("listening at [%s]:%s", local_addr, local_port);
     else
