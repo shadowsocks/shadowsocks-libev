@@ -116,7 +116,7 @@ static int auth      = 0;
 static int ipv6first = 0;
 static int fast_open = 0;
 
-static obfs_para_t *obfs = NULL;
+static obfs_para_t *obfs_para = NULL;
 
 #ifdef HAVE_SETRLIMIT
 static int nofile = 0;
@@ -667,18 +667,17 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     if (server->stage == STAGE_INIT) {
         buf->len += r;
 
-        if (obfs) {
-            int ret = obfs->check_obfs(buf);
+        if (obfs_para) {
+            int ret = obfs_para->check_obfs(buf);
             if (ret == -1) {
                 // wait for more
                 return;
             } else if (ret) {
                 // obfs is enabled
-                if (obfs->deobfs_request(buf, BUF_SIZE, server->obfs))
+                if (obfs_para->deobfs_request(buf, BUF_SIZE, server->obfs))
                     return; // wait for more
             } else {
-                server->obfs->obfs_stage = -1;
-                server->obfs->deobfs_stage = -1;
+                obfs_para->disable(server->obfs);
             }
         }
 
@@ -688,8 +687,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
     } else {
         buf->len = r;
-        if (obfs)
-            obfs->deobfs_request(buf, BUF_SIZE, server->obfs);
+        if (obfs_para)
+            obfs_para->deobfs_request(buf, BUF_SIZE, server->obfs);
     }
 
     int err = ss_decrypt(buf, server->d_ctx, BUF_SIZE);
@@ -1212,8 +1211,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    if (obfs) {
-        obfs->obfs_response(server->buf, BUF_SIZE, server->obfs);
+    if (obfs_para) {
+        obfs_para->obfs_response(server->buf, BUF_SIZE, server->obfs);
     }
 
     int s = send(server->fd, server->buf->data, server->buf->len, 0);
@@ -1420,7 +1419,7 @@ new_server(int fd, listen_ctx_t *listener)
     server->listen_ctx          = listener;
     server->remote              = NULL;
 
-    if (obfs != NULL) {
+    if (obfs_para != NULL) {
         server->obfs = (obfs_t *)ss_malloc(sizeof(obfs_t));
         memset(server->obfs, 0, sizeof(obfs_t));
     }
@@ -1635,7 +1634,7 @@ main(int argc, char **argv)
                 exit(EXIT_SUCCESS);
             } else if (option_index == 5) {
                 if (strcmp(optarg, obfs_http->name) == 0)
-                    obfs = obfs_http;
+                    obfs_para = obfs_http;
                 LOGI("obfuscating enabled");
             } else if (option_index == 6) {
                 mptcp = 1;

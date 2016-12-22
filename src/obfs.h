@@ -41,6 +41,7 @@ typedef struct obfs_para {
     int(*const deobfs_request)(buffer_t *, size_t, obfs_t *);
     int(*const deobfs_response)(buffer_t *, size_t, obfs_t *);
     int(*const check_obfs)(buffer_t *);
+    void(*const disable)(obfs_t *);
 } obfs_para_t;
 
 

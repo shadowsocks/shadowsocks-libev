@@ -98,7 +98,7 @@ static int mode      = TCP_ONLY;
 static int ipv6first = 0;
 static int fast_open = 0;
 
-static obfs_para_t *obfs  = NULL;
+static obfs_para_t *obfs_para  = NULL;
 
 #ifdef HAVE_SETRLIMIT
 #ifndef LIB_ONLY
@@ -270,8 +270,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
 
                 if (!remote->send_ctx->connected) {
-                    if (obfs)
-                        obfs->obfs_request(remote->buf, BUF_SIZE, server->obfs);
+                    if (obfs_para)
+                        obfs_para->obfs_request(remote->buf, BUF_SIZE, server->obfs);
                 }
             }
 
@@ -805,8 +805,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef ANDROID
         rx += server->buf->len;
 #endif
-        if (obfs) {
-            if (obfs->deobfs_response(server->buf, BUF_SIZE, server->obfs)) {
+        if (obfs_para) {
+            if (obfs_para->deobfs_response(server->buf, BUF_SIZE, server->obfs)) {
                 LOGE("invalid obfuscating");
                 close_and_free_remote(EV_A_ remote);
                 close_and_free_server(EV_A_ server);
@@ -992,7 +992,7 @@ new_server(int fd, int method)
     server->recv_ctx->server    = server;
     server->send_ctx->server    = server;
 
-    if (obfs != NULL) {
+    if (obfs_para != NULL) {
         server->obfs = (obfs_t *)ss_malloc(sizeof(obfs_t));
         memset(server->obfs, 0, sizeof(obfs_t));
     }
@@ -1210,7 +1210,7 @@ main(int argc, char **argv)
                 LOGI("enable multipath TCP");
             } else if (option_index == 4) {
                 if (strcmp(optarg, obfs_http->name) == 0)
-                    obfs = obfs_http;
+                    obfs_para = obfs_http;
                 LOGI("obfuscating enabled");
             } else if (option_index == 5) {
                 obfs_arg = optarg;
@@ -1407,9 +1407,9 @@ main(int argc, char **argv)
         LOGI("onetime authentication enabled");
     }
 
-    if (obfs) {
-        obfs->host = obfs_arg;
-        obfs->port = atoi(remote_port);
+    if (obfs_para) {
+        obfs_para->host = obfs_arg;
+        obfs_para->port = atoi(remote_port);
         LOGI("obfuscating arg: %s", obfs_arg);
     }
 
