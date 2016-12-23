@@ -994,7 +994,10 @@ main(int argc, char **argv)
     }
 
     if (obfs_para) {
-        obfs_para->host = obfs_arg;
+        if (obfs_arg != NULL)
+            obfs_para->host = obfs_arg;
+        else
+            obfs_para->host = "www.baidu.com";
         obfs_para->port = atoi(remote_port);
         LOGI("obfuscating arg: %s", obfs_arg);
     }
