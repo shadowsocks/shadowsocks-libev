@@ -669,13 +669,13 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (obfs_para) {
             int ret = obfs_para->check_obfs(buf);
-            if (ret == -1) {
-                // wait for more
+            if (ret == OBFS_NEED_MORE) {
                 return;
             } else if (ret) {
                 // obfs is enabled
-                if (obfs_para->deobfs_request(buf, BUF_SIZE, server->obfs))
-                    return; // wait for more
+                ret = obfs_para->deobfs_request(buf, BUF_SIZE, server->obfs);
+                if (ret == OBFS_NEED_MORE)
+                    return;
             } else {
                 obfs_para->disable(server->obfs);
             }

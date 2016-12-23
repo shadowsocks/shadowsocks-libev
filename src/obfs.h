@@ -25,6 +25,10 @@
 
 #include "encrypt.h"
 
+#define OBFS_OK         0
+#define OBFS_NEED_MORE -1
+#define OBFS_ERROR     -2
+
 typedef struct obfs {
     int obfs_stage;
     int deobfs_stage;
