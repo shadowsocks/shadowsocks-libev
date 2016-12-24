@@ -114,7 +114,7 @@ struct tls_server_hello {
 
     short ec_point_formats_ext_type;
     short ec_point_formats_ext_len;
-    short ec_point_formats_len;
+    char  ec_point_formats_len;
     char  ec_point_formats[1];
 };
 

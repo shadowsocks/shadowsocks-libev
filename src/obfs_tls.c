@@ -33,13 +33,13 @@
 static const struct tls_client_hello
 tls_client_hello_template = {
     .content_type = 0x16,
-    .version = HTONS(0x0301),
+    .version = CT_HTONS(0x0301),
     .len = 0,
 
     .handshake_type = 1,
     .handshake_len_1 = 0,
     .handshake_len_2 = 0,
-    .handshake_version = HTONS(0x0303),
+    .handshake_version = CT_HTONS(0x0303),
 
     .random_unix_time = 0,
     .random_bytes = { 0 },
@@ -47,11 +47,11 @@ tls_client_hello_template = {
     .session_id_len = 32,
     .session_id = { 0 },
 
-    .cipher_suites_len = HTONS(56),
+    .cipher_suites_len = CT_HTONS(56),
     .cipher_suites = { 
-        0xc0, 0x2c, 0xc0, 0x30, 0x00, 0x9f, 0xcc, 0xa9, 0xcc, 0xa8, 0xcc, 0xaa, 0xc0, 0x2b, 0xc0, 0x2f
-        0x00, 0x9e, 0xc0, 0x24, 0xc0, 0x28, 0x00, 0x6b, 0xc0, 0x23, 0xc0, 0x27, 0x00, 0x67, 0xc0, 0x0a
-        0xc0, 0x14, 0x00, 0x39, 0xc0, 0x09, 0xc0, 0x13, 0x00, 0x33, 0x00, 0x9d, 0x00, 0x9c, 0x00, 0x3d
+        0xc0, 0x2c, 0xc0, 0x30, 0x00, 0x9f, 0xcc, 0xa9, 0xcc, 0xa8, 0xcc, 0xaa, 0xc0, 0x2b, 0xc0, 0x2f,
+        0x00, 0x9e, 0xc0, 0x24, 0xc0, 0x28, 0x00, 0x6b, 0xc0, 0x23, 0xc0, 0x27, 0x00, 0x67, 0xc0, 0x0a,
+        0xc0, 0x14, 0x00, 0x39, 0xc0, 0x09, 0xc0, 0x13, 0x00, 0x33, 0x00, 0x9d, 0x00, 0x9c, 0x00, 0x3d,
         0x00, 0x3c, 0x00, 0x35, 0x00, 0x2f, 0x00, 0xff
     },
 
@@ -73,48 +73,48 @@ tls_ext_server_name_template = {
 
 static const struct tls_ext_session_ticket
 tls_ext_session_ticket_template = {
-    .session_ticket_type = HTONS(0x0023),
+    .session_ticket_type = CT_HTONS(0x0023),
     .session_ticket_ext_len = 0,
     // char  session_ticket[session_ticket_ext_len];
 };
 
 static const struct tls_ext_others 
 tls_ext_others_template = {
-    .ec_point_formats_ext_type = HTONS(0x000B)
-    .ec_point_formats_ext_len = HTONS(4);
-    .ec_point_formats_len = 3;
-    .ec_point_formats = { 0x01, 0x00, 0x02 };
+    .ec_point_formats_ext_type = CT_HTONS(0x000B),
+    .ec_point_formats_ext_len = CT_HTONS(4),
+    .ec_point_formats_len = 3,
+    .ec_point_formats = { 0x01, 0x00, 0x02 },
 
-    .elliptic_curves_type = HTONS(0x000a),
-    .elliptic_curves_ext_len = HTONS(10),
-    .elliptic_curves_len = HTONS(8),
+    .elliptic_curves_type = CT_HTONS(0x000a),
+    .elliptic_curves_ext_len = CT_HTONS(10),
+    .elliptic_curves_len = CT_HTONS(8),
     .elliptic_curves = { 0x00, 0x1d, 0x00, 0x17, 0x00, 0x19, 0x00, 0x18 },
 
-    .sig_algos_type = HTONS(0x000d),
-    .sig_algos_ext_len = HTONS(32),
-    .sig_algos_len = HTONS(30),
+    .sig_algos_type = CT_HTONS(0x000d),
+    .sig_algos_ext_len = CT_HTONS(32),
+    .sig_algos_len = CT_HTONS(30),
     .sig_algos = {
         0x06, 0x01, 0x06, 0x02, 0x06, 0x03, 0x05, 0x01, 0x05, 0x02, 0x05, 0x03, 0x04, 0x01, 0x04, 0x02,
         0x04, 0x03, 0x03, 0x01, 0x03, 0x02, 0x03, 0x03, 0x02, 0x01, 0x02, 0x02, 0x02, 0x03
     },
 
-    .encrypt_then_mac_type = HTONS(0x0016),
+    .encrypt_then_mac_type = CT_HTONS(0x0016),
     .encrypt_then_mac_ext_len = 0,
 
-    .extended_master_secret_type = HTONS(0x0017),
+    .extended_master_secret_type = CT_HTONS(0x0017),
     .extended_master_secret_ext_len = 0
 };
 
 static const struct tls_server_hello
 tls_server_hello_template = {
     .content_type = 0x16,
-    .version = HTONS(0x0301),
-    .len = HTONS(91),
+    .version = CT_HTONS(0x0301),
+    .len = CT_HTONS(91),
 
-    .handshake_type = 1,
+    .handshake_type = 2,
     .handshake_len_1 = 0,
-    .handshake_len_2 = HTONS(87),
-    .handshake_version = HTONS(0x0303),
+    .handshake_len_2 = CT_HTONS(87),
+    .handshake_version = CT_HTONS(0x0303),
 
     .random_unix_time = 0,
     .random_bytes = { 0 },
@@ -122,54 +122,57 @@ tls_server_hello_template = {
     .session_id_len = 32,
     .session_id = { 0 },
 
-    .cipher_suite = HTONS(0xCCA8),
+    .cipher_suite = CT_HTONS(0xCCA8),
     .comp_method = 0,
     .ext_len = 0,
 
-    .ext_renego_info_type = HTONS(0xFF01),
-    .ext_renego_info_ext_len = HTONS(1),
-    .ext_renego_info_len = HTONS(15),
+    .ext_renego_info_type = CT_HTONS(0xFF01),
+    .ext_renego_info_ext_len = CT_HTONS(1),
+    .ext_renego_info_len = 0,
 
-    .extended_master_secret_type = HTONS(0x0017),
+    .extended_master_secret_type = CT_HTONS(0x0017),
     .extended_master_secret_ext_len = 0,
 
-    .ec_point_formats_ext_type = HTONS(0x000B),
-    .ec_point_formats_ext_len = HTONS(2),
-    .ec_point_formats_len = HTONS(1),
+    .ec_point_formats_ext_type = CT_HTONS(0x000B),
+    .ec_point_formats_ext_len = CT_HTONS(2),
+    .ec_point_formats_len = 1,
     .ec_point_formats = { 0 }
 };
 
 static const struct tls_change_cipher_spec 
 tls_change_cipher_spec_template = {
     .content_type = 0x14,
-    .version = HTONS(0x0303),
-    .len = HTONS(1),
+    .version = CT_HTONS(0x0303),
+    .len = CT_HTONS(1),
     .msg = 0x01
 };
 
 static const struct tls_encrypted_handshake
 tls_encrypted_handshake_template = {
     .content_type = 0x16,
-    .version = HTONS(0x0303),
+    .version = CT_HTONS(0x0303),
     .len = 0
     // char  msg[len];
 };
 
 static int obfs_tls_request(buffer_t *, size_t, obfs_t *);
 static int obfs_tls_response(buffer_t *, size_t, obfs_t *);
-static int deobfs_tls_header(buffer_t *, size_t, obfs_t *);
-static int check_tls_header(buffer_t *buf);
-static void disable_tls_header(obfs_t *obfs);
+static int deobfs_tls_request(buffer_t *, size_t, obfs_t *);
+static int deobfs_tls_response(buffer_t *, size_t, obfs_t *);
+static int check_tls_request(buffer_t *buf);
+static void disable_tls(obfs_t *obfs);
+static int is_enable_tls(obfs_t *obfs);
 
 static obfs_para_t obfs_tls_st = {
     .name            = "tls",
     .port            = 443,
     .obfs_request    = &obfs_tls_request,
     .obfs_response   = &obfs_tls_response,
-    .deobfs_request  = &deobfs_tls_header,
-    .deobfs_response = &deobfs_tls_header,
-    .check_obfs      = &check_tls_header,
-    .disable         = &disable_tls_header
+    .deobfs_request  = &deobfs_tls_request,
+    .deobfs_response = &deobfs_tls_response,
+    .check_obfs      = &check_tls_request,
+    .disable         = &disable_tls,
+    .is_enable       = &is_enable_tls
 };
 
 obfs_para_t *const obfs_tls = &obfs_tls_st;
@@ -178,84 +181,55 @@ static int
 obfs_tls_request(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
 
-    if (obfs == NULL || obfs->obfs_stage < 0
-            || obfs->obfs_stage > 1) return 0;
+    if (obfs == NULL || obfs->obfs_stage != 0) return 0;
 
     static buffer_t tmp = { 0, 0, 0, NULL };
 
-    if (obfs->obfs_stage == 0) {
+    size_t buf_len = buf->len;
+    size_t hello_len = sizeof(struct tls_client_hello);
+    size_t server_name_len = sizeof(struct tls_ext_server_name);
+    size_t host_len = strlen(obfs_tls->host);
+    size_t ticket_len = sizeof(struct tls_ext_session_ticket);
+    size_t other_ext_len = sizeof(struct tls_ext_others);
+    size_t tls_len = buf_len + hello_len + server_name_len
+        + host_len + ticket_len + other_ext_len;
 
-        size_t buf_len = buf->len;
-        size_t hello_len = sizeof(struct tls_client_hello);
-        size_t server_name_len = sizeof(struct tls_ext_server_name);
-        size_t host_len = strlen(obfs_tls->host);
-        size_t ticket_len = sizeof(struct tls_ext_session_ticket)
-        size_t other_ext_len = sizeof(struct tls_ext_others);
-        size_t tls_len = buf_len + hello_len + server_name_len
-            + host_len + ticket_len + other_ext_len;
+    brealloc(&tmp, buf_len, cap);
+    brealloc(buf,  tls_len, cap);
 
-        brealloc(&tmp, buf_len, cap);
-        brealloc(buf,  tls_len, cap);
+    memcpy(tmp.data, buf->data, buf_len);
 
-        memcpy(tmp.data, buf->data, buf_len);
+    /* Client Hello Header */
+    struct tls_client_hello *hello = (struct tls_client_hello *) buf->data;
+    memcpy(hello, &tls_client_hello_template, hello_len);
+    hello->len = CT_HTONS(tls_len - 5);
+    hello->handshake_len_2 = CT_HTONS(tls_len - 9); 
+    hello->random_unix_time = CT_HTONL((uint32_t)time(NULL));
+    rand_bytes(hello->random_bytes, 28);
+    rand_bytes(hello->session_id, 32);
+    hello->ext_len = CT_HTONS(server_name_len + host_len + ticket_len + buf_len + other_ext_len);
 
-        /* Client Hello Header */
-        struct tls_client_hello *hello = (struct *tls_client_hello) buf->data;
-        mempcy(hello, &tls_client_hello_template, hello_len);
-        hello->len = HTONS(tls_len - 5);
-        hello->handshake_len_2 = HTONS(tls_len - 9); 
-        hello->random_unix_time = HTONL((uint32_t)time(NULL));
-        rand_bytes(hello->random_bytes, 28);
-        rand_bytes(hello->session_id, 32);
-        hello->ext_len = HTONS(server_name_len + host_len + ticket_len + buf_len + other_ext_len);
+    /* Session Ticket */
+    struct tls_ext_session_ticket *ticket =
+        (struct tls_ext_session_ticket *)((char *)hello + hello_len);
+    memcpy(ticket, &tls_ext_session_ticket_template, sizeof(struct tls_ext_session_ticket));
+    ticket->session_ticket_ext_len = CT_HTONS(buf_len);
+    memcpy((char *)ticket + ticket_len, tmp.data, buf_len);
 
-        /* Session Ticket */
-        struct tls_ext_session_ticket *ticket =
-            (struct tls_ext_session_ticket *)((char *)hello + hello_len);
-        memcpy(ticket, &tls_ext_session_ticket_template);
-        ticket->session_ticket_ext_len = HTONS(buf_len);
-        memcpy((char *)ticket + ticket_len, tmp.data, buf_len);
+    /* SNI */
+    struct tls_ext_server_name *server_name = 
+        (struct tls_ext_server_name *)((char *)ticket + ticket_len + buf_len);
+    memcpy(server_name, &tls_ext_server_name_template, server_name_len);
+    server_name->ext_len = CT_HTONS(host_len + 3 + 2);
+    server_name->server_name_list_len = CT_HTONS(host_len + 3);
+    server_name->server_name_len = CT_HTONS(host_len);
+    memcpy((char *)server_name + server_name_len, obfs_tls->host, host_len);
 
-        /* SNI */
-        struct tls_ext_server_name *server_name = 
-            (struct tls_ext_server_name *)((char *)ticket + ticket_len + buf_len);
-        memcpy(server_name, &tls_ext_server_name_template, server_name_len);
-        server_name->ext_len = HTONS(host_len + 3 + 2);
-        server_name->server_name_list_len = HTONS(host_len + 3);
-        server_name->server_name_len = HTONS(host_len);
-        memcpy((char *)server_name + server_name_len, obfs_tls->host, host_len);
+    /* Other Extensions */
+    memcpy((char *)server_name + server_name_len + host_len, &tls_ext_others_template,
+            other_ext_len);
 
-        /* Other Extensions */
-        memcpy((char *)server_name + server_name_len + host_len, &tls_ext_others_template,
-                other_ext_len);
-
-        buf->len = tls_len;
-
-    } else if (obfs->obfs_stage == 1) {
-
-        if ()
-
-        size_t buf_len = buf->len;
-        size_t change_cipher_spec_len = sizeof(struct tls_change_cipher_spec);
-        size_t encrypted_handshake_len = sizeof(struct tls_encrypted_handshake);
-
-        brealloc(&tmp, buf_len, cap);
-        brealloc(buf,  buf_len + change_cipher_spec_len + encrypted_handshake_len, cap);
-
-        memcpy(tmp.data, buf->data, buf_len);
-
-        memcpy(buf->data, &tls_change_cipher_spec_template, change_cipher_spec_len);
-        memcpy(buf->data + change_cipher_spec_len, &tls_encrypted_handshake_template,
-                encrypted_handshake_len);
-        memcpy(buf->data + change_cipher_spec_len + encrypted_handshake_len,
-                tmp.data, buf_len);
-
-        struct tls_encrypted_handshake *encrypted_handshake =
-            (struct tls_encrypted_handshake *)(buf->data + change_cipher_spec_len);
-        encrypted_handshake->len = HTONS(buf_len);
-
-        buf->len = buf_len + change_cipher_spec_len + encrypted_handshake_len;
-    }
+    buf->len = tls_len;
 
     obfs->obfs_stage++;
 
@@ -266,6 +240,8 @@ static int
 obfs_tls_response(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
     if (obfs == NULL || obfs->obfs_stage != 0) return 0;
+
+    static buffer_t tmp = { 0, 0, 0, NULL };
 
     size_t buf_len = buf->len;
     size_t hello_len = sizeof(struct tls_server_hello);
@@ -281,7 +257,7 @@ obfs_tls_response(buffer_t *buf, size_t cap, obfs_t *obfs)
     /* Server Hello */
     memcpy(buf->data, &tls_server_hello_template, hello_len);
     struct tls_server_hello *hello = (struct tls_server_hello *)buf->data;
-    hello->random_unix_time = HTONL((uint32_t)time(NULL));
+    hello->random_unix_time = CT_HTONL((uint32_t)time(NULL));
     rand_bytes(hello->random_bytes, 28);
     if (obfs->buf != NULL) {
         memcpy(hello->session_id, obfs->buf->data, obfs->buf->len);
@@ -300,7 +276,7 @@ obfs_tls_response(buffer_t *buf, size_t cap, obfs_t *obfs)
 
     struct tls_encrypted_handshake *encrypted_handshake =
         (struct tls_encrypted_handshake *)(buf->data + hello_len + change_cipher_spec_len);
-    encrypted_handshake->len = HTONS(buf_len);
+    encrypted_handshake->len = CT_HTONS(buf_len);
 
     buf->len = tls_len;
 
@@ -312,109 +288,112 @@ obfs_tls_response(buffer_t *buf, size_t cap, obfs_t *obfs)
 static int
 deobfs_tls_request(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
-    if (obfs == NULL || obfs->deobfs_stage < 0
-            || obfs->deobfs_stage > 1) return 0;
+    if (obfs == NULL || obfs->deobfs_stage != 0) return 0;
 
-    char *data = buf->data;
     int len    = buf->len;
 
-    if (obfs->deobfs_stage == 0) {
+    len -= sizeof(struct tls_client_hello);
+    if (len <= 0) return OBFS_NEED_MORE;
 
-        len -= sizeof(struct tls_client_hello);
-        if (obfs <= 0) return OBFS_NEED_MORE;
+    struct tls_client_hello *hello = (struct tls_client_hello *) buf->data;
+    if (hello->content_type != tls_client_hello_template.content_type)
+        return OBFS_ERROR;
 
-        struct tls_client_hello *hello = (struct tls_client_hello *) data;
-        if (hello->content_type != tls_client_hello_template.content_type)
-            return OBFS_ERROR;
+    size_t hello_len = CT_NTOHS(hello->len) + 5;
 
-        if (obfs->buf == NULL) {
-            obfs->buf = (buffer_t *)malloc(sizeof(buffer_t));
-        }
-
-        brealloc(obfs->buf, 32, 32);
-        memcpy(obfs->buf, hello->session_id, 32);
-
-        len -= sizeof(struct tls_ext_session_ticket);
-        if (obfs <= 0) return OBFS_NEED_MORE;
-
-        struct tls_ext_session_ticket *ticket = 
-            (struct tls_ext_session_ticket *)(data + sizeof(struct tls_client_hello));
-        if (ticket->session_ticket_type != tls_ext_session_ticket_template.session_ticket_type)
-            return OBFS_ERROR;
-
-        size_t ticket_len = NTOHS(ticket->session_ticket_ext_len);
-        if (len < ticket_len)
-            return OBFS_NEED_MORE;
-
-        memmove(buf->data, ticket + sizeof(tls_ext_session_ticket), ticket_len);
-
-        buf->len = ticket_len;
-
-    } else if (obfs->deobfs_stage == 1) {
-
-        size_t change_cipher_spec_len = sizeof(struct tls_change_cipher_spec);
-        size_t encrypted_handshake_len = sizeof(struct tls_encrypted_handshake);
-
-        len -= change_cipher_spec_len + encrypted_handshake_len;
-        if (len <= 0) return OBFS_NEED_MORE;
-
-        struct tls_encrypted_handshake *encrypted_handshake =
-            (struct tls_encrypted_handshake *)(buf->data + change_cipher_spec_len + encrypted_handshake_len);
-
-        size_t msg_len = NTOHS(encrypted_handshake->len);
-        if (len <= msg_len) return OBFS_NEED_MORE;
-
-        encrypted_handshake->len = HTONS(buf_len);
-
-
-
+    if (obfs->buf == NULL) {
+        obfs->buf = (buffer_t *)ss_malloc(sizeof(buffer_t));
+        obfs->buf->len = 32;
+        balloc(obfs->buf, 32);
     }
 
-    
+    memcpy(obfs->buf->data, hello->session_id, 32);
 
+    len -= sizeof(struct tls_ext_session_ticket);
+    if (len <= 0) return OBFS_NEED_MORE;
 
+    struct tls_ext_session_ticket *ticket = 
+        (struct tls_ext_session_ticket *)(buf->data + sizeof(struct tls_client_hello));
+    if (ticket->session_ticket_type != tls_ext_session_ticket_template.session_ticket_type)
+        return OBFS_ERROR;
 
-    while (len > 0) {
-        if (data[0] == '\r' && data[1] == '\n'
-            && data[2] == '\r' && data[3] == '\n') {
-            len  -= 4;
-            data += 4;
-            err   = 0;
-            break;
-        }
-        len--;
-        data++;
+    size_t ticket_len = CT_NTOHS(ticket->session_ticket_ext_len);
+    if (len < ticket_len)
+        return OBFS_NEED_MORE;
+
+    memmove(buf->data, (char *)ticket + sizeof(struct tls_ext_session_ticket), ticket_len);
+
+    if (buf->len > hello_len) {
+        memmove(buf->data + ticket_len, buf->data + hello_len, buf->len - hello_len);
     }
 
-    if (!err) {
-        memmove(buf->data, data, len);
-        buf->len = len;
-        obfs->deobfs_stage++;
-    }
+    buf->len = ticket_len + buf->len - hello_len;
+
+    obfs->deobfs_stage++;
 
     return 0;
 }
 
 static int
-check_tls_header(buffer_t *buf)
+deobfs_tls_response(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
+    if (obfs == NULL || obfs->deobfs_stage != 0) return 0;
+
+    size_t hello_len = sizeof(struct tls_server_hello);
+
     char *data = buf->data;
     int len    = buf->len;
 
-    if (len < 4)
-        return -1;
+    len -= hello_len;
+    if (len <= 0) return OBFS_NEED_MORE;
 
-    if (strncasecmp(data, "GET", 3) == 0)
-        return 1;
-    else if (strncasecmp(data, "HTTP", 4) == 0)
-        return 1;
+    struct tls_server_hello *hello = (struct tls_server_hello*) data;
+    if (hello->content_type != tls_server_hello_template.content_type)
+        return OBFS_ERROR;
+
+    size_t change_cipher_spec_len = sizeof(struct tls_change_cipher_spec);
+    size_t encrypted_handshake_len = sizeof(struct tls_encrypted_handshake);
+
+    len -= change_cipher_spec_len + encrypted_handshake_len;
+    if (obfs <= 0) return OBFS_NEED_MORE;
+
+    size_t tls_len = hello_len + change_cipher_spec_len + encrypted_handshake_len;
+
+    memmove(buf->data, buf->data + tls_len, buf->len - tls_len);
+
+    buf->len = buf->len - tls_len;
+
+    obfs->deobfs_stage++;
 
     return 0;
 }
 
+static int
+check_tls_request(buffer_t *buf)
+{
+    char *data = buf->data;
+    int len    = buf->len;
+
+    if (len < 11)
+        return -1;
+
+    return data[0] == 0x16
+        && data[1] == 0x03
+        && data[2] == 0x01
+        && data[5] == 0x01
+        && data[9] == 0x03
+        && data[10] == 0x03;
+}
+
 static void
-disable_tls_header(obfs_t *obfs)
+disable_tls(obfs_t *obfs)
 {
     obfs->obfs_stage = -1;
     obfs->deobfs_stage = -1;
+}
+
+static int
+is_enable_tls(obfs_t *obfs)
+{
+    return obfs->obfs_stage == 0 && obfs->deobfs_stage == 0;
 }

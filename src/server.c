@@ -62,6 +62,7 @@
 #include "utils.h"
 #include "acl.h"
 #include "obfs_http.h"
+#include "obfs_tls.h"
 #include "server.h"
 
 #ifndef EAGAIN
@@ -667,7 +668,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     if (server->stage == STAGE_INIT) {
         buf->len += r;
 
-        if (obfs_para) {
+        if (obfs_para && obfs_para->is_enable(server->obfs)) {
             int ret = obfs_para->check_obfs(buf);
             if (ret == OBFS_NEED_MORE) {
                 return;
@@ -1635,6 +1636,8 @@ main(int argc, char **argv)
             } else if (option_index == 5) {
                 if (strcmp(optarg, obfs_http->name) == 0)
                     obfs_para = obfs_http;
+                else if (strcmp(optarg, obfs_tls->name) == 0)
+                    obfs_para = obfs_tls;
                 LOGI("obfuscating enabled");
             } else if (option_index == 6) {
                 mptcp = 1;

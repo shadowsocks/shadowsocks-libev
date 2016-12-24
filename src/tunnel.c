@@ -58,6 +58,7 @@
 #include "netutils.h"
 #include "utils.h"
 #include "obfs_http.h"
+#include "obfs_tls.h"
 #include "tunnel.h"
 
 #ifndef EAGAIN
@@ -801,6 +802,8 @@ main(int argc, char **argv)
             } else if (option_index == 2) {
                 if (strcmp(optarg, obfs_http->name) == 0)
                     obfs_para = obfs_http;
+                else if (strcmp(optarg, obfs_tls->name) == 0)
+                    obfs_para = obfs_tls;
                 LOGI("obfuscating enabled");
             } else if (option_index == 3) {
                 obfs_arg = optarg;

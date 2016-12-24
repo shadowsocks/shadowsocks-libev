@@ -52,7 +52,8 @@ static int obfs_http_request(buffer_t *, size_t, obfs_t *);
 static int obfs_http_response(buffer_t *, size_t, obfs_t *);
 static int deobfs_http_header(buffer_t *, size_t, obfs_t *);
 static int check_http_header(buffer_t *buf);
-static void disable_http_header(obfs_t *obfs);
+static void disable_http(obfs_t *obfs);
+static int is_enable_http(obfs_t *obfs);
 
 static obfs_para_t obfs_http_st = {
     .name            = "http",
@@ -62,7 +63,8 @@ static obfs_para_t obfs_http_st = {
     .deobfs_request  = &deobfs_http_header,
     .deobfs_response = &deobfs_http_header,
     .check_obfs      = &check_http_header,
-    .disable         = &disable_http_header
+    .disable         = &disable_http,
+    .is_enable       = &is_enable_http
 };
 
 obfs_para_t *const obfs_http = &obfs_http_st;
@@ -198,8 +200,14 @@ check_http_header(buffer_t *buf)
 }
 
 static void
-disable_http_header(obfs_t *obfs)
+disable_http(obfs_t *obfs)
 {
     obfs->obfs_stage = -1;
     obfs->deobfs_stage = -1;
+}
+
+static int
+is_enable_http(obfs_t *obfs)
+{
+    return obfs->obfs_stage == 0 && obfs->deobfs_stage == 0;
 }
