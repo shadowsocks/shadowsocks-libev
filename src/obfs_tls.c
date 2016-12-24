@@ -303,8 +303,8 @@ deobfs_tls_request(buffer_t *buf, size_t cap, obfs_t *obfs)
 
     if (obfs->buf == NULL) {
         obfs->buf = (buffer_t *)ss_malloc(sizeof(buffer_t));
-        obfs->buf->len = 32;
         balloc(obfs->buf, 32);
+        obfs->buf->len = 32;
     }
 
     memcpy(obfs->buf->data, hello->session_id, 32);
