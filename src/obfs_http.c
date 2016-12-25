@@ -25,6 +25,7 @@
 #endif
 
 #include <strings.h>
+#include <time.h>
 
 #include "base64.h"
 #include "utils.h"
