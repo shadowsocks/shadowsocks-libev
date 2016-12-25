@@ -688,8 +688,10 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
     } else {
         buf->len = r;
-        if (obfs_para)
-            obfs_para->deobfs_request(buf, BUF_SIZE, server->obfs);
+        if (obfs_para) {
+            int ret = obfs_para->deobfs_request(buf, BUF_SIZE, server->obfs);
+            if (ret) LOGE("invalid obfuscating");
+        }
     }
 
     int err = ss_decrypt(buf, server->d_ctx, BUF_SIZE);
@@ -1460,6 +1462,8 @@ free_server(server_t *server)
 
     if (server->obfs != NULL) {
         bfree(server->obfs->buf);
+        if (server->obfs->extra != NULL)
+            ss_free(server->obfs->extra);
         ss_free(server->obfs);
     }
     if (server->chunk != NULL) {

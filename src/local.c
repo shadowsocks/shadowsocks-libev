@@ -1021,6 +1021,8 @@ free_server(server_t *server)
 
     if (server->obfs != NULL) {
         bfree(server->obfs->buf);
+        if (server->obfs->extra != NULL)
+            ss_free(server->obfs->extra);
         ss_free(server->obfs);
     }
     if (server->remote != NULL) {

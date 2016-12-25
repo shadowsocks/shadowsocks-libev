@@ -132,6 +132,12 @@ struct tls_encrypted_handshake {
     // char  msg[len];
 };
 
+typedef struct frame {
+    short idx;
+    short len;
+    char  buf[2];
+} frame_t;
+
 #pragma pack(pop)
 
 obfs_para_t *const obfs_tls;

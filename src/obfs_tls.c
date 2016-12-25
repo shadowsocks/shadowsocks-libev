@@ -202,36 +202,39 @@ deobfs_app_data(buffer_t *buf, size_t idx, obfs_t *obfs)
 {
     int bidx = idx, bofst = idx;
 
+    frame_t *frame = (frame_t *)obfs->extra;
+
     while (bidx < buf->len) {
-        if (obfs->chunk_len == 0) {
-            if (obfs->chunk_idx < 3) {
-                if (obfs->chunk_idx > 0
-                        && buf->data[bidx] != tls_data_header[obfs->chunk_idx])
-                    return OBFS_ERROR;
-                if (obfs->chunk_idx < 0)
-                    bofst++;
-                obfs->chunk_idx++;
-                bidx++;
-                continue;
+        if (frame->len == 0) {
+            if (frame->idx >= 0 && frame->idx < 3
+                    && buf->data[bidx] != tls_data_header[frame->idx]) {
+                return OBFS_ERROR;
+            } else if (frame->idx >= 3 && frame->idx < 5) {
+                memcpy(frame->buf + frame->idx - 3, buf->data + bidx, 1);
+            } else if (frame->idx < 0) {
+                bofst++;
             }
-            if (bidx + 1 >= buf->len) LOGE("out of index");
-            obfs->chunk_len = CT_NTOHS(*(uint16_t *)(buf->data + bidx));
-            obfs->chunk_idx = 0;
-            bidx += 2;
+            frame->idx++;
+            bidx++;
+            if (frame->idx == 5) {
+                frame->len = CT_NTOHS(*(uint16_t *)(frame->buf));
+                frame->idx = 0;
+            }
+            continue;
         }
 
         int left_len = buf->len - bidx;
 
-        if (left_len > obfs->chunk_len) {
-            memmove(buf->data + bofst, buf->data + bidx, obfs->chunk_len);
-            bidx  += obfs->chunk_len;
-            bofst += obfs->chunk_len;
-            obfs->chunk_len = 0;
+        if (left_len > frame->len) {
+            memmove(buf->data + bofst, buf->data + bidx, frame->len);
+            bidx  += frame->len;
+            bofst += frame->len;
+            frame->len = 0;
         } else {
             memmove(buf->data + bofst, buf->data + bidx, left_len);
             bidx  = buf->len;
             bofst += left_len;
-            obfs->chunk_len -= left_len;
+            frame->len -= left_len;
         }
     }
 
@@ -370,13 +373,17 @@ deobfs_tls_request(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
     if (obfs == NULL || obfs->deobfs_stage < 0) return 0;
 
+    if (obfs->extra == NULL) {
+        obfs->extra = ss_malloc(sizeof(frame_t));
+    }
+
     if (obfs->buf == NULL) {
         obfs->buf = (buffer_t *)ss_malloc(sizeof(buffer_t));
         balloc(obfs->buf, 32);
         obfs->buf->len = 32;
     }
 
-    if (obfs->obfs_stage == 0) {
+    if (obfs->deobfs_stage == 0) {
 
         int len = buf->len;
 
@@ -416,7 +423,7 @@ deobfs_tls_request(buffer_t *buf, size_t cap, obfs_t *obfs)
         if (buf->len > ticket_len) {
             return deobfs_app_data(buf, ticket_len, obfs);
         } else {
-            obfs->chunk_idx = buf->len - ticket_len;
+            ((frame_t*)obfs->extra)->idx = buf->len - ticket_len;
         }
 
     } else if (obfs->deobfs_stage == 1) {
@@ -432,6 +439,10 @@ static int
 deobfs_tls_response(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
     if (obfs == NULL || obfs->deobfs_stage < 0) return 0;
+
+    if (obfs->extra == NULL) {
+        obfs->extra = ss_malloc(sizeof(frame_t));
+    }
 
     if (obfs->deobfs_stage == 0) {
 
@@ -467,7 +478,7 @@ deobfs_tls_response(buffer_t *buf, size_t cap, obfs_t *obfs)
         if (buf->len > msg_len) {
             return deobfs_app_data(buf, msg_len, obfs);
         } else {
-            obfs->chunk_idx = buf->len - msg_len;
+            ((frame_t*)obfs->extra)->idx = buf->len - msg_len;
         }
 
     } else if (obfs->deobfs_stage == 1) {
