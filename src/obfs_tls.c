@@ -375,6 +375,7 @@ deobfs_tls_request(buffer_t *buf, size_t cap, obfs_t *obfs)
 
     if (obfs->extra == NULL) {
         obfs->extra = ss_malloc(sizeof(frame_t));
+        memset(obfs->extra, 0, sizeof(frame_t));
     }
 
     if (obfs->buf == NULL) {
@@ -442,6 +443,7 @@ deobfs_tls_response(buffer_t *buf, size_t cap, obfs_t *obfs)
 
     if (obfs->extra == NULL) {
         obfs->extra = ss_malloc(sizeof(frame_t));
+        memset(obfs->extra, 0, sizeof(frame_t));
     }
 
     if (obfs->deobfs_stage == 0) {
