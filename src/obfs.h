@@ -32,6 +32,8 @@
 typedef struct obfs {
     int obfs_stage;
     int deobfs_stage;
+    int chunk_idx;
+    int chunk_len;
     buffer_t *buf;
 } obfs_t;
 

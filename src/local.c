@@ -270,10 +270,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     return;
                 }
 
-                if (!remote->send_ctx->connected) {
-                    if (obfs_para)
-                        obfs_para->obfs_request(remote->buf, BUF_SIZE, server->obfs);
-                }
+                if (obfs_para)
+                    obfs_para->obfs_request(remote->buf, BUF_SIZE, server->obfs);
             }
 
             if (!remote->send_ctx->connected) {
