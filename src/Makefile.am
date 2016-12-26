@@ -31,6 +31,7 @@ sni_src = http.c \
           rule.c
 
 obfs_src = obfs_http.c \
+		   obfs_tls.c \
 		   base64.c
 
 ss_local_SOURCES = utils.c \

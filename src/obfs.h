@@ -25,10 +25,15 @@
 
 #include "encrypt.h"
 
+#define OBFS_OK         0
+#define OBFS_NEED_MORE -1
+#define OBFS_ERROR     -2
+
 typedef struct obfs {
     int obfs_stage;
     int deobfs_stage;
     buffer_t *buf;
+    void *extra;
 } obfs_t;
 
 typedef struct obfs_para {
@@ -41,6 +46,8 @@ typedef struct obfs_para {
     int(*const deobfs_request)(buffer_t *, size_t, obfs_t *);
     int(*const deobfs_response)(buffer_t *, size_t, obfs_t *);
     int(*const check_obfs)(buffer_t *);
+    void(*const disable)(obfs_t *);
+    int(*const is_enable)(obfs_t *);
 } obfs_para_t;
 
 

@@ -51,6 +51,7 @@
 #include "http.h"
 #include "tls.h"
 #include "obfs_http.h"
+#include "obfs_tls.h"
 #include "netutils.h"
 #include "utils.h"
 #include "common.h"
@@ -96,7 +97,7 @@ static int auth      = 0;
 static int nofile    = 0;
 #endif
 
-static obfs_para_t *obfs = NULL;
+static obfs_para_t *obfs_para = NULL;
 
 int
 getdestaddr(int fd, struct sockaddr_storage *destaddr)
@@ -266,8 +267,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    if (obfs) {
-        obfs->obfs_request(remote->buf, BUF_SIZE, server->obfs);
+    if (obfs_para) {
+        obfs_para->obfs_request(remote->buf, BUF_SIZE, server->obfs);
     }
 
     int s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
@@ -380,8 +381,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     server->buf->len = r;
 
-    if (obfs) {
-        if (obfs->deobfs_response(server->buf, BUF_SIZE, server->obfs)) {
+    if (obfs_para) {
+        if (obfs_para->deobfs_response(server->buf, BUF_SIZE, server->obfs)) {
             LOGE("invalid obfuscating");
             close_and_free_remote(EV_A_ remote);
             close_and_free_server(EV_A_ server);
@@ -502,8 +503,8 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 return;
             }
 
-            if (obfs) {
-                obfs->obfs_request(remote->buf, BUF_SIZE, server->obfs);
+            if (obfs_para) {
+                obfs_para->obfs_request(remote->buf, BUF_SIZE, server->obfs);
             }
 
             ev_io_start(EV_A_ & remote->recv_ctx->io);
@@ -625,7 +626,7 @@ new_server(int fd, int method)
     server->hostname     = NULL;
     server->hostname_len = 0;
 
-    if (obfs != NULL) {
+    if (obfs_para != NULL) {
         server->obfs = (obfs_t *)ss_malloc(sizeof(obfs_t));
         memset(server->obfs, 0, sizeof(obfs_t));
     }
@@ -651,6 +652,8 @@ free_server(server_t *server)
 {
     if (server->obfs != NULL) {
         bfree(server->obfs->buf);
+        if (server->obfs->extra != NULL)
+            ss_free(server->obfs->extra);
         ss_free(server->obfs);
     }
     if (server->hostname != NULL) {
@@ -828,7 +831,9 @@ main(int argc, char **argv)
                 LOGI("enable multipath TCP");
             } else if (option_index == 2) {
                 if (strcmp(optarg, obfs_http->name) == 0)
-                    obfs = obfs_http;
+                    obfs_para = obfs_http;
+                else if (strcmp(optarg, obfs_tls->name) == 0)
+                    obfs_para = obfs_tls;
                 LOGI("obfuscating enabled");
             } else if (option_index == 3) {
                 obfs_arg = optarg;
@@ -1001,9 +1006,12 @@ main(int argc, char **argv)
         LOGI("onetime authentication enabled");
     }
 
-    if (obfs) {
-        obfs->host = obfs_arg;
-        obfs->port = atoi(remote_port);
+    if (obfs_para) {
+        if (obfs_arg != NULL)
+            obfs_para->host = obfs_arg;
+        else
+            obfs_para->host = "cloudfront.net";
+        obfs_para->port = atoi(remote_port);
         LOGI("obfuscating arg: %s", obfs_arg);
     }
 
