@@ -367,6 +367,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
             ERROR("send");
             close_and_free_remote(EV_A_ remote);
             close_and_free_server(EV_A_ server);
+            return;
         }
     } else if (s < server->buf->len) {
         server->buf->len -= s;
@@ -375,10 +376,13 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         ev_io_start(EV_A_ & server->send_ctx->io);
     }
 
-    // Disable TCP_NODELAY after the first response are sent
-    int opt = 0;
-    setsockopt(server->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
-    setsockopt(remote->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
+    if (!remote->recv_ctx->connected) {
+        // Disable TCP_NODELAY after the first response are sent
+        int opt = 0;
+        setsockopt(server->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
+        setsockopt(remote->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
+        remote->recv_ctx->connected = 1;
+    }
 }
 
 static void
