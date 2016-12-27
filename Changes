@@ -1,3 +1,10 @@
+shadowsocks-libev (2.6.0-1) unstable; urgency=medium
+
+  * Add HTTP/TLS obfuscating.
+  * Add support of aunch_activate_socket on macOS.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 27 Dec 2016 16:37:23 +0800
+
 shadowsocks-libev (2.5.6-1) unstable; urgency=medium
 
   * Add outbound ACL for server.
