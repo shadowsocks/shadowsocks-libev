@@ -1755,6 +1755,12 @@ main(int argc, char **argv)
         if (user == NULL) {
             user = conf->user;
         }
+        if (obfs_para == NULL && conf->obfs != NULL) {
+            if (strcmp(conf->obfs, obfs_http->name) == 0)
+                obfs_para = obfs_http;
+            else if (strcmp(conf->obfs, obfs_tls->name) == 0)
+                obfs_para = obfs_tls;
+        }
         if (auth == 0) {
             auth = conf->auth;
         }

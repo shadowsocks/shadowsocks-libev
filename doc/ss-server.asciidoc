@@ -130,6 +130,9 @@ Enable Multipath TCP.
 +
 Only available with MPTCP enabled Linux kernel.
 
+--obfs <http|tls>::
+Enable HTTP or TLS obfuscating. (Experimental)
+
 -v::
 Enable verbose mode.
 

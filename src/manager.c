@@ -172,6 +172,10 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --mtu %d", manager->mtu);
     }
+    if (manager->obfs) {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " --obfs %s", manager->obfs);
+    }
     for (i = 0; i < manager->nameserver_num; i++) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -d %s", manager->nameservers[i]);
@@ -611,6 +615,7 @@ main(int argc, char **argv)
     char *conf_path       = NULL;
     char *iface           = NULL;
     char *manager_address = NULL;
+    char *obfs            = NULL;
 
     int auth      = 0;
     int fast_open = 0;
@@ -636,6 +641,7 @@ main(int argc, char **argv)
         { "manager-address", required_argument, 0, 0 },
         { "executable",      required_argument, 0, 0 },
         { "mtu",             required_argument, 0, 0 },
+        { "obfs",            required_argument, 0, 0 },
         { "help",            no_argument,       0, 0 },
         {                 0,                 0, 0, 0 }
     };
@@ -658,8 +664,9 @@ main(int argc, char **argv)
                 executable = optarg;
             } else if (option_index == 4) {
                 mtu = atoi(optarg);
-                LOGI("set MTU to %d", mtu);
             } else if (option_index == 5) {
+                obfs = optarg;
+            } else if (option_index == 6) {
                 usage();
                 exit(EXIT_SUCCESS);
             }
@@ -764,6 +771,9 @@ main(int argc, char **argv)
         if (mtu == 0) {
             mtu = conf->mtu;
         }
+        if (obfs == 0) {
+            obfs = conf->obfs;
+        }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;
@@ -840,6 +850,7 @@ main(int argc, char **argv)
     manager.nameservers     = nameservers;
     manager.nameserver_num  = nameserver_num;
     manager.mtu             = mtu;
+    manager.obfs            = obfs;
 #ifdef HAVE_SETRLIMIT
     manager.nofile = nofile;
 #endif

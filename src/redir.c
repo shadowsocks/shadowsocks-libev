@@ -803,7 +803,7 @@ main(int argc, char **argv)
     char *method     = NULL;
     char *pid_path   = NULL;
     char *conf_path  = NULL;
-    char *obfs_arg   = NULL;
+    char *obfs_host   = NULL;
 
     int remote_num = 0;
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
@@ -814,7 +814,7 @@ main(int argc, char **argv)
         { "mtu",       required_argument, 0, 0 },
         { "mptcp",     no_argument,       0, 0 },
         { "obfs",      required_argument, 0, 0 },
-        { "obfs-args", required_argument, 0, 0 },
+        { "obfs-host", required_argument, 0, 0 },
         { "help",      no_argument,       0, 0 },
         {           0,                 0, 0, 0 }
     };
@@ -840,7 +840,7 @@ main(int argc, char **argv)
                     obfs_para = obfs_tls;
                 LOGI("obfuscating enabled");
             } else if (option_index == 3) {
-                obfs_arg = optarg;
+                obfs_host = optarg;
             } else if (option_index == 4) {
                 usage();
                 exit(EXIT_SUCCESS);
@@ -950,6 +950,15 @@ main(int argc, char **argv)
         if (user == NULL) {
             user = conf->user;
         }
+        if (obfs_para == NULL && conf->obfs != NULL) {
+            if (strcmp(conf->obfs, obfs_http->name) == 0)
+                obfs_para = obfs_http;
+            else if (strcmp(conf->obfs, obfs_tls->name) == 0)
+                obfs_para = obfs_tls;
+        }
+        if (obfs_host == NULL) {
+            obfs_host = conf->obfs_host;
+        }
         if (auth == 0) {
             auth = conf->auth;
         }
@@ -1011,12 +1020,12 @@ main(int argc, char **argv)
     }
 
     if (obfs_para) {
-        if (obfs_arg != NULL)
-            obfs_para->host = obfs_arg;
+        if (obfs_host != NULL)
+            obfs_para->host = obfs_host;
         else
             obfs_para->host = "cloudfront.net";
         obfs_para->port = atoi(remote_port);
-        LOGI("obfuscating arg: %s", obfs_arg);
+        LOGI("obfuscating arg: %s", obfs_host);
     }
 
     // ignore SIGPIPE

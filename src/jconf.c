@@ -199,6 +199,10 @@ read_jconf(const char *file)
                 conf.timeout = to_string(value);
             } else if (strcmp(name, "user") == 0) {
                 conf.user = to_string(value);
+            } else if (strcmp(name, "obfs") == 0) {
+                conf.obfs = to_string(value);
+            } else if (strcmp(name, "obfs_host") == 0) {
+                conf.obfs_host = to_string(value);
             } else if (strcmp(name, "fast_open") == 0) {
                 check_json_value_type(value, json_boolean,
                         "invalid config file: option 'fast_open' must be a boolean");

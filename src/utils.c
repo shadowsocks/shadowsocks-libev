@@ -359,6 +359,12 @@ usage()
         "       [--firewall]               Setup firewall rules for auto blocking.\n");
 #endif
 #endif
+    printf(
+        "       [--obfs <http|tls>]        Enable obfuscating: HTTP or TLS (Experimental).\n");
+#ifndef MODULE_REMOTE
+    printf(
+        "       [--obfs-host <host_name>]  Hostname for obfuscating (Experimental).\n");
+#endif
     printf("\n");
     printf(
         "       [-v]                       Verbose mode.\n");
