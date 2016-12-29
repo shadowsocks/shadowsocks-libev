@@ -649,26 +649,24 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
             if (acl) {
                 int host_match = acl_match_host(host);
-                int ip_match   = acl_match_host(ip);
-
-                int bypass = get_acl_mode() == WHITE_LIST;
-
-                if (get_acl_mode() == BLACK_LIST) {
-                    if (ip_match > 0)
-                        bypass = 1;               // bypass IPs in black list
-
-                    if (host_match > 0)
-                        bypass = 1;                 // bypass hostnames in black list
-                    else if (host_match < 0)
-                        bypass = 0;                      // proxy hostnames in white list
-                } else if (get_acl_mode() == WHITE_LIST) {
-                    if (ip_match < 0)
-                        bypass = 0;               // proxy IPs in white list
-
-                    if (host_match < 0)
-                        bypass = 0;                 // proxy hostnames in white list
-                    else if (host_match > 0)
-                        bypass = 1;                      // bypass hostnames in black list
+                int bypass = 0;
+                if (host_match > 0)
+                    bypass = 1;                 // bypass hostnames in black list
+                else if (host_match < 0)
+                    bypass = 0;                 // proxy hostnames in white list
+                else {
+                    int ip_match = acl_match_host(ip);
+                    switch (get_acl_mode()) {
+                        case BLACK_LIST:
+                            if (ip_match > 0)
+                                bypass = 1;               // bypass IPs in black list
+                            break;
+                        case WHITE_LIST:
+                            bypass = 1;
+                            if (ip_match < 0)
+                                bypass = 0;               // proxy IPs in white list
+                            break;
+                    }
                 }
 
                 if (bypass) {
