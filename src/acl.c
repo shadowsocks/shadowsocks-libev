@@ -396,13 +396,12 @@ init_acl(const char *path)
                 buf[len - 1] = '\0';
             }
 
-            char *line = trimwhitespace(buf);
-
-            // Skip comments
-            if (line[0] == '#') {
-                continue;
+            char *comment = strchr(buf, '#');
+            if (comment) {
+                *comment = '\0';
             }
 
+            char *line = trimwhitespace(buf);
             if (strlen(line) == 0) {
                 continue;
             }
