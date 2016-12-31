@@ -2,6 +2,13 @@
 
 set -e
 
+if [ -f /sbin/setcap ]; then
+	setcap cap_net_bind_service+ep /usr/bin/ss-local  2>/dev/null
+	setcap cap_net_bind_service+ep /usr/bin/ss-server 2>/dev/null
+	setcap cap_net_bind_service+ep /usr/bin/ss-tunnel 2>/dev/null
+	setcap cap_net_bind_service+ep /usr/bin/ss-redir  2>/dev/null
+fi
+
 case "$1" in
 	configure|reconfigure)
 		if [ ! -f /etc/shadowsocks-libev/config.json ]; then
