@@ -30,9 +30,7 @@ sni_src = http.c \
           tls.c \
           rule.c
 
-obfs_src = obfs_http.c \
-		   obfs_tls.c \
-		   base64.c
+plugin_src = plugin.c
 
 ss_local_SOURCES = utils.c \
                    jconf.c \
@@ -43,7 +41,7 @@ ss_local_SOURCES = utils.c \
                    acl.c \
                    netutils.c \
                    local.c \
-				   $(obfs_src) \
+				   $(plugin_src) \
                    $(sni_src)
 
 ss_tunnel_SOURCES = utils.c \
@@ -53,7 +51,7 @@ ss_tunnel_SOURCES = utils.c \
                     udprelay.c \
                     cache.c \
                     netutils.c \
-				    $(obfs_src) \
+				    $(plugin_src) \
                     tunnel.c
 
 ss_server_SOURCES = utils.c \
@@ -66,7 +64,7 @@ ss_server_SOURCES = utils.c \
                     acl.c \
                     resolv.c \
                     server.c \
-				    $(obfs_src) \
+				    $(plugin_src) \
                     $(sni_src)
 
 ss_manager_SOURCES = utils.c \
@@ -112,7 +110,7 @@ ss_redir_SOURCES = utils.c \
                    cache.c \
                    udprelay.c \
                    redir.c \
-				   $(obfs_src) \
+				   $(plugin_src) \
                    $(sni_src)
 
 ss_redir_CFLAGS = $(AM_CFLAGS) -DMODULE_REDIR

@@ -54,8 +54,6 @@ typedef struct server {
     int stage;
     int auth;
 
-    obfs_t *obfs;
-
     buffer_t *buf;
     buffer_t *header_buf;
 

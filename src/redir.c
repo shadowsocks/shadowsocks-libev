@@ -50,8 +50,7 @@
 
 #include "http.h"
 #include "tls.h"
-#include "obfs_http.h"
-#include "obfs_tls.h"
+#include "plugin.h"
 #include "netutils.h"
 #include "utils.h"
 #include "common.h"
@@ -96,8 +95,6 @@ static int auth      = 0;
 #ifdef HAVE_SETRLIMIT
 static int nofile    = 0;
 #endif
-
-static obfs_para_t *obfs_para = NULL;
 
 int
 getdestaddr(int fd, struct sockaddr_storage *destaddr)
@@ -267,10 +264,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    if (obfs_para) {
-        obfs_para->obfs_request(remote->buf, BUF_SIZE, server->obfs);
-    }
-
     int s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
 
     if (s == -1) {
@@ -380,15 +373,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     server->buf->len = r;
-
-    if (obfs_para) {
-        if (obfs_para->deobfs_response(server->buf, BUF_SIZE, server->obfs)) {
-            LOGE("invalid obfuscating");
-            close_and_free_remote(EV_A_ remote);
-            close_and_free_server(EV_A_ server);
-            return;
-        }
-    }
 
     int err = ss_decrypt(server->buf, server->d_ctx, BUF_SIZE);
     if (err) {
@@ -505,10 +489,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 close_and_free_remote(EV_A_ remote);
                 close_and_free_server(EV_A_ server);
                 return;
-            }
-
-            if (obfs_para) {
-                obfs_para->obfs_request(remote->buf, BUF_SIZE, server->obfs);
             }
 
             ev_io_start(EV_A_ & remote->recv_ctx->io);
@@ -630,11 +610,6 @@ new_server(int fd, int method)
     server->hostname     = NULL;
     server->hostname_len = 0;
 
-    if (obfs_para != NULL) {
-        server->obfs = (obfs_t *)ss_malloc(sizeof(obfs_t));
-        memset(server->obfs, 0, sizeof(obfs_t));
-    }
-
     if (method) {
         server->e_ctx = ss_malloc(sizeof(enc_ctx_t));
         server->d_ctx = ss_malloc(sizeof(enc_ctx_t));
@@ -654,12 +629,6 @@ new_server(int fd, int method)
 static void
 free_server(server_t *server)
 {
-    if (server->obfs != NULL) {
-        bfree(server->obfs->buf);
-        if (server->obfs->extra != NULL)
-            ss_free(server->obfs->extra);
-        ss_free(server->obfs);
-    }
     if (server->hostname != NULL) {
         ss_free(server->hostname);
     }
@@ -803,7 +772,12 @@ main(int argc, char **argv)
     char *method     = NULL;
     char *pid_path   = NULL;
     char *conf_path  = NULL;
-    char *obfs_host   = NULL;
+
+    char *plugin      = NULL;
+    char *plugin_args = NULL;
+    char *plugin_host = NULL;
+    char *plugin_port = NULL;
+    char tmp_port[8];
 
     int remote_num = 0;
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
@@ -811,12 +785,11 @@ main(int argc, char **argv)
 
     int option_index                    = 0;
     static struct option long_options[] = {
-        { "mtu",       required_argument, 0, 0 },
-        { "mptcp",     no_argument,       0, 0 },
-        { "obfs",      required_argument, 0, 0 },
-        { "obfs-host", required_argument, 0, 0 },
-        { "help",      no_argument,       0, 0 },
-        {           0,                 0, 0, 0 }
+        { "mtu",         required_argument, 0, 0 },
+        { "mptcp",       no_argument,       0, 0 },
+        { "plugin",      required_argument, 0, 0 },
+        { "help",        no_argument,       0, 0 },
+        { 0,             0,                 0, 0 }
     };
 
     opterr = 0;
@@ -834,13 +807,8 @@ main(int argc, char **argv)
                 mptcp = 1;
                 LOGI("enable multipath TCP");
             } else if (option_index == 2) {
-                if (strcmp(optarg, obfs_http->name) == 0)
-                    obfs_para = obfs_http;
-                else if (strcmp(optarg, obfs_tls->name) == 0)
-                    obfs_para = obfs_tls;
+                plugin = optarg;
             } else if (option_index == 3) {
-                obfs_host = optarg;
-            } else if (option_index == 4) {
                 usage();
                 exit(EXIT_SUCCESS);
             }
@@ -949,14 +917,8 @@ main(int argc, char **argv)
         if (user == NULL) {
             user = conf->user;
         }
-        if (obfs_para == NULL && conf->obfs != NULL) {
-            if (strcmp(conf->obfs, obfs_http->name) == 0)
-                obfs_para = obfs_http;
-            else if (strcmp(conf->obfs, obfs_tls->name) == 0)
-                obfs_para = obfs_tls;
-        }
-        if (obfs_host == NULL) {
-            obfs_host = conf->obfs_host;
+        if (plugin == NULL) {
+            plugin = conf->plugin;
         }
         if (auth == 0) {
             auth = conf->auth;
@@ -978,6 +940,18 @@ main(int argc, char **argv)
         local_port == NULL || password == NULL) {
         usage();
         exit(EXIT_FAILURE);
+    }
+
+    if (plugin != NULL) {
+        uint16_t port = get_local_port();
+        if (port == 0) {
+            FATAL("failed to find a free port");
+        }
+        snprintf(tmp_port, 8, "%d", port);
+        plugin_host = "127.0.0.1";
+        plugin_port = tmp_port;
+
+        LOGI("plugin %s enabled", plugin);
     }
 
     if (method == NULL) {
@@ -1018,14 +992,25 @@ main(int argc, char **argv)
         LOGI("onetime authentication enabled");
     }
 
-    if (obfs_para) {
-        if (obfs_host != NULL)
-            obfs_para->host = obfs_host;
-        else
-            obfs_para->host = "cloudfront.net";
-        obfs_para->port = atoi(remote_port);
-        LOGI("obfuscating enabled");
-        LOGI("obfuscating hostname: %s", obfs_host);
+    if (plugin != NULL) {
+        int len = 0;
+        size_t buf_size = 256 * remote_num;
+        char *remote_str = ss_malloc(buf_size);
+
+        snprintf(remote_str, buf_size, "%s", remote_addr[0].host);
+        for (int i = 1; i < remote_num; i++) {
+            snprintf(remote_str + len, buf_size - len, "|%s", remote_addr[i].host);
+            len = strlen(remote_str);
+        }
+        int err = start_plugin(plugin, remote_str,
+                remote_port, plugin_host, plugin_port);
+        if (err) {
+            FATAL("failed to start the plugin");
+        }
+
+        remote_num = 1;
+        remote_addr[0].host = plugin_host;
+        remote_addr[0].port = plugin_port;
     }
 
     // ignore SIGPIPE
@@ -1033,6 +1018,7 @@ main(int argc, char **argv)
     signal(SIGABRT, SIG_IGN);
     signal(SIGINT, signal_cb);
     signal(SIGTERM, signal_cb);
+    signal(SIGCHLD, signal_cb);
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
@@ -1101,6 +1087,10 @@ main(int argc, char **argv)
     }
 
     ev_run(loop, 0);
+
+    if (plugin != NULL) {
+        stop_plugin();
+    }
 
     return 0;
 }

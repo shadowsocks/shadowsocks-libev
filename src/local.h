@@ -53,8 +53,6 @@ typedef struct server {
     int fd;
     int stage;
 
-    obfs_t *obfs;
-
     struct enc_ctx *e_ctx;
     struct enc_ctx *d_ctx;
     struct server_ctx *recv_ctx;

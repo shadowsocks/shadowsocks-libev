@@ -66,8 +66,7 @@
 #include "acl.h"
 #include "http.h"
 #include "tls.h"
-#include "obfs_http.h"
-#include "obfs_tls.h"
+#include "plugin.h"
 #include "local.h"
 
 #ifndef LIB_ONLY
@@ -109,8 +108,6 @@ static int mode      = TCP_ONLY;
 static int ipv6first = 0;
 static int fast_open = 0;
 
-static obfs_para_t *obfs_para  = NULL;
-
 #ifdef HAVE_SETRLIMIT
 #ifndef LIB_ONLY
 static int nofile = 0;
@@ -149,7 +146,6 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
-
 #endif
 
 int
@@ -312,9 +308,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     close_and_free_server(EV_A_ server);
                     return;
                 }
-
-                if (obfs_para)
-                    obfs_para->obfs_request(remote->buf, BUF_SIZE, server->obfs);
             }
 
             if (!remote->send_ctx->connected) {
@@ -840,15 +833,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef ANDROID
         rx += server->buf->len;
 #endif
-        if (obfs_para) {
-            if (obfs_para->deobfs_response(server->buf, BUF_SIZE, server->obfs)) {
-                LOGE("invalid obfuscating");
-                close_and_free_remote(EV_A_ remote);
-                close_and_free_server(EV_A_ server);
-                return;
-            }
-        }
-
         int err = ss_decrypt(server->buf, server->d_ctx, BUF_SIZE);
         if (err) {
             LOGE("invalid password or cipher");
@@ -1031,11 +1015,6 @@ new_server(int fd, int method)
     server->recv_ctx->server    = server;
     server->send_ctx->server    = server;
 
-    if (obfs_para != NULL) {
-        server->obfs = (obfs_t *)ss_malloc(sizeof(obfs_t));
-        memset(server->obfs, 0, sizeof(obfs_t));
-    }
-
     if (method) {
         server->e_ctx = ss_malloc(sizeof(struct enc_ctx));
         server->d_ctx = ss_malloc(sizeof(struct enc_ctx));
@@ -1059,12 +1038,6 @@ free_server(server_t *server)
 {
     cork_dllist_remove(&server->entries);
 
-    if (server->obfs != NULL) {
-        bfree(server->obfs->buf);
-        if (server->obfs->extra != NULL)
-            ss_free(server->obfs->extra);
-        ss_free(server->obfs);
-    }
     if (server->remote != NULL) {
         server->remote->server = NULL;
     }
@@ -1145,17 +1118,26 @@ create_remote(listen_ctx_t *listener,
     return remote;
 }
 
+void
+resolve_int_cb(int dummy)
+{
+    keep_resolving = 0;
+}
+
 static void
 signal_cb(EV_P_ ev_signal *w, int revents)
 {
     if (revents & EV_SIGNAL) {
         switch (w->signum) {
+        case SIGCHLD:
+            LOGE("plugin service exit unexpectedly");
         case SIGINT:
         case SIGTERM:
 #ifndef __MINGW32__
         case SIGUSR1:
 #endif
             ev_unloop(EV_A_ EVUNLOOP_ALL);
+            resolve_int_cb(revents);
         }
     }
 }
@@ -1182,12 +1164,6 @@ accept_cb(EV_P_ ev_io *w, int revents)
     ev_io_start(EV_A_ & server->recv_ctx->io);
 }
 
-void
-resolve_int_cb(int dummy)
-{
-    keep_resolving = 0;
-}
-
 #ifndef LIB_ONLY
 int
 main(int argc, char **argv)
@@ -1205,7 +1181,11 @@ main(int argc, char **argv)
     char *pid_path   = NULL;
     char *conf_path  = NULL;
     char *iface      = NULL;
-    char *obfs_host   = NULL;
+
+    char *plugin      = NULL;
+    char *plugin_host = NULL;
+    char *plugin_port = NULL;
+    char tmp_port[8];
 
     srand(time(NULL));
 
@@ -1215,14 +1195,13 @@ main(int argc, char **argv)
 
     int option_index                    = 0;
     static struct option long_options[] = {
-        { "fast-open", no_argument,       0, 0 },
-        { "acl",       required_argument, 0, 0 },
-        { "mtu",       required_argument, 0, 0 },
-        { "mptcp",     no_argument,       0, 0 },
-        { "obfs",      required_argument, 0, 0 },
-        { "obfs-host", required_argument, 0, 0 },
-        { "help",      no_argument,       0, 0 },
-        {           0,                 0, 0, 0 }
+        { "fast-open",   no_argument,       0, 0 },
+        { "acl",         required_argument, 0, 0 },
+        { "mtu",         required_argument, 0, 0 },
+        { "mptcp",       no_argument,       0, 0 },
+        { "plugin",      required_argument, 0, 0 },
+        { "help",        no_argument,       0, 0 },
+        { 0,             0,                 0, 0 }
     };
 
     opterr = 0;
@@ -1250,13 +1229,8 @@ main(int argc, char **argv)
                 mptcp = 1;
                 LOGI("enable multipath TCP");
             } else if (option_index == 4) {
-                if (strcmp(optarg, obfs_http->name) == 0)
-                    obfs_para = obfs_http;
-                else if (strcmp(optarg, obfs_tls->name) == 0)
-                    obfs_para = obfs_tls;
+                plugin = optarg;
             } else if (option_index == 5) {
-                obfs_host = optarg;
-            } else if (option_index == 6) {
                 usage();
                 exit(EXIT_SUCCESS);
             }
@@ -1375,14 +1349,8 @@ main(int argc, char **argv)
         if (user == NULL) {
             user = conf->user;
         }
-        if (obfs_para == NULL && conf->obfs != NULL) {
-            if (strcmp(conf->obfs, obfs_http->name) == 0)
-                obfs_para = obfs_http;
-            else if (strcmp(conf->obfs, obfs_tls->name) == 0)
-                obfs_para = obfs_tls;
-        }
-        if (obfs_host == NULL) {
-            obfs_host = conf->obfs_host;
+        if (plugin == NULL) {
+            plugin = conf->plugin;
         }
         if (auth == 0) {
             auth = conf->auth;
@@ -1413,6 +1381,18 @@ main(int argc, char **argv)
         password == NULL) {
         usage();
         exit(EXIT_FAILURE);
+    }
+
+    if (plugin != NULL) {
+        uint16_t port = get_local_port();
+        if (port == 0) {
+            FATAL("failed to find a free port");
+        }
+        snprintf(tmp_port, 8, "%d", port);
+        plugin_host = "127.0.0.1";
+        plugin_port = tmp_port;
+
+        LOGI("plugin %s enabled", plugin);
     }
 
     if (method == NULL) {
@@ -1462,14 +1442,26 @@ main(int argc, char **argv)
         LOGI("onetime authentication enabled");
     }
 
-    if (obfs_para) {
-        if (obfs_host != NULL)
-            obfs_para->host = obfs_host;
-        else
-            obfs_para->host = "cloudfront.net";
-        obfs_para->port = atoi(remote_port);
-        LOGI("obfuscating enabled");
-        LOGI("obfuscating hostname: %s", obfs_host);
+    if (plugin != NULL) {
+        int len = 0;
+        size_t buf_size = 256 * remote_num;
+        char *remote_str = ss_malloc(buf_size);
+
+        snprintf(remote_str, buf_size, "%s", remote_addr[0].host);
+        len = strlen(remote_str);
+        for (int i = 1; i < remote_num; i++) {
+            snprintf(remote_str + len, buf_size - len, "|%s", remote_addr[i].host);
+            len = strlen(remote_str);
+        }
+        int err = start_plugin(plugin, remote_str,
+                remote_port, plugin_host, plugin_port);
+        if (err) {
+            FATAL("failed to start the plugin");
+        }
+
+        remote_num = 1;
+        remote_addr[0].host = plugin_host;
+        remote_addr[0].port = plugin_port;
     }
 
 #ifdef __MINGW32__
@@ -1478,8 +1470,6 @@ main(int argc, char **argv)
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
-    signal(SIGINT, resolve_int_cb);
-    signal(SIGTERM, resolve_int_cb);
 #endif
 
     // Setup keys
@@ -1510,10 +1500,13 @@ main(int argc, char **argv)
     // Setup signal handler
     struct ev_signal sigint_watcher;
     struct ev_signal sigterm_watcher;
+    struct ev_signal sigchld_watcher;
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
+    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
+    ev_signal_start(EV_DEFAULT, &sigchld_watcher);
 
     struct ev_loop *loop = EV_DEFAULT;
 
@@ -1578,6 +1571,10 @@ main(int argc, char **argv)
     }
 
     // Clean up
+    
+    if (plugin != NULL) {
+        stop_plugin();
+    }
 
     if (mode != UDP_ONLY) {
         ev_io_stop(loop, &listen_ctx.io);
@@ -1598,6 +1595,7 @@ main(int argc, char **argv)
 
     ev_signal_stop(EV_DEFAULT, &sigint_watcher);
     ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+    ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
 
     return 0;
 }
@@ -1652,10 +1650,13 @@ start_ss_local_server(profile_t profile)
 
     struct ev_signal sigint_watcher;
     struct ev_signal sigterm_watcher;
+    struct ev_signal sigchld_watcher;
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
+    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
+    ev_signal_start(EV_DEFAULT, &sigchld_watcher);
 #ifndef __MINGW32__
     struct ev_signal sigusr1_watcher;
     ev_signal_init(&sigusr1_watcher, signal_cb, SIGUSR1);
@@ -1748,6 +1749,7 @@ start_ss_local_server(profile_t profile)
 
     ev_signal_stop(EV_DEFAULT, &sigint_watcher);
     ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+    ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
 #ifndef __MINGW32__
     ev_signal_stop(EV_DEFAULT, &sigusr1_watcher);
 #endif

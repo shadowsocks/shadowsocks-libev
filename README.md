@@ -359,7 +359,7 @@ man pages of the applications, respectively.
        [--executable <path>]      path to the executable of ss-server
                                   only available in manager mode
 
-       [--obfs <http|tls>]        Enable obfuscating: HTTP or TLS (Experimental).
+       [--plugin <plugin_args>]   Enable SIP003 plugin. (Experimental)
 
        [-v]                       verbose mode
 

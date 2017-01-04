@@ -130,8 +130,8 @@ Enable Multipath TCP.
 +
 Only available with MPTCP enabled Linux kernel.
 
---obfs <http|tls>::
-Enable HTTP or TLS obfuscating. (Experimental)
+--plugin <plugin_args>::
+Enable SIP003 plugin. (Experimental)
 
 -v::
 Enable verbose mode.

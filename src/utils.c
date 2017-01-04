@@ -362,11 +362,7 @@ usage()
 #endif
 #endif
     printf(
-        "       [--obfs <http|tls>]        Enable obfuscating: HTTP or TLS (Experimental).\n");
-#ifndef MODULE_REMOTE
-    printf(
-        "       [--obfs-host <host_name>]  Hostname for obfuscating (Experimental).\n");
-#endif
+        "       [--plugin <plugin_args>]   Enable SIP003 plugin. (Experimental)\n");
     printf("\n");
     printf(
         "       [-v]                       Verbose mode.\n");

@@ -177,9 +177,9 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --mtu %d", manager->mtu);
     }
-    if (manager->obfs) {
+    if (manager->plugin) {
         int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --obfs %s", manager->obfs);
+        snprintf(cmd + len, BUF_SIZE - len, " --plugin %s", manager->plugin);
     }
     for (i = 0; i < manager->nameserver_num; i++) {
         int len = strlen(cmd);
@@ -881,7 +881,7 @@ main(int argc, char **argv)
     char *conf_path       = NULL;
     char *iface           = NULL;
     char *manager_address = NULL;
-    char *obfs            = NULL;
+    char *plugin          = NULL;
 
     int auth      = 0;
     int fast_open = 0;
@@ -908,9 +908,9 @@ main(int argc, char **argv)
         { "manager-address", required_argument, 0, 0 },
         { "executable",      required_argument, 0, 0 },
         { "mtu",             required_argument, 0, 0 },
-        { "obfs",            required_argument, 0, 0 },
+        { "plugin",          required_argument, 0, 0 },
         { "help",            no_argument,       0, 0 },
-        {                 0,                 0, 0, 0 }
+        { 0,                 0,                 0, 0 }
     };
 
     opterr = 0;
@@ -932,7 +932,7 @@ main(int argc, char **argv)
             } else if (option_index == 4) {
                 mtu = atoi(optarg);
             } else if (option_index == 5) {
-                obfs = optarg;
+                plugin = optarg;
             } else if (option_index == 6) {
                 usage();
                 exit(EXIT_SUCCESS);
@@ -1041,8 +1041,8 @@ main(int argc, char **argv)
         if (mtu == 0) {
             mtu = conf->mtu;
         }
-        if (obfs == 0) {
-            obfs = conf->obfs;
+        if (plugin == 0) {
+            plugin = conf->plugin;
         }
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
@@ -1123,7 +1123,7 @@ main(int argc, char **argv)
     manager.nameservers     = nameservers;
     manager.nameserver_num  = nameserver_num;
     manager.mtu             = mtu;
-    manager.obfs            = obfs;
+    manager.plugin          = plugin;
     manager.ipv6first       = ipv6first;
 #ifdef HAVE_SETRLIMIT
     manager.nofile = nofile;

@@ -105,11 +105,8 @@ Specify the executable path of ss-server.
 +
 Only available in manager mode.
 
---obfs <http|tls>::
-Enable HTTP or TLS obfuscating. (Experimental)
-
---obfs-host <hostname>::
-Specify the hostname for obfuscating. (Experimental)
+--plugin <plugin_args>::
+Enable SIP003 plugin. (Experimental)
 
 -v::
 Enable verbose mode.
