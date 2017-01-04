@@ -72,6 +72,7 @@ ss_server_SOURCES = utils.c \
 ss_manager_SOURCES = utils.c \
                      jconf.c \
                      json.c \
+                     netutils.c \
                      manager.c
 
 ss_local_LDADD = $(SS_COMMON_LIBS)
@@ -82,10 +83,12 @@ if USE_SYSTEM_SHARED_LIB
 ss_local_LDADD += -ludns
 ss_tunnel_LDADD += -ludns
 ss_server_LDADD += -ludns
+ss_manager_LDADD += -ludns
 else
 ss_local_LDADD += $(top_builddir)/libudns/libudns.la
 ss_tunnel_LDADD += $(top_builddir)/libudns/libudns.la
 ss_server_LDADD += $(top_builddir)/libudns/libudns.la
+ss_manager_LDADD += $(top_builddir)/libudns/libudns.la
 endif
 
 ss_local_CFLAGS = $(AM_CFLAGS) -DMODULE_LOCAL

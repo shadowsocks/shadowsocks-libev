@@ -63,4 +63,10 @@ struct server {
     uint64_t traffic;
 };
 
+typedef struct sock_lock {
+    char *name;
+    int fd;
+    ev_timer watcher;
+} sock_lock_t;
+
 #endif // _MANAGER_H

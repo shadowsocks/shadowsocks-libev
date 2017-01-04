@@ -94,14 +94,16 @@ bin_PROGRAMS = ss-local$(EXEEXT) ss-tunnel$(EXEEXT) $(am__EXEEXT_1) \
 @USE_SYSTEM_SHARED_LIB_TRUE@am__append_5 = -ludns
 @USE_SYSTEM_SHARED_LIB_TRUE@am__append_6 = -ludns
 @USE_SYSTEM_SHARED_LIB_TRUE@am__append_7 = -ludns
-@USE_SYSTEM_SHARED_LIB_FALSE@am__append_8 = $(top_builddir)/libudns/libudns.la
+@USE_SYSTEM_SHARED_LIB_TRUE@am__append_8 = -ludns
 @USE_SYSTEM_SHARED_LIB_FALSE@am__append_9 = $(top_builddir)/libudns/libudns.la
 @USE_SYSTEM_SHARED_LIB_FALSE@am__append_10 = $(top_builddir)/libudns/libudns.la
-@BUILD_WINCOMPAT_TRUE@am__append_11 = win32.c
-@BUILD_WINCOMPAT_TRUE@am__append_12 = win32.c
-@BUILD_REDIRECTOR_TRUE@am__append_13 = ss-redir
-@BUILD_REDIRECTOR_TRUE@@USE_SYSTEM_SHARED_LIB_TRUE@am__append_14 = -ludns
-@BUILD_REDIRECTOR_TRUE@@USE_SYSTEM_SHARED_LIB_FALSE@am__append_15 = $(top_builddir)/libudns/libudns.la
+@USE_SYSTEM_SHARED_LIB_FALSE@am__append_11 = $(top_builddir)/libudns/libudns.la
+@USE_SYSTEM_SHARED_LIB_FALSE@am__append_12 = $(top_builddir)/libudns/libudns.la
+@BUILD_WINCOMPAT_TRUE@am__append_13 = win32.c
+@BUILD_WINCOMPAT_TRUE@am__append_14 = win32.c
+@BUILD_REDIRECTOR_TRUE@am__append_15 = ss-redir
+@BUILD_REDIRECTOR_TRUE@@USE_SYSTEM_SHARED_LIB_TRUE@am__append_16 = -ludns
+@BUILD_REDIRECTOR_TRUE@@USE_SYSTEM_SHARED_LIB_FALSE@am__append_17 = $(top_builddir)/libudns/libudns.la
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/auto/depcomp $(include_HEADERS)
@@ -156,7 +158,7 @@ am__DEPENDENCIES_2 = $(top_builddir)/libipset/libipset.la \
 	$(top_builddir)/libcork/libcork.la $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__append_3)
 am__DEPENDENCIES_3 = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1) \
-	$(am__append_8)
+	$(am__append_9)
 libshadowsocks_libev_la_DEPENDENCIES = $(am__DEPENDENCIES_3)
 am__libshadowsocks_libev_la_SOURCES_DIST = utils.c jconf.c json.c \
 	encrypt.c udprelay.c cache.c acl.c netutils.c local.c \
@@ -209,15 +211,16 @@ am_ss_local_OBJECTS = ss_local-utils.$(OBJEXT) \
 	$(am__objects_5) $(am__objects_6) $(am__objects_7)
 ss_local_OBJECTS = $(am_ss_local_OBJECTS)
 ss_local_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1) \
-	$(am__append_8)
+	$(am__append_9)
 ss_local_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ss_local_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_ss_manager_OBJECTS = ss_manager-utils.$(OBJEXT) \
 	ss_manager-jconf.$(OBJEXT) ss_manager-json.$(OBJEXT) \
-	ss_manager-manager.$(OBJEXT)
+	ss_manager-netutils.$(OBJEXT) ss_manager-manager.$(OBJEXT)
 ss_manager_OBJECTS = $(am_ss_manager_OBJECTS)
-ss_manager_DEPENDENCIES = $(am__DEPENDENCIES_2)
+ss_manager_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1) \
+	$(am__append_12)
 ss_manager_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ss_manager_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -239,7 +242,7 @@ am__objects_9 = ss_redir-http.$(OBJEXT) ss_redir-tls.$(OBJEXT) \
 @BUILD_REDIRECTOR_TRUE@	$(am__objects_8) $(am__objects_9)
 ss_redir_OBJECTS = $(am_ss_redir_OBJECTS)
 @BUILD_REDIRECTOR_TRUE@ss_redir_DEPENDENCIES = $(am__DEPENDENCIES_2) \
-@BUILD_REDIRECTOR_TRUE@	$(am__DEPENDENCIES_1) $(am__append_15)
+@BUILD_REDIRECTOR_TRUE@	$(am__DEPENDENCIES_1) $(am__append_17)
 ss_redir_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ss_redir_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -255,7 +258,7 @@ am_ss_server_OBJECTS = ss_server-utils.$(OBJEXT) \
 	ss_server-server.$(OBJEXT) $(am__objects_10) $(am__objects_11)
 ss_server_OBJECTS = $(am_ss_server_OBJECTS)
 ss_server_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1) \
-	$(am__append_10)
+	$(am__append_11)
 ss_server_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ss_server_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -272,7 +275,7 @@ am_ss_tunnel_OBJECTS = ss_tunnel-utils.$(OBJEXT) \
 	$(am__objects_12) ss_tunnel-tunnel.$(OBJEXT) $(am__objects_13)
 ss_tunnel_OBJECTS = $(am_ss_tunnel_OBJECTS)
 ss_tunnel_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1) \
-	$(am__append_9)
+	$(am__append_10)
 ss_tunnel_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(ss_tunnel_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -492,9 +495,9 @@ obfs_src = obfs_http.c \
 
 ss_local_SOURCES = utils.c jconf.c json.c encrypt.c udprelay.c cache.c \
 	acl.c netutils.c local.c $(obfs_src) $(sni_src) \
-	$(am__append_11)
+	$(am__append_13)
 ss_tunnel_SOURCES = utils.c jconf.c json.c encrypt.c udprelay.c \
-	cache.c netutils.c $(obfs_src) tunnel.c $(am__append_12)
+	cache.c netutils.c $(obfs_src) tunnel.c $(am__append_14)
 ss_server_SOURCES = utils.c \
                     netutils.c \
                     jconf.c \
@@ -511,12 +514,13 @@ ss_server_SOURCES = utils.c \
 ss_manager_SOURCES = utils.c \
                      jconf.c \
                      json.c \
+                     netutils.c \
                      manager.c
 
-ss_local_LDADD = $(SS_COMMON_LIBS) $(am__append_5) $(am__append_8)
-ss_tunnel_LDADD = $(SS_COMMON_LIBS) $(am__append_6) $(am__append_9)
-ss_server_LDADD = $(SS_COMMON_LIBS) $(am__append_7) $(am__append_10)
-ss_manager_LDADD = $(SS_COMMON_LIBS)
+ss_local_LDADD = $(SS_COMMON_LIBS) $(am__append_5) $(am__append_9)
+ss_tunnel_LDADD = $(SS_COMMON_LIBS) $(am__append_6) $(am__append_10)
+ss_server_LDADD = $(SS_COMMON_LIBS) $(am__append_7) $(am__append_11)
+ss_manager_LDADD = $(SS_COMMON_LIBS) $(am__append_8) $(am__append_12)
 ss_local_CFLAGS = $(AM_CFLAGS) -DMODULE_LOCAL
 ss_tunnel_CFLAGS = $(AM_CFLAGS) -DMODULE_TUNNEL
 ss_server_CFLAGS = $(AM_CFLAGS) -DMODULE_REMOTE
@@ -535,7 +539,7 @@ ss_manager_CFLAGS = $(AM_CFLAGS) -DMODULE_MANAGER
 
 @BUILD_REDIRECTOR_TRUE@ss_redir_CFLAGS = $(AM_CFLAGS) -DMODULE_REDIR
 @BUILD_REDIRECTOR_TRUE@ss_redir_LDADD = $(SS_COMMON_LIBS) \
-@BUILD_REDIRECTOR_TRUE@	$(am__append_14) $(am__append_15)
+@BUILD_REDIRECTOR_TRUE@	$(am__append_16) $(am__append_17)
 lib_LTLIBRARIES = libshadowsocks-libev.la
 libshadowsocks_libev_la_SOURCES = $(ss_local_SOURCES)
 libshadowsocks_libev_la_CFLAGS = $(ss_local_CFLAGS) -DLIB_ONLY
@@ -760,6 +764,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_manager-jconf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_manager-json.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_manager-manager.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_manager-netutils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_manager-utils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-base64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ss_redir-cache.Po@am__quote@
@@ -1205,6 +1210,20 @@ ss_manager-json.obj: json.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='json.c' object='ss_manager-json.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_manager_CFLAGS) $(CFLAGS) -c -o ss_manager-json.obj `if test -f 'json.c'; then $(CYGPATH_W) 'json.c'; else $(CYGPATH_W) '$(srcdir)/json.c'; fi`
+
+ss_manager-netutils.o: netutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_manager_CFLAGS) $(CFLAGS) -MT ss_manager-netutils.o -MD -MP -MF $(DEPDIR)/ss_manager-netutils.Tpo -c -o ss_manager-netutils.o `test -f 'netutils.c' || echo '$(srcdir)/'`netutils.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_manager-netutils.Tpo $(DEPDIR)/ss_manager-netutils.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='netutils.c' object='ss_manager-netutils.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_manager_CFLAGS) $(CFLAGS) -c -o ss_manager-netutils.o `test -f 'netutils.c' || echo '$(srcdir)/'`netutils.c
+
+ss_manager-netutils.obj: netutils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_manager_CFLAGS) $(CFLAGS) -MT ss_manager-netutils.obj -MD -MP -MF $(DEPDIR)/ss_manager-netutils.Tpo -c -o ss_manager-netutils.obj `if test -f 'netutils.c'; then $(CYGPATH_W) 'netutils.c'; else $(CYGPATH_W) '$(srcdir)/netutils.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/ss_manager-netutils.Tpo $(DEPDIR)/ss_manager-netutils.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='netutils.c' object='ss_manager-netutils.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_manager_CFLAGS) $(CFLAGS) -c -o ss_manager-netutils.obj `if test -f 'netutils.c'; then $(CYGPATH_W) 'netutils.c'; else $(CYGPATH_W) '$(srcdir)/netutils.c'; fi`
 
 ss_manager-manager.o: manager.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ss_manager_CFLAGS) $(CFLAGS) -MT ss_manager-manager.o -MD -MP -MF $(DEPDIR)/ss_manager-manager.Tpo -c -o ss_manager-manager.o `test -f 'manager.c' || echo '$(srcdir)/'`manager.c
