@@ -2,15 +2,29 @@
 
 set -e
 
-if [ -f /sbin/setcap ]; then
-	setcap cap_net_bind_service+ep /usr/bin/ss-local  2>/dev/null
-	setcap cap_net_bind_service+ep /usr/bin/ss-server 2>/dev/null
-	setcap cap_net_bind_service+ep /usr/bin/ss-tunnel 2>/dev/null
-	setcap cap_net_bind_service+ep /usr/bin/ss-redir  2>/dev/null
-fi
+# POSIX-compliant maint function recommend by devref
+# to check for the existence of a command
+# https://www.debian.org/doc/manuals/developers-reference/ch06.html#bpp-debian-maint-scripts
+pathfind() {
+	OLDIFS="$IFS"
+	IFS=:
+	for p in $PATH; do
+		if [ -x "$p/$*" ]; then
+		IFS="$OLDIFS"
+		return 0
+		fi
+	done
+	IFS="$OLDIFS"
+	return 1
+}
 
 case "$1" in
 	configure|reconfigure)
+		pathfind setcap && setcap \
+			cap_net_bind_service+ep /usr/bin/ss-local \
+			cap_net_bind_service+ep /usr/bin/ss-redir \
+			cap_net_bind_service+ep /usr/bin/ss-server \
+			cap_net_bind_service+ep /usr/bin/ss-tunnel
 		if [ ! -f /etc/shadowsocks-libev/config.json ]; then
 			passwd=$(apg -n 1 -M ncl)
 			mkdir -p /etc/shadowsocks-libev
