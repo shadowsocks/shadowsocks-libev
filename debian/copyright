@@ -5,14 +5,14 @@ Source: https://github.com/shadowsocks/shadowsocks-libev
 
 Files: *
 Copyright: 2013-2015, Clow Windy <clowwindy42@gmail.com>
-           2013-2016, Max Lv <max.c.lv@gmail.com>
+           2013-2017, Max Lv <max.c.lv@gmail.com>
            2014, Linus Yang <linusyang@gmail.com>
 License: GPL-3+
 
 Files: debian/*
 Copyright: 2013-2015, Max Lv <max.c.lv@gmail.com>
            2015, Boyuan Yang <073plan@gmail.com>
-           2016, Roger Shimizu <rogershimizu@gmail.com>
+           2017, Roger Shimizu <rogershimizu@gmail.com>
 License: GPL-3+
 
 Files: libcork/* libipset/*
@@ -47,7 +47,7 @@ License: BSD-3-clause
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Files: doc/*
-Copyright: 2012-2016, Max Lv <max.c.lv@gmail.com>
+Copyright: 2012-2017, Max Lv <max.c.lv@gmail.com>
 License: GFDL-1.1+
 
 Files: m4/ax_pthread.m4
