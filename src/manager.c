@@ -315,17 +315,18 @@ parse_traffic(char *buf, int len, char *port, uint64_t *traffic)
 }
 
 static int 
-create_and_bind(const char *host, const char *port) 
+create_and_bind(const char *host, const char *port, int protocol) 
 {
     struct addrinfo hints;
     struct addrinfo *result, *rp, *ipv4v6bindall;
     int s, listen_sock, is_port_reuse;
 
     memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family   = AF_UNSPEC;               /* Return IPv4 and IPv6 choices */
-    hints.ai_socktype = SOCK_STREAM;             /* We want a TCP socket */
+    hints.ai_family   = AF_UNSPEC;                  /* Return IPv4 and IPv6 choices */
+    hints.ai_socktype = protocol == IPPROTO_TCP ?
+        SOCK_STREAM : SOCK_DGRAM;                   /* We want a TCP or UDP socket */
     hints.ai_flags    = AI_PASSIVE | AI_ADDRCONFIG; /* For wildcard IP address */
-    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_protocol = protocol;
 
     s = getaddrinfo(host, port, &hints, &result);
 
@@ -373,7 +374,7 @@ create_and_bind(const char *host, const char *port)
 #endif
         int err = set_reuseport(listen_sock);
         if (err == 0) {
-            LOGI("tcp port reuse enabled");
+            LOGI("%s port reuse enabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
             is_port_reuse = 1;
         }
         else {
@@ -389,7 +390,7 @@ create_and_bind(const char *host, const char *port)
         }
 
         if (!is_port_reuse) {
-            LOGI("close sock due to port reuse disabled");\
+            LOGI("close sock due to %s port reuse disabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
             close(listen_sock);
         }
     }
@@ -476,19 +477,31 @@ new_sock_lock(char *port, int *fds, int fd_count) {
 static void
 check_port(struct manager_ctx *manager, struct server *server) 
 {
-    int *sock_fds = (int *)ss_malloc(manager->host_num);
+    bool both_tcp_udp = manager->mode == TCP_AND_UDP;
+    int fd_count = manager->host_num * (both_tcp_udp ? 2 : 1);
+    int *sock_fds = (int *)ss_malloc(fd_count * sizeof(int));
     int bind_err = 0;
 
     // try to bind each interface 
     for (int i = 0; i < manager->host_num; i++) {
         LOGI("try to bind interface: %s, port: %s", manager->hosts[i], server->port);
-        sock_fds[i] = create_and_bind(manager->hosts[i], server->port);
 
-        if (sock_fds[i] == -1) {
+        if (manager->mode == UDP_ONLY) {
+            sock_fds[i] = create_and_bind(manager->hosts[i], server->port, IPPROTO_UDP);
+        }
+        else {
+            sock_fds[i] = create_and_bind(manager->hosts[i], server->port, IPPROTO_TCP);
+        }
+
+        if (manager->mode == TCP_AND_UDP) {
+            sock_fds[i + manager->host_num] = create_and_bind(manager->hosts[i], server->port, IPPROTO_UDP);
+        }
+
+        if (sock_fds[i] == -1 || (both_tcp_udp && sock_fds[i + manager->host_num] == -1)) {
             bind_err = 1;
             break;
         }
-        else if (sock_fds[i] == -2) {
+        else if (sock_fds[i] == -2 || (both_tcp_udp && sock_fds[i + manager->host_num] == -2)) {
             // continue to check all hosts
             bind_err = 1;
         }
@@ -498,7 +511,7 @@ check_port(struct manager_ctx *manager, struct server *server)
         // no err happened
         LOGI("port check passed and locked");
 
-        sock_lock_t *sock_lock = new_sock_lock(server->port, sock_fds, manager->host_num);
+        sock_lock_t *sock_lock = new_sock_lock(server->port, sock_fds, fd_count);
 
         sock_lock_t *old_sock_lock = NULL;
         bool new = false;
@@ -513,7 +526,7 @@ check_port(struct manager_ctx *manager, struct server *server)
     else {
         // err happened
         LOGI("port check err happened");
-        for (int i = 0; i < manager->host_num; i++) {
+        for (int i = 0; i < fd_count; i++) {
             if (sock_fds[i] > 0) {
                 close(sock_fds[i]);
             }
