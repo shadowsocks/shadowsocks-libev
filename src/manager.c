@@ -372,9 +372,12 @@ create_and_bind(const char *host, const char *port, int protocol)
 #ifdef SO_NOSIGPIPE
         setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
+        /* Use port reuse to act as lock */
         int err = set_reuseport(listen_sock);
         if (err == 0) {
-            LOGI("%s port reuse enabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
+            if (verbose) {
+                LOGI("%s port reuse enabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
+            }
             is_port_reuse = 1;
         }
         else {
@@ -390,7 +393,9 @@ create_and_bind(const char *host, const char *port, int protocol)
         }
 
         if (!is_port_reuse) {
-            LOGI("close sock due to %s port reuse disabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
+            if (verbose) {
+                LOGI("close sock due to %s port reuse disabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
+            }
             close(listen_sock);
         }
     }
@@ -408,7 +413,8 @@ create_and_bind(const char *host, const char *port, int protocol)
 }
 
 static void
-release_sock_lock(sock_lock_t *sock_lock) {
+release_sock_lock(sock_lock_t *sock_lock) 
+{
     
     ev_timer_stop(EV_DEFAULT, & sock_lock->watcher);
 
@@ -420,7 +426,9 @@ release_sock_lock(sock_lock_t *sock_lock) {
         close(*(sock_lock->fds + sock_lock->fd_count));
     }
 
-    LOGI("release sock lock: %s", sock_lock->port);
+    if (verbose) {
+        LOGI("release sock lock: %s", sock_lock->port);
+    }
 
     ss_free(sock_lock->port);
     ss_free(sock_lock->fds);
@@ -428,7 +436,8 @@ release_sock_lock(sock_lock_t *sock_lock) {
 }
 
 static void
-get_and_release_sock_lock(char* port) {
+get_and_release_sock_lock(char* port) 
+{
     if (verbose) {
         LOGI("try to get and release sock lock at port: %s", port);
     }
@@ -442,7 +451,8 @@ get_and_release_sock_lock(char* port) {
 }
 
 static void
-sock_lock_timeout_cb(EV_P_ ev_timer *watcher, int revents) {
+sock_lock_timeout_cb(EV_P_ ev_timer *watcher, int revents) 
+{
     sock_lock_t *sock_lock = cork_container_of(watcher, sock_lock_t, watcher);
     
     cork_hash_table_delete(sock_table, sock_lock->port, NULL, NULL);
@@ -450,7 +460,8 @@ sock_lock_timeout_cb(EV_P_ ev_timer *watcher, int revents) {
 }
 
 static sock_lock_t *
-new_sock_lock(char *port, int *fds, int fd_count) {
+new_sock_lock(char *port, int *fds, int fd_count) 
+{
     if (verbose) {
         LOGI("new sock lock with port: %s fd_count: %d", port, fd_count);
     }
@@ -468,6 +479,7 @@ new_sock_lock(char *port, int *fds, int fd_count) {
 
     sock_lock->fd_count = fd_count;
 
+    /* use 128 as ss-server may use at most 128 seconds to query dns */
     ev_timer_init(& sock_lock->watcher, sock_lock_timeout_cb, 128., 0.);
     ev_timer_start(EV_DEFAULT, & sock_lock->watcher);
 
@@ -484,7 +496,7 @@ check_port(struct manager_ctx *manager, struct server *server)
     int *sock_fds = (int *)ss_malloc(fd_count * sizeof(int));
     memset(sock_fds, 0, fd_count * sizeof(int));
 
-    // try to bind each interface 
+    /* try to bind each interface */
     for (int i = 0; i < manager->host_num; i++) {
         LOGI("try to bind interface: %s, port: %s", manager->hosts[i], server->port);
 
@@ -495,7 +507,7 @@ check_port(struct manager_ctx *manager, struct server *server)
             sock_fds[i] = create_and_bind(manager->hosts[i], server->port, IPPROTO_TCP);
         }
 
-        if (manager->mode == TCP_AND_UDP) {
+        if (both_tcp_udp) {
             sock_fds[i + manager->host_num] = create_and_bind(manager->hosts[i], server->port, IPPROTO_UDP);
         }
 
@@ -504,14 +516,16 @@ check_port(struct manager_ctx *manager, struct server *server)
             break;
         }
         else if (sock_fds[i] == -2 || (both_tcp_udp && sock_fds[i + manager->host_num] == -2)) {
-            // continue to check all hosts
+            /* continue to check all hosts */
             bind_err = -2;
         }
     }
 
     if (!bind_err) {
-        // no err happened
-        LOGI("port check passed and locked");
+        /* no err happened */
+        if (verbose) {
+            LOGI("port check passed and locked");
+        }
 
         sock_lock_t *sock_lock = new_sock_lock(server->port, sock_fds, fd_count);
 
@@ -521,13 +535,14 @@ check_port(struct manager_ctx *manager, struct server *server)
         cork_hash_table_put(sock_table, (void *)sock_lock->port, (void *)sock_lock, &new, NULL, (void **)&old_sock_lock);
 
         if (old_sock_lock) {
-            LOGI("release old sock lock after add new one to hash table");
+            if (verbose) {
+                LOGI("release old sock lock after add new one to hash table");
+            }
             release_sock_lock(old_sock_lock);
         }
     }
     else {
-        // err happened
-        LOGI("port check err happened");
+        /* clean socks */
         for (int i = 0; i < fd_count; i++) {
             if (sock_fds[i] > 0) {
                 close(sock_fds[i]);
@@ -536,6 +551,10 @@ check_port(struct manager_ctx *manager, struct server *server)
     }
 
     ss_free(sock_fds);
+
+    if (bind_err == -2) {
+        LOGI("port is avaiable but can not be locked");
+    }
 
     return bind_err == -1 ? -1 : 0;
 }
