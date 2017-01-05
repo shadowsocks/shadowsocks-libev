@@ -327,15 +327,7 @@ create_and_bind(const char *host, const char *port)
     hints.ai_flags    = AI_PASSIVE | AI_ADDRCONFIG; /* For wildcard IP address */
     hints.ai_protocol = IPPROTO_TCP;
 
-    for (int i = 1; i < 8; i++) {
-        s = getaddrinfo(host, port, &hints, &result);
-        if (s == 0) {
-            break;
-        } else {
-            sleep(pow(2, i));
-            LOGE("failed to resolve server name, wait %.0f seconds", pow(2, i));
-        }
-    }
+    s = getaddrinfo(host, port, &hints, &result);
 
     if (s != 0) {
         LOGE("getaddrinfo: %s", gai_strerror(s));
