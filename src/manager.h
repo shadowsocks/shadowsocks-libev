@@ -64,8 +64,9 @@ struct server {
 };
 
 typedef struct sock_lock {
-    char *name;
-    int fd;
+    char *port;
+    int *fds;
+    int fd_count;
     ev_timer watcher;
 } sock_lock_t;
 

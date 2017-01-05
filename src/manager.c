@@ -419,15 +419,18 @@ release_sock_lock(sock_lock_t *sock_lock) {
     
     ev_timer_stop(EV_DEFAULT, & sock_lock->watcher);
 
-    if (sock_lock->fd) {
-        LOGI("close sock when release");
-        close(sock_lock->fd);
-    }
-    else {
-        LOGI("invalid fd when release");
+    while(--sock_lock->fd_count > -1) {
+        if (verbose) {
+            LOGI("close sock %d then remaining fd count is %d", 
+                *(sock_lock->fds + sock_lock->fd_count), sock_lock->fd_count);
+        }
+        close(*(sock_lock->fds + sock_lock->fd_count));
     }
 
-    LOGI("release sock lock: %s", sock_lock->name);
+    LOGI("release sock lock: %s", sock_lock->port);
+
+    ss_free(sock_lock->port);
+    ss_free(sock_lock->fds);
     ss_free(sock_lock);
 }
 
@@ -435,21 +438,28 @@ static void
 sock_lock_timeout_cb(EV_P_ ev_timer *watcher, int revents) {
     sock_lock_t *sock_lock = cork_container_of(watcher, sock_lock_t, watcher);
     
-    cork_hash_table_delete(sock_table, sock_lock->name, NULL, NULL);
+    cork_hash_table_delete(sock_table, sock_lock->port, NULL, NULL);
     release_sock_lock(sock_lock);
 }
 
 static sock_lock_t *
-new_sock_lock(char* name, int fd) {
-    LOGI("new sock lock");
+new_sock_lock(char *port, int *fds, int fd_count) {
+    if (verbose) {
+        LOGI("new sock lock with port: %s fd_count: %d", port, fd_count);
+    }
 
     sock_lock_t *sock_lock;
     sock_lock = ss_malloc(sizeof(sock_lock_t));
 
     memset(sock_lock, 0, sizeof(sock_lock_t));
 
-    sock_lock->fd = fd;
-    sock_lock->name = name;
+    sock_lock->port = ss_malloc(strlen(port) * sizeof(char));
+    strcpy(sock_lock->port, port);
+
+    sock_lock->fds = ss_malloc(fd_count * sizeof(int));
+    memcpy(sock_lock->fds, fds, fd_count * sizeof(int));
+
+    sock_lock->fd_count = fd_count;
 
     ev_timer_init(& sock_lock->watcher, sock_lock_timeout_cb, 128., 0.);
     ev_timer_start(EV_DEFAULT, & sock_lock->watcher);
@@ -481,20 +491,17 @@ check_port(struct manager_ctx *manager, struct server *server)
     if (!bind_err) {
         // no err happened
         LOGI("port check passed and locked");
-        for (int i = 0; i < manager->host_num; i++) {
-            char *sock_name = NULL;
-            int name_size = strlen(manager->hosts[i]) + strlen(server->port) + 2;
-            sock_name = ss_malloc(name_size);
-            snprintf(sock_name, name_size, "%s:%s", manager->hosts[i], server->port);
-            sock_lock_t *sock_lock = new_sock_lock(sock_name, sock_fds[i]);
-            bool new = false;
-            sock_lock_t *old_sock_lock = NULL;
-            cork_hash_table_put(sock_table, (void *)sock_lock->name, (void *)sock_lock, &new, NULL, (void **)&old_sock_lock);
 
-            if (old_sock_lock) {
-                LOGI("release old sock lock after add new one to hash table");
-                release_sock_lock(old_sock_lock);
-            }
+        sock_lock_t *sock_lock = new_sock_lock(server->port, sock_fds, manager->host_num);
+
+        sock_lock_t *old_sock_lock = NULL;
+        bool new = false;
+
+        cork_hash_table_put(sock_table, (void *)sock_lock->port, (void *)sock_lock, &new, NULL, (void **)&old_sock_lock);
+
+        if (old_sock_lock) {
+            LOGI("release old sock lock after add new one to hash table");
+            release_sock_lock(old_sock_lock);
         }
     }
     else {
