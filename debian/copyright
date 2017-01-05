@@ -68,6 +68,10 @@ Files: m4/stack-protector.m4
 Copyright: 2007 Google Inc.
 License: Apache-2.0
 
+Files: src/base64.c src/base64.h
+Copyright: 2006 Ryan Martell <rdm4@martellventures.com>
+License: LGPL-2.1+
+
 Files: src/json.c src/json.h
 Copyright: 2012-2014, James McLaughlin et al.
 License: BSD-2-clause
@@ -202,3 +206,20 @@ License: GPL-3+ with Autoconf exception
  Macro released by the Autoconf Archive. When you make and distribute a
  modified version of the Autoconf Macro, you may extend this special
  exception to the GPL to apply to your modified version as well.
+
+License: LGPL-2.1+
+ This file is part of FFmpeg.
+ .
+ FFmpeg is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+ .
+ FFmpeg is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ .
+ You should have received a copy of the GNU Lesser General Public
+ License along with FFmpeg; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
