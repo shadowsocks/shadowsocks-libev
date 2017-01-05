@@ -474,13 +474,15 @@ new_sock_lock(char *port, int *fds, int fd_count) {
     return sock_lock;
 }
 
-static void
+static int
 check_port(struct manager_ctx *manager, struct server *server) 
 {
     bool both_tcp_udp = manager->mode == TCP_AND_UDP;
     int fd_count = manager->host_num * (both_tcp_udp ? 2 : 1);
-    int *sock_fds = (int *)ss_malloc(fd_count * sizeof(int));
     int bind_err = 0;
+
+    int *sock_fds = (int *)ss_malloc(fd_count * sizeof(int));
+    memset(sock_fds, 0, fd_count * sizeof(int));
 
     // try to bind each interface 
     for (int i = 0; i < manager->host_num; i++) {
@@ -498,12 +500,12 @@ check_port(struct manager_ctx *manager, struct server *server)
         }
 
         if (sock_fds[i] == -1 || (both_tcp_udp && sock_fds[i + manager->host_num] == -1)) {
-            bind_err = 1;
+            bind_err = -1;
             break;
         }
         else if (sock_fds[i] == -2 || (both_tcp_udp && sock_fds[i + manager->host_num] == -2)) {
             // continue to check all hosts
-            bind_err = 1;
+            bind_err = -2;
         }
     }
 
@@ -530,19 +532,23 @@ check_port(struct manager_ctx *manager, struct server *server)
             if (sock_fds[i] > 0) {
                 close(sock_fds[i]);
             }
-            else if (sock_fds[i] == -1) {
-                LOGI("port check failed");
-            }
         }
     }
 
     ss_free(sock_fds);
+
+    return bind_err == -1 ? -1 : 0;
 }
 
-static void
+static int
 add_server(struct manager_ctx *manager, struct server *server)
 {
-    check_port(manager, server);
+    int ret = check_port(manager, server);
+
+    if (ret == -1) {
+        LOGE("port is not available, please check.");
+        return -1;
+    }
 
     bool new = false;
     cork_hash_table_put(server_table, (void *)server->port, (void *)server, &new, NULL, NULL);
@@ -550,7 +556,10 @@ add_server(struct manager_ctx *manager, struct server *server)
     char *cmd = construct_command_line(manager, server);
     if (system(cmd) == -1) {
         ERROR("add_server_system");
+        return -1;
     }
+
+    return 0;
 }
 
 static void
@@ -663,10 +672,21 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         remove_server(working_dir, server->port);
-        add_server(manager, server);
+        int ret = add_server(manager, server);
 
-        char msg[3] = "ok";
-        if (sendto(manager->fd, msg, 2, 0, (struct sockaddr *)&claddr, len) != 2) {
+        char *msg;
+        int msg_len;
+
+        if (ret == -1) {
+            msg = "port is not available";
+            msg_len = 21;
+        }
+        else {
+            msg = "ok";
+            msg_len = 2;
+        }
+
+        if (sendto(manager->fd, msg, msg_len, 0, (struct sockaddr *)&claddr, len) != 2) {
             ERROR("add_sendto");
         }
     } else if (strcmp(action, "remove") == 0) {
