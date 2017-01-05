@@ -435,6 +435,20 @@ release_sock_lock(sock_lock_t *sock_lock) {
 }
 
 static void
+get_and_release_sock_lock(char* port) {
+    if (verbose) {
+        LOGI("try to get and release sock lock at port: %s", port);
+    }
+
+    sock_lock_t *sock_lock = NULL;
+    bool ret = cork_hash_table_delete(sock_table, port, NULL, (void **)&sock_lock);
+
+    if (ret) {
+        release_sock_lock(sock_lock);
+    }
+}
+
+static void
 sock_lock_timeout_cb(EV_P_ ev_timer *watcher, int revents) {
     sock_lock_t *sock_lock = cork_container_of(watcher, sock_lock_t, watcher);
     
@@ -678,6 +692,7 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         update_stat(port, traffic);
+        get_and_release_sock_lock(port);
     } else if (strcmp(action, "ping") == 0) {
         struct cork_hash_table_entry *entry;
         struct cork_hash_table_iterator server_iter;
