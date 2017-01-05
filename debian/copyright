@@ -1,4 +1,4 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: shadowsocks-libev
 Upstream-Contact: Max Lv <max.c.lv@gmail.com>
 Source: https://github.com/shadowsocks/shadowsocks-libev
