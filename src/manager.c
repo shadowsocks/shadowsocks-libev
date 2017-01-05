@@ -1191,7 +1191,8 @@ main(int argc, char **argv)
     cork_hash_table_iterator_init(sock_table, &sock_iter);
 
     while ((entry = cork_hash_table_iterator_next(&sock_iter)) != NULL) {
-        // TODO close and release all remaining socks.
+        sock_lock_t *sock_lock = (sock_lock_t *)entry->value;
+        release_sock_lock(sock_lock);
     }
 
 #ifdef __MINGW32__
