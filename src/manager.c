@@ -356,6 +356,8 @@ create_and_bind(const char *host, const char *port, int protocol)
         }
     }
 
+    is_port_reuse = 0;
+
     for (/*rp = result*/; rp != NULL; rp = rp->ai_next) {
         listen_sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (listen_sock == -1) {
@@ -379,23 +381,22 @@ create_and_bind(const char *host, const char *port, int protocol)
                 LOGI("%s port reuse enabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
             }
             is_port_reuse = 1;
-        } else {
-            is_port_reuse = 0;
         }
 
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
         if (s == 0) {
             /* We managed to bind successfully! */
+
+            if (!is_port_reuse) {
+                if (verbose) {
+                    LOGI("close sock due to %s port reuse disabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
+                }
+                close(listen_sock);
+            }
+
             break;
         } else {
             ERROR("bind");
-        }
-
-        if (!is_port_reuse) {
-            if (verbose) {
-                LOGI("close sock due to %s port reuse disabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
-            }
-            close(listen_sock);
         }
     }
 
