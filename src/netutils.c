@@ -148,9 +148,10 @@ get_sockaddr(char *host, char *port,
         hints.ai_family   = AF_UNSPEC;   /* Return IPv4 and IPv6 choices */
         hints.ai_socktype = SOCK_STREAM; /* We want a TCP socket */
 
+        int waiting_second  = 5;
         int err, i;
 
-        for (i = 1; i < 8; i++) {
+        for (i = 1; i < 1000; i++) {
             err = getaddrinfo(host, port, &hints, &result);
 #if defined(MODULE_LOCAL)
             if (!keep_resolving)
@@ -159,8 +160,8 @@ get_sockaddr(char *host, char *port,
             if ((!block || !err)) {
                 break;
             } else {
-                sleep(pow(2, i));
-                LOGE("failed to resolve server name, wait %.0f seconds", pow(2, i));
+                sleep(waiting_second);
+                LOGE("failed to resolve server name, wait %.0f seconds", waiting_second);
             }
         }
 
