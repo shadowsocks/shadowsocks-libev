@@ -774,7 +774,6 @@ main(int argc, char **argv)
     char *conf_path  = NULL;
 
     char *plugin      = NULL;
-    char *plugin_args = NULL;
     char *plugin_host = NULL;
     char *plugin_port = NULL;
     char tmp_port[8];
