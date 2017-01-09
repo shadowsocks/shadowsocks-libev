@@ -101,11 +101,12 @@ start_plugin(const char *plugin,
     env = cork_env_clone_current();
     const char *path = cork_env_get(env, "PATH");
     if (path != NULL) {
-        char cwd[PATH_MAX];
-        if (!getcwd(cwd, PATH_MAX)) {
+        char *cwd = get_current_dir_name();
+        if (cwd) {
             size_t path_len = strlen(path) + strlen(cwd) + 2;
             new_path = ss_malloc(path_len);
             snprintf(new_path, path_len, "%s:%s", cwd, path);
+            free(cwd);
         }
     }
 
