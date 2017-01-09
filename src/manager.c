@@ -548,7 +548,7 @@ check_port(struct manager_ctx *manager, struct server *server)
     ss_free(sock_fds);
 
     if (bind_err == -2) {
-        LOGI("port is avaiable but can not be locked");
+        LOGI("port is available but can not be locked");
     }
 
     return bind_err == -1 ? -1 : 0;
