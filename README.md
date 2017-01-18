@@ -222,7 +222,9 @@ e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 # Debian / Ubuntu
 sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto zlib1g-dev
 # CentOS / Fedora / RHEL
-sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto
+sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto udns-devel libev-devel
+# Arch
+sudo pacman -S gcc autoconf libtool automake make zlib openssl asciidoc xmlto udns libev
 ./autogen.sh && ./configure && make
 sudo make install
 ```
