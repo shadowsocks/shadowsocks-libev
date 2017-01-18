@@ -26,11 +26,10 @@ Breaks:
 Architecture: any
 Depends:
  apg,
+ libcap2-bin [linux-any],
  lsb-base (>= 3.0-6),
  ${misc:Depends},
- ${shlibs:Depends},
-Suggests:
- libcap2-bin
+ ${shlibs:Depends}
 Description: lightweight and secure socks5 proxy
  Shadowsocks-libev is a lightweight and secure socks5 proxy for
  embedded devices and low end boxes.
