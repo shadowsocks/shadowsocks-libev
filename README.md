@@ -45,6 +45,7 @@ git submodule update --init --recursive
     + [Build deb package from source](#build-deb-package-from-source)
     + [Configure and start the service](#configure-and-start-the-service)
 - [Fedora & RHEL](#fedora--rhel)
+    + [Build from source](build-from-source-2)
     + [Install from repository](#install-from-repository-1)
 - [OpenSUSE](#opensuse)
     + [Install from repository](#install-from-repository-2)
@@ -152,6 +153,15 @@ sudo systemctl start shadowsocks-libev      # for systemd
 Supported distributions include
 - Fedora 22, 23, 24
 - RHEL 6, 7 and derivatives (including CentOS, Scientific Linux)
+
+#### Build from source
+
+If you are using CentOS 7, you need to install these prequirement to build from source code
+
+```bash 
+yum install epel-release -y
+yum install gcc autoconf libtool automake make openssl-devel pcre-devel asciidoc xmlto zlib-devel openssl-devel libsodium-devel udns-devel libev-devel  -y
+```
 
 #### Install from repository
 
