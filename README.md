@@ -96,7 +96,7 @@ sudo apt install shadowsocks-libev
 For Debian Jessie users, please install it from `jessie-backports`:
 
 ```bash
-sudo sh -c 'printf "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
+sudo sh -c 'printf "deb http://httpredir.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
 sudo apt update
 sudo apt -t jessie-backports install shadowsocks-libev
 ```
