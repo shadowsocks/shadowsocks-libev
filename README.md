@@ -2,7 +2,7 @@
 
 ## Intro
 
-[Shadowsocks-libev](http://shadowsocks.org) is a lightweight secured SOCKS5
+[Shadowsocks-libev](https://shadowsocks.org) is a lightweight secured SOCKS5
 proxy for embedded devices and low-end boxes.
 
 It is a port of [Shadowsocks](https://github.com/shadowsocks/shadowsocks)
@@ -17,7 +17,7 @@ Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.svg
 
 Shadowsocks-libev is written in pure C and only depends on
 [libev](http://software.schmorp.de/pkg/libev.html) and
-[OpenSSL](http://www.openssl.org/) or [mbedTLS](https://tls.mbed.org/).
+[OpenSSL](https://www.openssl.org/) or [mbedTLS](https://tls.mbed.org/).
 
 In normal usage, the memory footprint is about 600KB and the CPU utilization is
 no more than 5% on a low-end router (Buffalo WHR-G300N V2 with a 400MHz MIPS CPU,
@@ -116,7 +116,7 @@ Ubuntu 14.04.
 **Note for Debian 7.x users**:
 To build packages on Debian 7 (Wheezy), you need to enable `debian-backports`
 to install systemd-compatibility packages like `dh-systemd` or `init-system-helpers`.
-Please follow the instructions on [Debian Backports](http://backports.debian.org).
+Please follow the instructions on [Debian Backports](https://backports.debian.org).
 
 This also means that you can only install those built packages on systems that have
 `init-system-helpers` installed.
