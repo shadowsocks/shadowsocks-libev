@@ -7,7 +7,7 @@ before_install:
     - git clone https://github.com/jedisct1/libsodium
     - pushd libsodium
     - ./autogen.sh
-    - ./configure && make
+    - ./configure --prefix=/usr && make
     - sudo make install
     - popd
 addons:
