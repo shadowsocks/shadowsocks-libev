@@ -240,7 +240,8 @@ e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 
 ```bash
 # Debian / Ubuntu
-sudo apt-get install --no-install-recommends autoconf libtool asciidoc zlib1g-dev libssl-dev libpcre3 libpcre3-dev build-essential libpcre3 asciidoc libpcre3-dev zlib1g-dev libssl-dev automake libudns-dev libev-dev xmlto -y
+sudo apt-get install --no-install-recommends autoconf libtool asciidoc zlib1g-dev libssl-dev libpcre3 libpcre3-dev build-essential libpcre3 asciidoc libpcre3-dev zlib1g-dev libssl-dev automake libudns-dev libev-dev xmlto
+git clone https://github.com/shadowsocks/shadowsocks-libev.git
 cd shadowsocks-libev
 git submodule update --init --recursive
 git clone https://github.com/jedisct1/libsodium.git
