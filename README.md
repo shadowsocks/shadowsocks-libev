@@ -247,12 +247,12 @@ git submodule update --init --recursive
 git clone https://github.com/jedisct1/libsodium.git
 cd libsodium
 ./autogen.sh
-./configure
+./configure --prefix=/usr
 make && make install
 cd ./..
 ./
 ./autogen.sh
-./configure
+./configure --prefix=/usr
 make && make install
 # CentOS / Fedora / RHEL
 sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto udns-devel libev-devel
