@@ -90,7 +90,7 @@ Shadowsocks-libev is available in the official repository for Debian 9("Stretch"
 
 ```bash
 sudo apt update
-sudo apt install shadowsocks
+sudo apt install shadowsocks-libev
 ```
 
 For Debian Jessie users, please install it from `jessie-backports`:
