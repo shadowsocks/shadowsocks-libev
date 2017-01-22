@@ -253,7 +253,6 @@ cd ./..
 ./autogen.sh
 ./configure
 make && make install
-
 # CentOS / Fedora / RHEL
 sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto udns-devel libev-devel
 # Arch
