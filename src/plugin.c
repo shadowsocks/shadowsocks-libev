@@ -94,6 +94,9 @@ start_plugin(const char *plugin,
     if (plugin == NULL)
         return -1;
 
+    if (strlen(plugin) == 0)
+        return 0;
+
     size_t plugin_len = strlen(plugin);
     size_t cmd_len = plugin_len + CMD_RESRV_LEN;
     cmd = ss_malloc(cmd_len);
@@ -201,6 +204,7 @@ int is_plugin_running()
 
 int
 start_plugin(const char *plugin,
+             const char *plugin_opts,
              const char *remote_host,
              const char *remote_port,
              const char *local_host,

@@ -88,7 +88,6 @@ static void close_and_free_server(EV_P_ server_t *server);
 
 #ifdef ANDROID
 int vpn = 0;
-char *prefix;
 #endif
 
 int verbose        = 0;
@@ -786,7 +785,7 @@ main(int argc, char **argv)
     USE_TTY();
 
 #ifdef ANDROID
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:P:huUvVA6",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:huUvVA6",
                             long_options, &option_index)) != -1) {
 #else
     while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:huUvA6",
@@ -875,9 +874,6 @@ main(int argc, char **argv)
 #ifdef ANDROID
         case 'V':
             vpn = 1;
-            break;
-        case 'P':
-            prefix = optarg;
             break;
 #endif
         case '?':

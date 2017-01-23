@@ -1,13 +1,27 @@
+sudo: true
 language: c
 compiler:
     - gcc
     - clang
+before_install:
+    - git clone https://github.com/jedisct1/libsodium
+    - pushd libsodium
+    - ./autogen.sh
+    - ./configure --prefix=/usr && make
+    - sudo make install
+    - popd
 addons:
     apt:
         packages:
+            - autoconf
+            - autotools-dev
+            - libudns-dev
+            - libev-dev
             - asciidoc
             - xmlto
-script: "./configure && make"
+script:
+    - ./autogen.sh
+    - ./configure && make
 branches:
     only:
         - master

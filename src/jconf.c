@@ -201,6 +201,10 @@ read_jconf(const char *file)
                 conf.user = to_string(value);
             } else if (strcmp(name, "plugin") == 0) {
                 conf.plugin = to_string(value);
+                if (strlen(conf.plugin) == 0) {
+                    ss_free(conf.plugin);
+                    conf.plugin = NULL;
+                }
             } else if (strcmp(name, "plugin_opts") == 0) {
                 conf.plugin_opts = to_string(value);
             } else if (strcmp(name, "fast_open") == 0) {

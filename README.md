@@ -2,7 +2,7 @@
 
 ## Intro
 
-[Shadowsocks-libev](http://shadowsocks.org) is a lightweight secured SOCKS5
+[Shadowsocks-libev](https://shadowsocks.org) is a lightweight secured SOCKS5
 proxy for embedded devices and low-end boxes.
 
 It is a port of [Shadowsocks](https://github.com/shadowsocks/shadowsocks)
@@ -17,7 +17,7 @@ Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.svg
 
 Shadowsocks-libev is written in pure C and only depends on
 [libev](http://software.schmorp.de/pkg/libev.html) and
-[OpenSSL](http://www.openssl.org/) or [mbedTLS](https://tls.mbed.org/).
+[OpenSSL](https://www.openssl.org/) or [mbedTLS](https://tls.mbed.org/).
 
 In normal usage, the memory footprint is about 600KB and the CPU utilization is
 no more than 5% on a low-end router (Buffalo WHR-G300N V2 with a 400MHz MIPS CPU,
@@ -28,6 +28,16 @@ refer to the [Wiki page](https://github.com/shadowsocks/shadowsocks/wiki/Feature
 
 ## Installation
 
+### Get the latest source code
+
+To get the latest source code, you should also update the submodules as following:
+
+```bash
+git clone https://github.com/shadowsocks/shadowsocks-libev.git
+cd shadowsocks-libev
+git submodule update --init --recursive
+```
+
 ### Distribution-specific guide
 
 - [Debian & Ubuntu](#debian--ubuntu)
@@ -35,6 +45,7 @@ refer to the [Wiki page](https://github.com/shadowsocks/shadowsocks/wiki/Feature
     + [Build deb package from source](#build-deb-package-from-source)
     + [Configure and start the service](#configure-and-start-the-service)
 - [Fedora & RHEL](#fedora--rhel)
+    + [Build from source with centos](#build-from-source-with-centos)
     + [Install from repository](#install-from-repository-1)
 - [OpenSUSE](#opensuse)
     + [Install from repository](#install-from-repository-2)
@@ -69,12 +80,6 @@ and `--with-mbedtls=/path/to/mbedtls` when running `./configure`.
 Windows users will need extra work when compiling mbedTLS library,
 see [this issue](https://github.com/shadowsocks/shadowsocks-libev/issues/422) for detail info.
 
-#### Using shared library from system
-
-Please specify `--enable-system-shared-lib`. This will replace the bundled
-`libev`, `libsodium` and `libudns` with the corresponding libraries installed
-in the system during compilation and linking.
-
 ### Debian & Ubuntu
 
 #### Install from repository
@@ -91,7 +96,7 @@ sudo apt install shadowsocks-libev
 For Debian Jessie users, please install it from `jessie-backports`:
 
 ```bash
-sudo sh -c 'printf "deb http://ftp.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
+sudo sh -c 'printf "deb http://httpredir.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
 sudo apt update
 sudo apt -t jessie-backports install shadowsocks-libev
 ```
@@ -111,7 +116,7 @@ Ubuntu 14.04.
 **Note for Debian 7.x users**:
 To build packages on Debian 7 (Wheezy), you need to enable `debian-backports`
 to install systemd-compatibility packages like `dh-systemd` or `init-system-helpers`.
-Please follow the instructions on [Debian Backports](http://backports.debian.org).
+Please follow the instructions on [Debian Backports](https://backports.debian.org).
 
 This also means that you can only install those built packages on systems that have
 `init-system-helpers` installed.
@@ -122,8 +127,9 @@ section below.
 ``` bash
 cd shadowsocks-libev
 sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev \
-    gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev zlib1g-dev
-dpkg-buildpackage -b -us -uc -i
+    gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev zlib1g-dev \
+    libev-dev libudns-dev libsodium-dev
+./autogen.sh && dpkg-buildpackage -b -us -uc -i
 cd ..
 sudo dpkg -i shadowsocks-libev*.deb
 ```
@@ -147,6 +153,15 @@ sudo systemctl start shadowsocks-libev      # for systemd
 Supported distributions include
 - Fedora 22, 23, 24
 - RHEL 6, 7 and derivatives (including CentOS, Scientific Linux)
+
+#### Build from source with centos
+
+If you are using CentOS 7, you need to install these prequirement to build from source code
+
+```bash 
+yum install epel-release -y
+yum install gcc autoconf libtool automake make openssl-devel pcre-devel asciidoc xmlto zlib-devel openssl-devel libsodium-devel udns-devel libev-devel  -y
+```
 
 #### Install from repository
 
@@ -193,7 +208,7 @@ Then download the source package and compile.
 ```bash
 git clone https://github.com/shadowsocks/shadowsocks-libev.git
 cd shadowsocks-libev
-./configure && make
+./autogen.sh && ./configure && make
 sudo make install
 ```
 
@@ -227,8 +242,10 @@ e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 # Debian / Ubuntu
 sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto zlib1g-dev
 # CentOS / Fedora / RHEL
-sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto
-./configure && make
+sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto udns-devel libev-devel
+# Arch
+sudo pacman -S gcc autoconf libtool automake make zlib openssl asciidoc xmlto udns libev
+./autogen.sh && ./configure && make
 sudo make install
 ```
 
@@ -285,7 +302,7 @@ to the home directory of msys, and build it like this (may take a few minutes):
 tar zxf openssl-1.0.1e.tar.gz
 cd openssl-1.0.1e
 ./config --prefix="$HOME/prebuilt" --openssldir="$HOME/prebuilt/openssl"
-make && make install
+./autogen.sh && make && make install
 ```
 
 Then, build the binary using the commands below, and all `.exe` files
@@ -293,7 +310,7 @@ will be built at `$HOME/ss/bin`:
 
 ```bash
 ./configure --prefix="$HOME/ss" --with-openssl="$HOME/prebuilt"
-make && make install
+./autogen.sh && make && make install
 ```
 
 ## Usage
@@ -444,7 +461,9 @@ setting up your server's firewall rules to limit connections from each user:
 
 ## License
 
-Copyright (C) 2016 Max Lv <max.c.lv@gmail.com>
+Copyright: 2013-2015, Clow Windy <clowwindy42@gmail.com>
+           2013-2017, Max Lv <max.c.lv@gmail.com>
+           2014, Linus Yang <linusyang@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
