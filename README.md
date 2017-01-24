@@ -90,7 +90,7 @@ Shadowsocks-libev is available in the official repository for Debian 9("Stretch"
 
 ```bash
 sudo apt update
-sudo apt install shadowsocks-libev
+sudo apt install shadowsocks
 ```
 
 For Debian Jessie users, please install it from `jessie-backports`:
@@ -240,7 +240,20 @@ e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 
 ```bash
 # Debian / Ubuntu
-sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto zlib1g-dev
+sudo apt-get install --no-install-recommends autoconf libtool asciidoc zlib1g-dev libssl-dev libpcre3 libpcre3-dev build-essential libpcre3 asciidoc libpcre3-dev zlib1g-dev libssl-dev automake libudns-dev libev-dev xmlto
+git clone https://github.com/shadowsocks/shadowsocks-libev.git
+cd shadowsocks-libev
+git submodule update --init --recursive
+git clone https://github.com/jedisct1/libsodium.git
+cd libsodium
+./autogen.sh
+./configure --prefix=/usr
+make && make install
+cd ./..
+./
+./autogen.sh
+./configure
+make && make install
 # CentOS / Fedora / RHEL
 sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto udns-devel libev-devel
 # Arch
