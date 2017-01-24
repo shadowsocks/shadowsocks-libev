@@ -278,8 +278,10 @@ crypto_stream_xor_ic(uint8_t *c, const uint8_t *m, uint64_t mlen,
         return crypto_stream_salsa20_xor_ic(c, m, mlen, n, ic, k);
     case CHACHA20:
         return crypto_stream_chacha20_xor_ic(c, m, mlen, n, ic, k);
+#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
     case CHACHA20IETF:
         return crypto_stream_chacha20_ietf_xor_ic(c, m, mlen, n, (uint32_t)ic, k);
+#endif
     }
     // always return 0
     return 0;
