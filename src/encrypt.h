@@ -134,7 +134,9 @@ typedef struct {
 #define SEED_CFB            17
 #define SALSA20             18
 #define CHACHA20            19
+#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
 #define CHACHA20IETF        20
+#endif
 
 #define ONETIMEAUTH_FLAG 0x10
 #define ADDRTYPE_MASK 0xEF

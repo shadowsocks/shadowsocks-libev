@@ -197,7 +197,9 @@ static const CCAlgorithm supported_ciphers_applecc[CIPHER_NUM] = {
     kCCAlgorithmInvalid,
     kCCAlgorithmInvalid,
     kCCAlgorithmInvalid,
+#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
     kCCAlgorithmInvalid
+#endif
 };
 
 static const CCMode supported_modes_applecc[CIPHER_NUM] = {
@@ -221,7 +223,9 @@ static const CCMode supported_modes_applecc[CIPHER_NUM] = {
     kCCAlgorithmInvalid,
     kCCAlgorithmInvalid,
     kCCAlgorithmInvalid,
+#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
     kCCAlgorithmInvalid
+#endif
 };
 #endif
 
@@ -1303,7 +1307,11 @@ enc_key_init(int method, const char *pass)
         FATAL("Failed to initialize sodium");
     }
 
+#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
     if (method == SALSA20 || method == CHACHA20 || method == CHACHA20IETF) {
+#else
+    if (method == SALSA20 || method == CHACHA20) {
+#endif
 #if defined(USE_CRYPTO_OPENSSL)
         cipher.info    = NULL;
         cipher.key_len = supported_ciphers_key_size[method];

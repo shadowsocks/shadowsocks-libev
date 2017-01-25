@@ -278,9 +278,15 @@ usage()
     printf(
         "                                  camellia-256-cfb, cast5-cfb, des-cfb,\n");
     printf(
+#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
         "                                  idea-cfb, rc2-cfb, seed-cfb, salsa20,\n");
     printf(
         "                                  chacha20 and chacha20-ietf.\n");
+#else
+        "                                  idea-cfb, rc2-cfb, seed-cfb, salsa20 and\n");
+    printf(
+        "                                  chacha20.\n");
+#endif
     printf(
         "                                  The default cipher is rc4-md5.\n");
     printf("\n");
