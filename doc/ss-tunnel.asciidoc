@@ -14,7 +14,7 @@ SYNOPSIS
  [-t <timeout>] [-c <config_file>] [-i <interface>]
  [-b <local_addr>] [-a <user_name>] [-n <nofile>]
  [-L addr:port] [--mtu <MTU>]
- [--plugin <plugin_name>] [--plugin_opts <plugin_options]
+ [--plugin <plugin_name>] [--plugin-opts <plugin_options]
 
 DESCRIPTION
 -----------
@@ -116,7 +116,7 @@ Only available with MPTCP enabled Linux kernel.
 --plugin <plugin_name>::
 Enable SIP003 plugin. (Experimental)
 
---plugin_opts <plugin_options>::
+--plugin-opts <plugin_options>::
 Set SIP003 plugin options. (Experimental)
 
 -v::
