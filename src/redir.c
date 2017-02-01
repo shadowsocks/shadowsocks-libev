@@ -805,12 +805,12 @@ main(int argc, char **argv)
 
     int option_index                    = 0;
     static struct option long_options[] = {
-        { "mtu",         required_argument, 0, 0 },
-        { "mptcp",       no_argument,       0, 0 },
-        { "plugin",      required_argument, 0, 0 },
-        { "plugin-opts", required_argument, 0, 0 },
-        { "help",        no_argument,       0, 0 },
-        { 0,             0,                 0, 0 }
+        { "mtu",         required_argument, NULL, GETOPT_VAL_MTU },
+        { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP },
+        { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN },
+        { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
+        { "help",        no_argument,       NULL, GETOPT_VAL_HELP },
+        { NULL,          0,                 NULL, 0 }
     };
 
     opterr = 0;
@@ -820,21 +820,19 @@ main(int argc, char **argv)
     while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:huUvA6",
                             long_options, &option_index)) != -1) {
         switch (c) {
-        case 0:
-            if (option_index == 0) {
-                mtu = atoi(optarg);
-                LOGI("set MTU to %d", mtu);
-            } else if (option_index == 1) {
-                mptcp = 1;
-                LOGI("enable multipath TCP");
-            } else if (option_index == 2) {
-                plugin = optarg;
-            } else if (option_index == 3) {
-                plugin_opts = optarg;
-            } else if (option_index == 4) {
-                usage();
-                exit(EXIT_SUCCESS);
-            }
+        case GETOPT_VAL_MTU:
+            mtu = atoi(optarg);
+            LOGI("set MTU to %d", mtu);
+            break;
+        case GETOPT_VAL_MPTCP:
+            mptcp = 1;
+            LOGI("enable multipath TCP");
+            break;
+        case GETOPT_VAL_PLUGIN:
+            plugin = optarg;
+            break;
+        case GETOPT_VAL_PLUGIN_OPTS:
+            plugin_opts = optarg;
             break;
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
@@ -884,6 +882,7 @@ main(int argc, char **argv)
         case 'v':
             verbose = 1;
             break;
+        case GETOPT_VAL_HELP:
         case 'h':
             usage();
             exit(EXIT_SUCCESS);
