@@ -120,6 +120,95 @@ static int start_ss_plugin(const char *plugin,
     return err;
 }
 
+#define OBFSPROXY_OPTS_MAX  4096
+/*
+ * For obfsproxy, we use standalone mode for now.
+ * Managed mode needs to use SOCKS5 proxy as forwarder, which is not supported
+ * yet.
+ *
+ * The idea of using standalone mode is quite simple, just assemble the
+ * internal port into obfsproxy parameters.
+ *
+ * Using manually ran scramblesuit as an example:
+ * obfsproxy \
+ * --data-dir /tmp/ss_libev_plugin_with_suffix \
+ * scramblesuit \
+ * --password SOMEMEANINGLESSPASSWORDASEXAMPLE \
+ * --dest some.server.org:12345 \
+ * client \
+ * 127.0.0.1:54321
+ *
+ * In above case, @plugin = "obfsproxy",
+ * @plugin_opts = "scramblesuit --password SOMEMEANINGLESSPASSWORDASEXAMPLE"
+ * For obfs3, it's even easier, just pass @plugin = "obfsproxy"
+ * @plugin_opts = "obfs3"
+ *
+ * And the rest parameters are all assembled here.
+ * Some old obfsproxy will not be supported as it doesn't even support
+ * "--data-dir" option
+ */
+static int start_obfsproxy(const char *plugin,
+                           const char *plugin_opts,
+                           const char *remote_host,
+                           const char *remote_port,
+                           const char *local_host,
+                           const char *local_port,
+                           enum plugin_mode mode)
+{
+    char *pch;
+    char *opts_dump;
+    char buf[PATH_MAX];
+    int ret;
+
+    opts_dump = strndup(plugin_opts, OBFSPROXY_OPTS_MAX);
+    if (!opts_dump) {
+        ERROR("start_obfsproxy strndup failed");
+        return -ENOMEM;
+    }
+    exec = cork_exec_new(plugin);
+
+    /* The first parameter will be skipped, so pass @plugin again */
+    cork_exec_add_param(exec, plugin);
+
+    cork_exec_add_param(exec, "--data-dir");
+    snprintf(buf, PATH_MAX, "/tmp/%s_%s:%s_%s:%s", plugin,
+             remote_host, remote_port, local_host, local_port);
+    cork_exec_add_param(exec, buf);
+
+    /*
+     * Iterate @plugin_opts by space
+     */
+    pch = strtok(opts_dump, " ");
+    while (pch) {
+        cork_exec_add_param(exec, pch);
+        pch = strtok(NULL, " ");
+    }
+
+    /* The rest options */
+    if (mode == MODE_CLIENT) {
+        /* Client mode */
+        cork_exec_add_param(exec, "--dest");
+        snprintf(buf, PATH_MAX, "%s:%s", remote_host, remote_port);
+        cork_exec_add_param(exec, buf);
+        cork_exec_add_param(exec, "client");
+        snprintf(buf, PATH_MAX, "%s:%s", local_host, local_port);
+        cork_exec_add_param(exec, buf);
+    } else {
+        /* Server mode */
+        cork_exec_add_param(exec, "--dest");
+        snprintf(buf, PATH_MAX, "%s:%s", local_host, local_port);
+        cork_exec_add_param(exec, buf);
+        cork_exec_add_param(exec, "server");
+        snprintf(buf, PATH_MAX, "%s:%s", remote_host, remote_port);
+        cork_exec_add_param(exec, buf);
+    }
+    cork_exec_set_env(exec, env);
+    sub = cork_subprocess_new_exec(exec, NULL, NULL, &exit_code);
+    ret = cork_subprocess_start(sub);
+    ss_free(opts_dump);
+    return ret;
+}
+
 int
 start_plugin(const char *plugin,
              const char *plugin_opts,
@@ -156,10 +245,13 @@ start_plugin(const char *plugin,
     if (new_path != NULL)
         cork_env_add(env, "PATH", new_path);
 
-    ret = start_ss_plugin(plugin, plugin_opts, remote_host, remote_port,
-                          local_host, local_port, mode);
+    if (!strncmp(plugin, "obfsproxy", strlen("obfsproxy")))
+        ret = start_obfsproxy(plugin, plugin_opts, remote_host, remote_port,
+                              local_host, local_port, mode);
+    else
+        ret = start_ss_plugin(plugin, plugin_opts, remote_host, remote_port,
+                              local_host, local_port, mode);
     ss_free(new_path);
-    cork_env_free(env);
     env = NULL;
     return ret;
 }
