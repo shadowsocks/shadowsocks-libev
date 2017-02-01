@@ -78,51 +78,22 @@ struct cork_stream_consumer plugin_log = {
     .free = plugin_log__free,
 };
 
-int
-start_plugin(const char *plugin,
-             const char *plugin_opts,
-             const char *remote_host,
-             const char *remote_port,
-             const char *local_host,
-             const char *local_port,
-             enum plugin_mode mode)
+static int start_ss_plugin(const char *plugin,
+                           const char *plugin_opts,
+                           const char *remote_host,
+                           const char *remote_port,
+                           const char *local_host,
+                           const char *local_port,
+                           enum plugin_mode mode)
 {
     char *new_path = NULL;
     char *cmd      = NULL;
-
-    if (plugin == NULL)
-        return -1;
-
-    if (strlen(plugin) == 0)
-        return 0;
 
     size_t plugin_len = strlen(plugin);
     size_t cmd_len = plugin_len + CMD_RESRV_LEN;
     cmd = ss_malloc(cmd_len);
 
     snprintf(cmd, cmd_len, "exec %s", plugin);
-
-    env = cork_env_clone_current();
-    const char *path = cork_env_get(env, "PATH");
-    if (path != NULL) {
-#ifdef __GLIBC__
-        char *cwd = get_current_dir_name();
-        if (cwd) {
-#else
-        char cwd[PATH_MAX];
-        if (!getcwd(cwd, PATH_MAX)) {
-#endif
-            size_t path_len = strlen(path) + strlen(cwd) + 2;
-            new_path = ss_malloc(path_len);
-            snprintf(new_path, path_len, "%s:%s", cwd, path);
-#ifdef __GLIBC__
-            free(cwd);
-#endif
-        }
-    }
-
-    if (new_path != NULL)
-        cork_env_add(env, "PATH", new_path);
 
     cork_env_add(env, "SS_REMOTE_HOST", remote_host);
     cork_env_add(env, "SS_REMOTE_PORT", remote_port);
@@ -147,6 +118,50 @@ start_plugin(const char *plugin,
         ss_free(new_path);
 
     return err;
+}
+
+int
+start_plugin(const char *plugin,
+             const char *plugin_opts,
+             const char *remote_host,
+             const char *remote_port,
+             const char *local_host,
+             const char *local_port,
+             enum plugin_mode mode)
+{
+    char *new_path = NULL;
+    const char *current_path;
+    char cwd[PATH_MAX];
+    size_t new_path_len;
+    int ret;
+
+    if (plugin == NULL)
+        return -1;
+
+    if (strlen(plugin) == 0)
+        return 0;
+
+    /*
+     * Add current dir to PATH, so we can search plugin in current dir
+     */
+    env = cork_env_clone_current();
+    current_path = cork_env_get(env, "PATH");
+    if (current_path != NULL) {
+        if (!getcwd(cwd, PATH_MAX)) {
+            new_path_len = strlen(current_path) + strlen(cwd) + 2;
+            new_path = ss_malloc(new_path_len);
+            snprintf(new_path, new_path_len, "%s:%s", cwd, current_path);
+        }
+    }
+    if (new_path != NULL)
+        cork_env_add(env, "PATH", new_path);
+
+    ret = start_ss_plugin(plugin, plugin_opts, remote_host, remote_port,
+                          local_host, local_port, mode);
+    ss_free(new_path);
+    cork_env_free(env);
+    env = NULL;
+    return ret;
 }
 
 uint16_t
