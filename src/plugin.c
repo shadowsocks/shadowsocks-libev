@@ -84,7 +84,8 @@ start_plugin(const char *plugin,
              const char *remote_host,
              const char *remote_port,
              const char *local_host,
-             const char *local_port)
+             const char *local_port,
+             enum plugin_mode mode)
 {
     char *new_path = NULL;
     char *cmd      = NULL;

@@ -1011,7 +1011,7 @@ main(int argc, char **argv)
             len = strlen(remote_str);
         }
         int err = start_plugin(plugin, plugin_opts, remote_str,
-                remote_port, plugin_host, plugin_port);
+                remote_port, plugin_host, plugin_port, MODE_CLIENT);
         if (err) {
             FATAL("failed to start the plugin");
         }
