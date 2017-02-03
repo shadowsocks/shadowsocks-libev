@@ -20,17 +20,16 @@ RUN set -ex && \
     apk add --no-cache --virtual .build-deps \
                                 autoconf \
                                 build-base \
-				curl \
+                                curl \
                                 libev-dev \
-				libtool \
-				linux-headers \
+                                libtool \
+                                linux-headers \
                                 udns-dev \
                                 libsodium-dev \
-				mbedtls-dev \
-				openssl-dev \
-				pcre-dev \
-				tar \
-				udns-dev && \
+                                mbedtls-dev \
+                                pcre-dev \
+                                tar \
+                                udns-dev && \
     cd /tmp && \
     curl -sSL $SS_URL | tar xz --strip 1 && \
     ./configure --prefix=/usr --disable-documentation && \
