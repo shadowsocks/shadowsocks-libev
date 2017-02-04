@@ -130,6 +130,8 @@
  *
  */
 
+#define DEBUG
+
 #ifdef DEBUG
 static void
 dump(char *tag, char *text, int len)
@@ -198,16 +200,19 @@ aead_derive_key(const char *pass, uint8_t *key, size_t key_len)
     out_len = base64_decode(out, pass, out_len);
     if (out_len >= key_len) {
         memcpy(key, out, key_len);
-        return key_len;
-    } else if (out_len > 0) {
-        out_len = BASE64_SIZE(key_len);
-        char out_key[out_len];
-        rand_bytes(key, key_len);
-        base64_encode(out_key, out_len, key, key_len);
-        LOGE("Invalid input key!");
-        LOGE("Generating a new random key: %s", out_key);
+#ifdef DEBUG
+        dump("KEY", (char*)key, key_len);
+#endif
         return key_len;
     }
+
+    out_len = BASE64_SIZE(key_len);
+    char out_key[out_len];
+    rand_bytes(key, key_len);
+    base64_encode(out_key, out_len, key, key_len);
+    LOGE("Invalid input key!");
+    LOGE("Generating a new random key: %s", out_key);
+    return key_len;
 }
 
 
