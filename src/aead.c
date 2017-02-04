@@ -33,6 +33,7 @@
 #include <sodium.h>
 #include <arpa/inet.h>
 
+#include "base64.h"
 #include "cache.h"
 #include "aead.h"
 #include "utils.h"
@@ -139,7 +140,6 @@ dump(char *tag, char *text, int len)
         printf("0x%02x ", (uint8_t)text[i]);
     printf("\n");
 }
-
 #endif
 
 const char *supported_aead_ciphers[AEAD_CIPHER_NUM] = {
@@ -187,6 +187,29 @@ static const int supported_aead_ciphers_tag_size[AEAD_CIPHER_NUM] = {
     16
 #endif
 };
+
+static int
+aead_derive_key(const char *pass, uint8_t *key, size_t key_len)
+{
+    size_t pass_len = strlen(pass);
+    size_t out_len = BASE64_SIZE(pass_len);
+    uint8_t out[out_len];
+
+    out_len = base64_decode(out, pass, out_len);
+    if (out_len >= key_len) {
+        memcpy(key, out, key_len);
+        return key_len;
+    } else if (out_len > 0) {
+        out_len = BASE64_SIZE(key_len);
+        char out_key[out_len];
+        rand_bytes(key, key_len);
+        base64_encode(out_key, out_len, key, key_len);
+        LOGE("Invalid input key!");
+        LOGE("Generating a new random key: %s", out_key);
+        return key_len;
+    }
+}
+
 
 static int
 cipher_aead_encrypt(cipher_ctx_t *cipher_ctx,
@@ -737,8 +760,7 @@ aead_key_init(int method, const char *pass)
         FATAL("Cannot initialize cipher");
     }
 
-    cipher->key_len = crypto_derive_key(cipher, pass, cipher->key,
-                                        supported_aead_ciphers_key_size[method], 2);
+    cipher->key_len = aead_derive_key(pass, cipher->key, supported_aead_ciphers_key_size[method]);
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and nonce");
@@ -768,3 +790,4 @@ aead_init(const char *pass, const char *method)
     }
     return aead_key_init(m, pass);
 }
+

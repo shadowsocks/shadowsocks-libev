@@ -100,64 +100,6 @@ crypto_md5(const unsigned char *d, size_t n, unsigned char *md)
     return md;
 }
 
-int
-crypto_derive_key(const cipher_t *cipher, const char *pass,
-                  uint8_t *key, size_t nkey, int version)
-{
-    if (version == 2) {
-        const unsigned char salt[crypto_pwhash_SALTBYTES] = {
-            's', 'h', 'a', 'd', 'o', 'w', 's', 'o',
-            'c', 'k', 's', ' ', 'h', 'a', 's', 'h'
-        };
-        int err = crypto_pwhash (key, nkey, (char*)pass, strlen(pass), salt,
-                crypto_pwhash_OPSLIMIT_INTERACTIVE, crypto_pwhash_MEMLIMIT_INTERACTIVE,
-                crypto_pwhash_ALG_DEFAULT);
-        if (err)
-            FATAL("Out of memory when doing password hashing");
-        else
-            return nkey;
-    }
-
-    size_t datal;
-    datal = strlen((const char *)pass);
-
-    const digest_type_t *md = mbedtls_md_info_from_string("MD5");
-    if (md == NULL) {
-        FATAL("MD5 Digest not found in crypto library");
-    }
-
-    mbedtls_md_context_t c;
-    unsigned char md_buf[MAX_MD_SIZE];
-    int addmd;
-    unsigned int i, j, mds;
-
-    mds = mbedtls_md_get_size(md);
-    memset(&c, 0, sizeof(mbedtls_md_context_t));
-
-    if (pass == NULL)
-        return nkey;
-    if (mbedtls_md_setup(&c, md, 1))
-        return 0;
-
-    for (j = 0, addmd = 0; j < nkey; addmd++) {
-        mbedtls_md_starts(&c);
-        if (addmd) {
-            mbedtls_md_update(&c, md_buf, mds);
-        }
-        mbedtls_md_update(&c, (uint8_t *)pass, datal);
-        mbedtls_md_finish(&c, &(md_buf[0]));
-
-        for (i = 0; i < mds; i++, j++) {
-            if (j >= nkey)
-                break;
-            key[j] = md_buf[i];
-        }
-    }
-
-    mbedtls_md_free(&c);
-    return nkey;
-}
-
 crypto_t *
 crypto_init(const char *password, const char *method)
 {
@@ -189,7 +131,7 @@ crypto_init(const char *password, const char *method)
                 .encrypt     = &stream_encrypt,
                 .decrypt     = &stream_decrypt,
                 .ctx_init    = &stream_ctx_init,
-                .ctx_release = &stream_ctx_release
+                .ctx_release = &stream_ctx_release,
             };
             memcpy(crypto, &tmp, sizeof(crypto_t));
             return crypto;
@@ -212,7 +154,7 @@ crypto_init(const char *password, const char *method)
                 .encrypt     = &aead_encrypt,
                 .decrypt     = &aead_decrypt,
                 .ctx_init    = &aead_ctx_init,
-                .ctx_release = &aead_ctx_release
+                .ctx_release = &aead_ctx_release,
             };
             memcpy(crypto, &tmp, sizeof(crypto_t));
             return crypto;
