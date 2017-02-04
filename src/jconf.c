@@ -46,7 +46,7 @@ to_string(const json_value *value)
     } else if (value->type == json_integer) {
         return strdup(ss_itoa(value->u.integer));
     } else if (value->type == json_null) {
-        return "null";
+        return NULL;
     } else {
         LOGE("%d", value->type);
         FATAL("Invalid config format.");
