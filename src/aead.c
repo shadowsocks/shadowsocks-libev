@@ -129,8 +129,6 @@
  *
  */
 
-#define DEBUG
-
 #ifdef DEBUG
 static void
 dump(char *tag, char *text, int len)
@@ -191,11 +189,11 @@ static int
 aead_derive_key(const char *pass, uint8_t *key, size_t key_len)
 {
     size_t pass_len = strlen(pass);
-    size_t out_len = BASE64_SIZE(pass_len);
+    int out_len = BASE64_SIZE(pass_len);
     uint8_t out[out_len];
 
     out_len = base64_decode(out, pass, out_len);
-    if (out_len >= key_len) {
+    if (out_len > 0 && out_len >= key_len) {
         memcpy(key, out, key_len);
 #ifdef DEBUG
         dump("KEY", (char*)key, key_len);
@@ -207,8 +205,10 @@ aead_derive_key(const char *pass, uint8_t *key, size_t key_len)
     char out_key[out_len];
     rand_bytes(key, key_len);
     base64_encode(out_key, out_len, key, key_len);
-    LOGE("Invalid input key!");
+    LOGE("Invalid key for your chosen cipher!");
+    LOGE("It requires a %zu-byte key encoded with URL-safe Base64", key_len);
     LOGE("Generating a new random key: %s", out_key);
+    FATAL("Please use the key above or input a valid key");
     return key_len;
 }
 
