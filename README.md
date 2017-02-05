@@ -129,7 +129,7 @@ section below.
 
 ``` bash
 cd shadowsocks-libev
-sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool \
+sudo apt-get install --no-install-recommends gettext build-essential autoconf automake libtool \
     gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev \
     libev-dev libudns-dev dh-autoreconf
 ./autogen.sh && dpkg-buildpackage -b -us -uc -i
