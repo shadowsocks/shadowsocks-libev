@@ -28,9 +28,9 @@
 // currently, XCHACHA20POLY1305IETF is not released yet
 // XCHACHA20POLY1305 is removed in upstream
 #ifdef FS_HAVE_XCHACHA20IETF
-#define AEAD_CIPHER_NUM              6
-#else
 #define AEAD_CIPHER_NUM              5
+#else
+#define AEAD_CIPHER_NUM              4
 #endif
 
 int aead_encrypt_all(buffer_t *, cipher_t *, size_t);

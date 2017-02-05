@@ -35,11 +35,7 @@
 #endif
 
 #include <sodium.h>
-#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
 #define STREAM_CIPHER_NUM          21
-#else
-#define STREAM_CIPHER_NUM          20
-#endif
 
 #include "crypto.h"
 

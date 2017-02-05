@@ -47,11 +47,10 @@
  * methods below doesn't require it,
  * then we need to fake one
  */
-#define CHACHA20POLY1305        3
-#define CHACHA20POLY1305IETF    4
+#define CHACHA20POLY1305IETF    3
 
 #ifdef FS_HAVE_XCHACHA20IETF
-#define XCHACHA20POLY1305IETF   5
+#define XCHACHA20POLY1305IETF   4
 #endif
 
 #define CHUNK_SIZE_LEN          2
@@ -148,7 +147,6 @@ const char *supported_aead_ciphers[AEAD_CIPHER_NUM] = {
     "aes-128-gcm",
     "aes-192-gcm",
     "aes-256-gcm",
-    "chacha20-poly1305",
     "chacha20-ietf-poly1305",
 #ifdef FS_HAVE_XCHACHA20IETF
     "xchacha20-ietf-poly1305"
@@ -163,28 +161,27 @@ static const char *supported_aead_ciphers_mbedtls[AEAD_CIPHER_NUM] = {
     "AES-192-GCM",
     "AES-256-GCM",
     CIPHER_UNSUPPORTED,
-    CIPHER_UNSUPPORTED,
 #ifdef FS_HAVE_XCHACHA20IETF
     CIPHER_UNSUPPORTED
 #endif
 };
 
 static const int supported_aead_ciphers_nonce_size[AEAD_CIPHER_NUM] = {
-    12, 12, 12, 8, 12,
+    12, 12, 12, 12,
 #ifdef FS_HAVE_XCHACHA20IETF
     24
 #endif
 };
 
 static const int supported_aead_ciphers_key_size[AEAD_CIPHER_NUM] = {
-    16, 24, 32, 32, 32,
+    16, 24, 32, 32,
 #ifdef FS_HAVE_XCHACHA20IETF
     32
 #endif
 };
 
 static const int supported_aead_ciphers_tag_size[AEAD_CIPHER_NUM] = {
-    16, 16, 16, 16, 16,
+    16, 16, 16, 16,
 #ifdef FS_HAVE_XCHACHA20IETF
     16
 #endif
@@ -240,11 +237,6 @@ cipher_aead_encrypt(cipher_ctx_t *cipher_ctx,
                                           m, mlen, c, clen, c + mlen, tlen);
         *clen += tlen;
         break;
-    case CHACHA20POLY1305:
-        err = crypto_aead_chacha20poly1305_encrypt(c, &long_clen, m, mlen,
-                                                   ad, adlen, NULL, n, k);
-        *clen = (size_t)long_clen;
-        break;
     case CHACHA20POLY1305IETF:
         err = crypto_aead_chacha20poly1305_ietf_encrypt(c, &long_clen, m, mlen,
                                                         ad, adlen, NULL, n, k);
@@ -287,11 +279,6 @@ cipher_aead_decrypt(cipher_ctx_t *cipher_ctx,
         err = mbedtls_cipher_auth_decrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen - tlen, p, plen, m + mlen - tlen, tlen);
         break;
-    case CHACHA20POLY1305:
-        err = crypto_aead_chacha20poly1305_decrypt(p, &long_plen, NULL, m, mlen,
-                                                   ad, adlen, n, k);
-        *plen = (size_t)long_plen; // it's safe to cast 64bit to 32bit length here
-        break;
     case CHACHA20POLY1305IETF:
         err = crypto_aead_chacha20poly1305_ietf_decrypt(p, &long_plen, NULL, m, mlen,
                                                         ad, adlen, n, k);
@@ -324,7 +311,7 @@ aead_get_cipher_type(int method)
     }
 
     /* cipher that don't use mbed TLS, just return */
-    if (method >= CHACHA20POLY1305) {
+    if (method >= CHACHA20POLY1305IETF) {
         return NULL;
     }
 
@@ -346,7 +333,7 @@ aead_cipher_ctx_init(cipher_ctx_t *cipher_ctx, int method, int enc)
         return;
     }
 
-    if (method >= CHACHA20POLY1305) {
+    if (method >= CHACHA20POLY1305IETF) {
         return;
     }
 
@@ -397,7 +384,7 @@ aead_ctx_init(cipher_t *cipher, cipher_ctx_t *cipher_ctx, int enc)
 void
 aead_ctx_release(cipher_ctx_t *cipher_ctx)
 {
-    if (cipher_ctx->cipher->method >= CHACHA20POLY1305) {
+    if (cipher_ctx->cipher->method >= CHACHA20POLY1305IETF) {
         return;
     }
 
@@ -750,7 +737,7 @@ aead_key_init(int method, const char *pass)
         FATAL("Failed to initialize sodium");
     }
 
-    if (method >= CHACHA20POLY1305) {
+    if (method >= CHACHA20POLY1305IETF) {
         cipher_kt_t *cipher_info = (cipher_kt_t *)ss_malloc(sizeof(cipher_kt_t));
         cipher->info             = cipher_info;
         cipher->info->base       = NULL;

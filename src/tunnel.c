@@ -755,7 +755,7 @@ main(int argc, char **argv)
         { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
         { "reuse-port",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
         { "help",        no_argument,       NULL, GETOPT_VAL_HELP },
-        { NULL,          0,                 NULL, 0}
+        { NULL,          0,                 NULL, 0 }
     };
 
     opterr = 0;
@@ -1055,10 +1055,10 @@ main(int argc, char **argv)
         int listenfd;
         listenfd = create_and_bind(local_addr, local_port);
         if (listenfd == -1) {
-            FATAL("bind() error:");
+            FATAL("bind() error");
         }
         if (listen(listenfd, SOMAXCONN) == -1) {
-            FATAL("listen() error:");
+            FATAL("listen() error");
         }
         setnonblocking(listenfd);
 

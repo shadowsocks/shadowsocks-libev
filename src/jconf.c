@@ -46,7 +46,7 @@ to_string(const json_value *value)
     } else if (value->type == json_integer) {
         return strdup(ss_itoa(value->u.integer));
     } else if (value->type == json_null) {
-        return "null";
+        return NULL;
     } else {
         LOGE("%d", value->type);
         FATAL("Invalid config format.");
@@ -62,14 +62,17 @@ free_addr(ss_addr_t *addr)
 }
 
 void
-parse_addr(const char *str, ss_addr_t *addr)
+parse_addr(const char *str_in, ss_addr_t *addr)
 {
+    if (str_in == NULL) return;
+
     int ipv6 = 0, ret = -1, n = 0;
     char *pch;
+    char *str = strdup(str_in);
 
     struct cork_ip ip;
     if (cork_ip_init(&ip, str) != -1) {
-        addr->host = strdup(str);
+        addr->host = str;
         addr->port = NULL;
         return;
     }
@@ -102,6 +105,8 @@ parse_addr(const char *str, ss_addr_t *addr)
         }
         addr->port = strdup(str + ret + 1);
     }
+
+    free(str);
 }
 
 jconf_t *
