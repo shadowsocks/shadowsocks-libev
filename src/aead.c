@@ -86,7 +86,7 @@
  *
  * Header input: atyp + dst.addr + dst.port
  * HeaderLen is length(atyp + dst.addr + dst.port)
- * Header_TAG and Header_TAG are in plaintext
+ * HeaderLen_TAG and Header_TAG are in plaintext
  *
  * TCP Chunk (before encryption)
  * +----------+
