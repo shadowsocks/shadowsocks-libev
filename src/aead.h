@@ -42,6 +42,6 @@ int aead_decrypt(buffer_t *, cipher_ctx_t *, size_t);
 void aead_ctx_init(cipher_t *, cipher_ctx_t *, int);
 void aead_ctx_release(cipher_ctx_t *);
 
-cipher_t *aead_init(const char *pass, const char *method);
+cipher_t *aead_init(const char *pass, const char *key, const char *method);
 
 #endif // _AEAD_H

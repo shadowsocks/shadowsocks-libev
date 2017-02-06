@@ -910,6 +910,7 @@ main(int argc, char **argv)
         { "mtu",             required_argument, NULL, GETOPT_VAL_MTU },
         { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN },
         { "plugin-opts",     required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
+        { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD },
         { "help",            no_argument,       NULL, GETOPT_VAL_HELP },
         { NULL,              0,                 NULL, 0 }
     };
@@ -950,6 +951,7 @@ main(int argc, char **argv)
                 server_host[server_num++] = optarg;
             }
             break;
+        case GETOPT_VAL_PASSWORD:
         case 'k':
             password = optarg;
             break;

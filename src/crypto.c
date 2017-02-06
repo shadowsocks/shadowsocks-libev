@@ -28,6 +28,7 @@
 #include <sodium.h>
 #include <mbedtls/md5.h>
 
+#include "base64.h"
 #include "cache.h"
 #include "crypto.h"
 #include "stream.h"
@@ -101,7 +102,7 @@ crypto_md5(const unsigned char *d, size_t n, unsigned char *md)
 }
 
 crypto_t *
-crypto_init(const char *password, const char *method)
+crypto_init(const char *password, const char *key, const char *method)
 {
     int i, m = -1;
 
@@ -120,7 +121,7 @@ crypto_init(const char *password, const char *method)
                 break;
             }
         if (m != -1) {
-            cipher_t *cipher = stream_init(password, method);
+            cipher_t *cipher = stream_init(password, key, method);
             if (cipher == NULL)
                 return NULL;
             crypto_t *crypto = (crypto_t *)malloc(sizeof(crypto_t));
@@ -143,7 +144,7 @@ crypto_init(const char *password, const char *method)
                 break;
             }
         if (m != -1) {
-            cipher_t *cipher = aead_init(password, method);
+            cipher_t *cipher = aead_init(password, key, method);
             if (cipher == NULL)
                 return NULL;
             crypto_t *crypto = (crypto_t *)ss_malloc(sizeof(crypto_t));
@@ -163,4 +164,74 @@ crypto_init(const char *password, const char *method)
 
     LOGE("invalid cipher name: %s", method);
     return NULL;
+}
+
+int
+crypto_derive_key(const char *pass, uint8_t *key, size_t key_len)
+{
+    size_t datal;
+    datal = strlen((const char *)pass);
+
+    const digest_type_t *md = mbedtls_md_info_from_string("MD5");
+    if (md == NULL) {
+        FATAL("MD5 Digest not found in crypto library");
+    }
+
+    mbedtls_md_context_t c;
+    unsigned char md_buf[MAX_MD_SIZE];
+    int addmd;
+    unsigned int i, j, mds;
+
+    mds = mbedtls_md_get_size(md);
+    memset(&c, 0, sizeof(mbedtls_md_context_t));
+
+    if (pass == NULL)
+        return key_len;
+    if (mbedtls_md_setup(&c, md, 1))
+        return 0;
+
+    for (j = 0, addmd = 0; j < key_len; addmd++) {
+        mbedtls_md_starts(&c);
+        if (addmd) {
+            mbedtls_md_update(&c, md_buf, mds);
+        }
+        mbedtls_md_update(&c, (uint8_t *)pass, datal);
+        mbedtls_md_finish(&c, &(md_buf[0]));
+
+        for (i = 0; i < mds; i++, j++) {
+            if (j >= key_len)
+                break;
+            key[j] = md_buf[i];
+        }
+    }
+
+    mbedtls_md_free(&c);
+    return key_len;
+}
+
+int
+crypto_parse_key(const char *base64, uint8_t *key, size_t key_len)
+{
+    size_t base64_len = strlen(base64);
+    int out_len = BASE64_SIZE(base64_len);
+    uint8_t out[out_len];
+
+    out_len = base64_decode(out, base64, out_len);
+    if (out_len > 0 && out_len >= key_len) {
+        memcpy(key, out, key_len);
+#ifdef DEBUG
+        dump("KEY", (char*)key, key_len);
+#endif
+        return key_len;
+    }
+
+    out_len = BASE64_SIZE(key_len);
+    char out_key[out_len];
+    rand_bytes(key, key_len);
+    base64_encode(out_key, out_len, key, key_len);
+    LOGE("Invalid key for your chosen cipher!");
+    LOGE("It requires a %zu-byte key encoded with URL-safe Base64", key_len);
+    LOGE("Generating a new random key: %s", out_key);
+    FATAL("Please use the key above or input a valid key");
+    return key_len;
 }

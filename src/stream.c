@@ -117,50 +117,6 @@ static const int supported_stream_ciphers_key_size[STREAM_CIPHER_NUM] = {
 };
 
 static int
-stream_derive_key(const char *pass, uint8_t *key, size_t key_len)
-{
-    size_t datal;
-    datal = strlen((const char *)pass);
-
-    const digest_type_t *md = mbedtls_md_info_from_string("MD5");
-    if (md == NULL) {
-        FATAL("MD5 Digest not found in crypto library");
-    }
-
-    mbedtls_md_context_t c;
-    unsigned char md_buf[MAX_MD_SIZE];
-    int addmd;
-    unsigned int i, j, mds;
-
-    mds = mbedtls_md_get_size(md);
-    memset(&c, 0, sizeof(mbedtls_md_context_t));
-
-    if (pass == NULL)
-        return key_len;
-    if (mbedtls_md_setup(&c, md, 1))
-        return 0;
-
-    for (j = 0, addmd = 0; j < key_len; addmd++) {
-        mbedtls_md_starts(&c);
-        if (addmd) {
-            mbedtls_md_update(&c, md_buf, mds);
-        }
-        mbedtls_md_update(&c, (uint8_t *)pass, datal);
-        mbedtls_md_finish(&c, &(md_buf[0]));
-
-        for (i = 0; i < mds; i++, j++) {
-            if (j >= key_len)
-                break;
-            key[j] = md_buf[i];
-        }
-    }
-
-    mbedtls_md_free(&c);
-    return key_len;
-}
-
-
-static int
 crypto_stream_xor_ic(uint8_t *c, const uint8_t *m, uint64_t mlen,
                      const uint8_t *n, uint64_t ic, const uint8_t *k,
                      int method)
@@ -642,7 +598,7 @@ stream_ctx_release(cipher_ctx_t *cipher_ctx)
 }
 
 cipher_t *
-stream_key_init(int method, const char *pass)
+stream_key_init(int method, const char *pass, const char *key)
 {
     if (method <= TABLE || method >= STREAM_CIPHER_NUM) {
         LOGE("cipher->key_init(): Illegal method");
@@ -667,7 +623,10 @@ stream_key_init(int method, const char *pass)
         FATAL("Cannot initialize cipher");
     }
 
-    cipher->key_len = stream_derive_key(pass, cipher->key, cipher_key_size(cipher));
+    if (key != NULL)
+        cipher->key_len = crypto_parse_key(key, cipher->key, cipher_key_size(cipher));
+    else
+        cipher->key_len = crypto_derive_key(pass, cipher->key, cipher_key_size(cipher));
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and NONCE");
@@ -683,7 +642,7 @@ stream_key_init(int method, const char *pass)
 }
 
 cipher_t *
-stream_init(const char *pass, const char *method)
+stream_init(const char *pass, const char *key, const char *method)
 {
     int m = TABLE;
     if (method != NULL) {
@@ -700,6 +659,6 @@ stream_init(const char *pass, const char *method)
         LOGE("Table is deprecated");
         return NULL;
     }
-    return stream_key_init(m, pass);
+    return stream_key_init(m, pass, key);
 }
 

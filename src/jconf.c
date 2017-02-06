@@ -198,6 +198,8 @@ read_jconf(const char *file)
                 conf.local_port = to_string(value);
             } else if (strcmp(name, "password") == 0) {
                 conf.password = to_string(value);
+            } else if (strcmp(name, "key") == 0) {
+                conf.key = to_string(value);
             } else if (strcmp(name, "method") == 0) {
                 conf.method = to_string(value);
             } else if (strcmp(name, "timeout") == 0) {

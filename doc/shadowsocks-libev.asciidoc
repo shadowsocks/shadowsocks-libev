@@ -45,7 +45,13 @@ Set the local port number.
 Not available in server nor manager mode.
 
 -k <password>::
+--password <password>::
 Set the password. The server and the client should use the same password.
+
+--key <key_in_base64>::
+Set the key directly. The key should be encoded with URL-safe Base64.
++
+Not available in manager mode.
 
 -m <encrypt_method>::
 Set the cipher.

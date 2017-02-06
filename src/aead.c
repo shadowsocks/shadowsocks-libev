@@ -33,7 +33,6 @@
 #include <sodium.h>
 #include <arpa/inet.h>
 
-#include "base64.h"
 #include "cache.h"
 #include "aead.h"
 #include "utils.h"
@@ -184,34 +183,6 @@ static const int supported_aead_ciphers_tag_size[AEAD_CIPHER_NUM] = {
     16
 #endif
 };
-
-static int
-aead_derive_key(const char *pass, uint8_t *key, size_t key_len)
-{
-    size_t pass_len = strlen(pass);
-    int out_len = BASE64_SIZE(pass_len);
-    uint8_t out[out_len];
-
-    out_len = base64_decode(out, pass, out_len);
-    if (out_len > 0 && out_len >= key_len) {
-        memcpy(key, out, key_len);
-#ifdef DEBUG
-        dump("KEY", (char*)key, key_len);
-#endif
-        return key_len;
-    }
-
-    out_len = BASE64_SIZE(key_len);
-    char out_key[out_len];
-    rand_bytes(key, key_len);
-    base64_encode(out_key, out_len, key, key_len);
-    LOGE("Invalid key for your chosen cipher!");
-    LOGE("It requires a %zu-byte key encoded with URL-safe Base64", key_len);
-    LOGE("Generating a new random key: %s", out_key);
-    FATAL("Please use the key above or input a valid key");
-    return key_len;
-}
-
 
 static int
 cipher_aead_encrypt(cipher_ctx_t *cipher_ctx,
@@ -719,7 +690,7 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 }
 
 cipher_t *
-aead_key_init(int method, const char *pass)
+aead_key_init(int method, const char *pass, const char *key)
 {
     if (method < AES128GCM || method >= AEAD_CIPHER_NUM) {
         LOGE("aead_key_init(): Illegal method");
@@ -752,7 +723,12 @@ aead_key_init(int method, const char *pass)
         FATAL("Cannot initialize cipher");
     }
 
-    cipher->key_len = aead_derive_key(pass, cipher->key, supported_aead_ciphers_key_size[method]);
+    if (key != NULL)
+        cipher->key_len = crypto_parse_key(key, cipher->key,
+                supported_aead_ciphers_key_size[method]);
+    else
+        cipher->key_len = crypto_derive_key(key, cipher->key,
+                supported_aead_ciphers_key_size[method]);
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and nonce");
@@ -766,7 +742,7 @@ aead_key_init(int method, const char *pass)
 }
 
 cipher_t *
-aead_init(const char *pass, const char *method)
+aead_init(const char *pass, const char *key, const char *method)
 {
     int m = AES128GCM;
     if (method != NULL) {
@@ -780,6 +756,6 @@ aead_init(const char *pass, const char *method)
             m = AES256GCM;
         }
     }
-    return aead_key_init(m, pass);
+    return aead_key_init(m, pass, key);
 }
 

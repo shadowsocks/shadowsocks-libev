@@ -40,6 +40,7 @@ struct manager_ctx {
     int mode;
     int auth;
     char *password;
+    char *key;
     char *timeout;
     char *method;
     char *iface;

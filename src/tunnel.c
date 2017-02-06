@@ -729,6 +729,7 @@ main(int argc, char **argv)
     char *local_port = NULL;
     char *local_addr = NULL;
     char *password   = NULL;
+    char *key        = NULL;
     char *timeout    = NULL;
     char *method     = NULL;
     char *pid_path   = NULL;
@@ -754,6 +755,8 @@ main(int argc, char **argv)
         { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN },
         { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
         { "reuse-port",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
+        { "password",    required_argument, NULL, GETOPT_VAL_PASSWORD },
+        { "key",         required_argument, NULL, GETOPT_VAL_KEY },
         { "help",        no_argument,       NULL, GETOPT_VAL_HELP },
         { NULL,          0,                 NULL, 0 }
     };
@@ -784,6 +787,9 @@ main(int argc, char **argv)
         case GETOPT_VAL_PLUGIN_OPTS:
             plugin_opts = optarg;
             break;
+        case GETOPT_VAL_KEY:
+            key = optarg;
+            break;
         case GETOPT_VAL_REUSE_PORT:
             reuse_port = 1;
             break;
@@ -799,6 +805,7 @@ main(int argc, char **argv)
         case 'l':
             local_port = optarg;
             break;
+        case GETOPT_VAL_PASSWORD:
         case 'k':
             password = optarg;
             break;
@@ -891,6 +898,9 @@ main(int argc, char **argv)
         if (password == NULL) {
             password = conf->password;
         }
+        if (key == NULL) {
+            key = conf->key;
+        }
         if (method == NULL) {
             method = conf->method;
         }
@@ -928,8 +938,8 @@ main(int argc, char **argv)
 #endif
     }
 
-    if (remote_num == 0 || remote_port == NULL || tunnel_addr_str == NULL ||
-        local_port == NULL || password == NULL) {
+    if (remote_num == 0 || remote_port == NULL || tunnel_addr_str == NULL
+            || local_port == NULL || (password == NULL && key == NULL)) {
         usage();
         exit(EXIT_FAILURE);
     }
@@ -1017,7 +1027,7 @@ main(int argc, char **argv)
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
-    crypto = crypto_init(password, method);
+    crypto = crypto_init(password, key, method);
     if (crypto == NULL)
         FATAL("failed to initialize ciphers");
 

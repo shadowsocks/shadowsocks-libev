@@ -100,17 +100,17 @@ typedef struct crypto {
     void(*const ctx_release)(cipher_ctx_t *);
 } crypto_t;
 
-int balloc(buffer_t *ptr, size_t capacity);
-int brealloc(buffer_t *ptr, size_t len, size_t capacity);
-int bprepend(buffer_t *dst, buffer_t *src, size_t capacity);
-void bfree(buffer_t *ptr);
-int rand_bytes(void *output, int len);
+int balloc(buffer_t *, size_t);
+int brealloc(buffer_t *, size_t, size_t);
+int bprepend(buffer_t *, buffer_t *, size_t);
+void bfree(buffer_t *);
+int rand_bytes(void *, int);
 
-crypto_t *crypto_init(const char *password, const char *method);
-unsigned char *crypto_md5(const unsigned char *d, size_t n,
-                          unsigned char *md);
-int crypto_derive_key(const cipher_t *cipher, const char *pass,
-        uint8_t *key, size_t nkey, int version);
+crypto_t *crypto_init(const char *, const char *, const char *);
+unsigned char *crypto_md5(const unsigned char *, size_t, unsigned char *);
+
+int crypto_derive_key(const char *, uint8_t *, size_t);
+int crypto_parse_key(const char *, uint8_t *, size_t);
 
 extern struct cache *nonce_cache;
 extern const char *supported_stream_ciphers[];

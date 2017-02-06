@@ -1338,6 +1338,7 @@ main(int argc, char **argv)
     int mtu         = 0;
     char *user      = NULL;
     char *password  = NULL;
+    char *key       = NULL;
     char *timeout   = NULL;
     char *method    = NULL;
     char *pid_path  = NULL;
@@ -1364,6 +1365,8 @@ main(int argc, char **argv)
         { "help",            no_argument,       NULL, GETOPT_VAL_HELP },
         { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN },
         { "plugin-opts",     required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
+        { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD },
+        { "key",             required_argument, NULL, GETOPT_VAL_KEY },
 #ifdef __linux__
         { "mptcp",           no_argument,       NULL, GETOPT_VAL_MPTCP },
 #endif
@@ -1401,6 +1404,9 @@ main(int argc, char **argv)
             mptcp = 1;
             LOGI("enable multipath TCP");
             break;
+        case GETOPT_VAL_KEY:
+            key = optarg;
+            break;
         case GETOPT_VAL_REUSE_PORT:
             reuse_port = 1;
             break;
@@ -1415,6 +1421,7 @@ main(int argc, char **argv)
         case 'p':
             server_port = optarg;
             break;
+        case GETOPT_VAL_PASSWORD:
         case 'k':
             password = optarg;
             break;
@@ -1495,6 +1502,9 @@ main(int argc, char **argv)
         if (password == NULL) {
             password = conf->password;
         }
+        if (key == NULL) {
+            key = conf->key;
+        }
         if (method == NULL) {
             method = conf->method;
         }
@@ -1542,7 +1552,8 @@ main(int argc, char **argv)
         server_host[server_num++] = NULL;
     }
 
-    if (server_num == 0 || server_port == NULL || password == NULL) {
+    if (server_num == 0 || server_port == NULL
+            || (password == NULL && key == NULL)) {
         usage();
         exit(EXIT_FAILURE);
     }
@@ -1621,7 +1632,7 @@ main(int argc, char **argv)
 
     // setup keys
     LOGI("initializing ciphers... %s", method);
-    crypto = crypto_init(password, method);
+    crypto = crypto_init(password, key, method);
     if (crypto == NULL)
         FATAL("failed to initialize ciphers");
 

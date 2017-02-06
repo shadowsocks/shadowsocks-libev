@@ -354,6 +354,10 @@ usage()
     printf(
         "       [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.\n");
 #endif
+#ifndef MODULE_MANAGER
+    printf(
+        "       [--key <key_in_base64>]    Key of your remote server.\n");
+#endif
     printf(
         "       [--plugin <name>]          Enable SIP003 plugin. (Experimental)\n");
     printf(

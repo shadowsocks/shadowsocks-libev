@@ -15,6 +15,7 @@ SYNOPSIS
  [-a <user_name>] [-b <local_address] [-n <nofile>]
  [--fast-open] [--reuse-port] [--acl <acl_config>] [--mtu <MTU>]
  [--plugin <plugin_name>] [--plugin-opts <plugin_options]
+ [--password <password>] [--key <key_in_base64]
 
 DESCRIPTION
 -----------
@@ -40,7 +41,11 @@ Set the server's port number.
 Set the local port number.
 
 -k <password>::
+--password <password>::
 Set the password. The server and the client should use the same password.
+
+--key <key_in_base64>::
+Set the key directly. The key should be encoded with URL-safe Base64.
 
 -m <encrypt_method>::
 Set the cipher.

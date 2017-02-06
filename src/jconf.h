@@ -53,6 +53,7 @@ typedef struct {
     char *local_addr;
     char *local_port;
     char *password;
+    char *key;
     char *method;
     char *timeout;
     char *user;
