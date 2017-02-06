@@ -217,7 +217,7 @@ e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 
 ```bash
 # Debian / Ubuntu
-sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libudns-dev
+sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libudns-dev automake
 # CentOS / Fedora / RHEL
 sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto udns-devel libev-devel
 # Arch
