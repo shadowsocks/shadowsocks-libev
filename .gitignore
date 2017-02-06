@@ -83,4 +83,5 @@ doc/*.html
 *.pdb
 *.tar.bz2
 *.tar.gz
+*.tgz
 #

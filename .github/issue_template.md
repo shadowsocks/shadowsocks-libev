@@ -1,5 +1,9 @@
 Please answer these questions before submitting your issue. Thanks!
 
+(Please mention that if the issue you filed is solved, you may wish to close it by yourself. Thanks again.)
+
+(PS, you can remove 3 lines above, including this one, before post your issue.)
+
 ### What version of shadowsocks-libev are you using?
 
 
