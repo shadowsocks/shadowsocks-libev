@@ -13,8 +13,8 @@ SYNOPSIS
  [-k <password>] [-m <encrypt_method>] [-f <pid_file>]
  [-t <timeout>] [-c <config_file>] [-b <local_address>]
  [-a <user_name>] [-n <nofile>] [--mtu <MTU>]
- [--plugin <plugin_name>] [--plugin-opts <plugin_options]
- [--password <password>] [--key <key_in_base64]
+ [--plugin <plugin_name>] [--plugin-opts <plugin_options>]
+ [--password <password>] [--key <key_in_base64>]
 
 DESCRIPTION
 -----------
