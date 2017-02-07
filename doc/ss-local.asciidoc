@@ -12,10 +12,10 @@ SYNOPSIS
  [-s <server_host>] [-p <server_port>] [-l <local_port>]
  [-k <password>] [-m <encrypt_method>] [-f <pid_file>]
  [-t <timeout>] [-c <config_file>] [-i <interface>]
- [-a <user_name>] [-b <local_address] [-n <nofile>]
+ [-a <user_name>] [-b <local_address>] [-n <nofile>]
  [--fast-open] [--reuse-port] [--acl <acl_config>] [--mtu <MTU>]
- [--plugin <plugin_name>] [--plugin-opts <plugin_options]
- [--password <password>] [--key <key_in_base64]
+ [--plugin <plugin_name>] [--plugin-opts <plugin_options>]
+ [--password <password>] [--key <key_in_base64>]
 
 DESCRIPTION
 -----------
