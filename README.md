@@ -37,7 +37,16 @@ cd shadowsocks-libev
 git submodule update --init --recursive
 ```
 
-### Build and install the latest mbedTLS and libsodium
+### Build and install with recent mbedTLS and libsodium
+
+You have to install libsodium 1.0.8 or later before building.
+
+If your system is too old to provide libmbedtls and libsodium (later than **v1.0.8**),
+you will need to either install those libraries manually or upgrade your system.
+
+If your system provides with those libraries, you **should** **not** install them
+from source. You should jump this section and install them from distribution
+repository instead.
 
 ```bash
 export LIBSODIUM_VER=1.0.11
@@ -108,21 +117,20 @@ sudo apt -t jessie-backports install shadowsocks-libev
 
 Supported Platforms:
 
-* Debian 7 (see below), 8, 9, unstable
-* Ubuntu 14.04 (see below), Ubuntu 14.10, 15.04, 15.10 or higher
+* Debian 8 (see below), 9, unstable
+* Ubuntu 16.04 or higher
 
-**Note for Ubuntu 14.04 users**:
-Packages built on Ubuntu 14.04 may be used in later Ubuntu versions. However,
-packages built on Debian 7/8/9 or Ubuntu 14.10+ **cannot** be installed on
-Ubuntu 14.04.
+For older systems, building `.deb` packages is not supported.
+Please directly install from source.
+You may need to resolve library dependencies by yourself.
 
-**Note for Debian 7.x users**:
-To build packages on Debian 7 (Wheezy), you need to enable `debian-backports`
-to install systemd-compatibility packages like `dh-systemd` or `init-system-helpers`.
-Please follow the instructions on [Debian Backports](https://backports.debian.org).
+**Note for Debian 8.x users**:
+We strongly encourage you to install shadowsocks-libev from `jessie-backports`.
+Please follow instructions on [Debian Backports](https://backports.debian.org).
 
-This also means that you can only install those built packages on systems that have
-`init-system-helpers` installed.
+If you insist on building from source, you will need to manually install libsodium
+from `jessie-backports`, **NOT** libsodium in main repository.
+Please follow the instructions on [Debian Backports Website](https://backports.debian.org).
 
 Otherwise, try to build and install directly from source. See the [Linux](#linux)
 section below.
@@ -212,12 +220,25 @@ nix-env -iA nixpkgs.shadowsocks-libev
 
 ### Linux
 
+In general, you need the following build dependencies:
+
+* autotools (autoconf, automake, libtool)
+* gettext
+* pkg-config
+* libmbedtls
+* libsodium
+* libpcre3 (old pcre library)
+* libev
+* libudns
+* asciidoc (for documentation only)
+* xmlto (for documentation only)
+
 For Unix-like systems, especially Debian-based systems,
-e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
+e.g. Ubuntu, Debian or Linux Mint, you might install build dependencies like this:
 
 ```bash
 # Debian / Ubuntu
-sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libudns-dev automake
+sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libudns-dev automake libmbedtls-dev
 # CentOS / Fedora / RHEL
 sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto udns-devel libev-devel
 # Arch
@@ -225,6 +246,8 @@ sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto udns li
 ./autogen.sh && ./configure && make
 sudo make install
 ```
+
+You may need to manually install missing softwares.
 
 ### FreeBSD
 
