@@ -25,4 +25,4 @@ override_dh_shlibdeps:
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
 
 %:
-	dh $@ --with systemd
+	dh $@ --with systemd,autoreconf

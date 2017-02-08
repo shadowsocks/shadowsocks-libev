@@ -7,12 +7,16 @@ Build-Depends:
  autotools-dev,
  debhelper (>= 9),
  dh-systemd (>= 1.5),
+ dh-autoreconf,
  gawk,
  libpcre3-dev,
- libssl-dev (>= 0.9.8),
+ libmbedtls-dev,
+ libsodium-dev (>= 1.0.8~),
+ libudns-dev,
+ libev-dev,
  mime-support,
  pkg-config,
- xmlto
+ xmlto,
 Standards-Version: 3.9.8
 Homepage: https://www.shadowsocks.org
 Vcs-Git: https://github.com/shadowsocks/shadowsocks-libev.git
