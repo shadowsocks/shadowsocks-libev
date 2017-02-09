@@ -61,7 +61,7 @@ wget https://tls.mbed.org/download/mbedtls-$MBEDTLS_VER-gpl.tgz
 tar xvf mbedtls-$MBEDTLS_VER-gpl.tgz
 pushd mbedtls-$MBEDTLS_VER
 make SHARED=1 CFLAGS=-fPIC
-sudo make install
+sudo make DESTDIR=/usr install
 popd
 ```
 
