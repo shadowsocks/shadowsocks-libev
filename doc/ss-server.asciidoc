@@ -157,6 +157,7 @@ INCOMPATIBILITY
 ---------------
 The config file of `shadowsocks-libev`(8) is slightly different from original
 shadowsocks.
+
 In order to listen to both IPv4/IPv6 address, use the following grammar in
 your config json file:
 ....
@@ -165,6 +166,10 @@ your config json file:
 ...
 }
 ....
+
+`ss-server`(1) also does not understand "port_password" field in config file.
+If you want to start up multiple server instances with a single config file,
+please try ss-manager tool. See `ss-manager`(8) for details.
 
 SEE ALSO
 --------

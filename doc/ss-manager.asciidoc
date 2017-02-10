@@ -67,6 +67,9 @@ Set the socket timeout in seconds. The default value is 60.
 
 -c <config_file>::
 Use a configuration file.
++
+You may use "port_password" field inside this configuration file to bring up
+multiple ss-server instances together.
 
 -i <interface>::
 Send traffic through specific network interface.
