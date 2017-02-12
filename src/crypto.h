@@ -63,6 +63,9 @@ typedef mbedtls_md_info_t digest_type_t;
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
+#define SUBKEY_INFO "ss-subkey"
+#define IV_INFO "ss-iv"
+
 typedef struct buffer {
     size_t idx;
     size_t len;
@@ -72,6 +75,7 @@ typedef struct buffer {
 
 typedef struct {
     int method;
+    int skey;
     cipher_kt_t *info;
     size_t nonce_len;
     size_t key_len;
@@ -85,6 +89,8 @@ typedef struct {
     cipher_evp_t *evp;
     cipher_t *cipher;
     buffer_t *chunk;
+    uint8_t salt[MAX_KEY_LENGTH];
+    uint8_t skey[MAX_KEY_LENGTH];
     uint8_t nonce[MAX_NONCE_LENGTH];
 } cipher_ctx_t;
 
@@ -111,6 +117,16 @@ unsigned char *crypto_md5(const unsigned char *, size_t, unsigned char *);
 
 int crypto_derive_key(const char *, uint8_t *, size_t);
 int crypto_parse_key(const char *, uint8_t *, size_t);
+int crypto_hkdf(const mbedtls_md_info_t *md, const unsigned char *salt,
+                 int salt_len, const unsigned char *ikm, int ikm_len,
+                 const unsigned char *info, int info_len, unsigned char *okm,
+                 int okm_len);
+int crypto_hkdf_extract(const mbedtls_md_info_t *md, const unsigned char *salt,
+                         int salt_len, const unsigned char *ikm, int ikm_len,
+                         unsigned char *prk);
+int crypto_hkdf_expand(const mbedtls_md_info_t *md, const unsigned char *prk,
+                        int prk_len, const unsigned char *info, int info_len,
+                        unsigned char *okm, int okm_len);
 
 extern struct cache *nonce_cache;
 extern const char *supported_stream_ciphers[];
