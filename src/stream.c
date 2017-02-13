@@ -133,19 +133,6 @@ crypto_stream_xor_ic(uint8_t *c, const uint8_t *m, uint64_t mlen,
     return 0;
 }
 
-#ifdef DEBUG
-void
-dump(char *tag, char *text, int len)
-{
-    int i;
-    printf("%s: ", tag);
-    for (i = 0; i < len; i++)
-        printf("0x%02x ", (uint8_t)text[i]);
-    printf("\n");
-}
-
-#endif
-
 int
 cipher_nonce_size(const cipher_t *cipher)
 {

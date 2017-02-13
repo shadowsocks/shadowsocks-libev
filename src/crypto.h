@@ -132,4 +132,8 @@ extern struct cache *nonce_cache;
 extern const char *supported_stream_ciphers[];
 extern const char *supported_aead_ciphers[];
 
+#ifdef DEBUG
+void dump(char *tag, char *text, int len);
+#endif
+
 #endif // _CRYPTO_H
