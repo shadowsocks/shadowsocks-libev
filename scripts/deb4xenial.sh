@@ -9,7 +9,7 @@
 # Please add xenial-backports repo to your apt source list
 # Because we use debhelper 10 in that repo
 DEPS="git-buildpackage equivs"
-DEPS_BPO="debhelper dh-systemd"
+DEPS_BPO="debhelper"
 BPO=xenial-backports
 sudo apt-get install -y $DEPS
 sudo apt-get install -y -t $BPO $DEPS_BPO
