@@ -635,6 +635,7 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         aead_cipher_ctx_set_key(cipher_ctx, 0);
 
         if (cache_key_exist(nonce_cache, (char *)cipher_ctx->salt, salt_len)) {
+            LOGE("crypto: AEAD: repeat salt detected");
             bfree(ciphertext);
             return CRYPTO_ERROR;
         } else {

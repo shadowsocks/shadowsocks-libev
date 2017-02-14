@@ -507,6 +507,7 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 
         if (cipher->method >= RC4_MD5) {
             if (cache_key_exist(nonce_cache, (char *)nonce, nonce_len)) {
+                LOGE("crypto: stream: repeat IV detected");
                 bfree(ciphertext);
                 return -1;
             } else {
