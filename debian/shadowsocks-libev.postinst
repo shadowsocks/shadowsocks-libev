@@ -22,7 +22,7 @@ case "$1" in
 	configure|reconfigure)
 		pathfind setcap && setcap \
 			cap_net_bind_service+ep /usr/bin/ss-local \
-			cap_net_bind_service+ep /usr/bin/ss-redir \
+			cap_net_bind_service,cap_net_admin+ep /usr/bin/ss-redir \
 			cap_net_bind_service+ep /usr/bin/ss-server \
 			cap_net_bind_service+ep /usr/bin/ss-tunnel
 		if [ ! -f /etc/shadowsocks-libev/config.json ]; then
