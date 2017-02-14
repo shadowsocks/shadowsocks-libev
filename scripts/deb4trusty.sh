@@ -66,5 +66,6 @@ sudo apt-get install -fy
 
 # Cleanup
 sudo apt-get purge -y libcork-build-deps libcorkipset-build-deps shadowsocks-libev-build-deps \
-	$DEPS $DEPS_BPO libcork-dev libcorkipset-dev
+	mbedtls-build-deps libsodium-build-deps \
+	$DEPS libcork-dev libcorkipset-dev libmbedtls-dev libsodium-dev debhelper
 sudo apt-get autoremove -y
