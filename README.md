@@ -132,6 +132,15 @@ If you insist on building from source, you will need to manually install libsodi
 from `jessie-backports`, **NOT** libsodium in main repository.
 Please follow the instructions on [Debian Backports Website](https://backports.debian.org).
 
+**Note for Ubuntu 14.04 (Trusty) / 16.04 (Xenial) users**:
+You can build shadowsocks-libev and all its dependencies by script:
+
+```bash
+./scripts/deb4trusty.sh   # for 14.04 (Trusty)
+ - or -
+./scripts/deb4xenial.sh   # for 16.04 (Xenial)
+```
+
 Otherwise, try to build and install directly from source. See the [Linux](#linux)
 section below.
 
