@@ -146,10 +146,9 @@ section below.
 
 ``` bash
 cd shadowsocks-libev
-sudo apt-get install --no-install-recommends gettext build-essential autoconf automake libtool \
-    gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev \
-    libev-dev libudns-dev dh-autoreconf
-./autogen.sh && dpkg-buildpackage -b -us -uc -i
+sudo apt-get install --no-install-recommends devscripts equivs
+mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
+./autogen.sh && dpkg-buildpackage -b -us -uc
 cd ..
 sudo dpkg -i shadowsocks-libev*.deb
 ```
