@@ -1,22 +1,18 @@
 Source: shadowsocks-libev
 Section: net
 Priority: extra
-Maintainer: Max Lv <max.c.lv@gmail.com>
+Maintainer: Roger Shimizu <rogershimizu@gmail.com>
+Uploaders: Max Lv <max.c.lv@gmail.com>, Boyuan Yang <073plan@gmail.com>
 Build-Depends:
- asciidoc,
- autotools-dev,
- debhelper (>= 9),
- dh-systemd (>= 1.5),
- dh-autoreconf,
- gawk,
- libpcre3-dev,
+ asciidoc-base | asciidoc,
+ debhelper (>= 10),
+ libev-dev,
  libmbedtls-dev,
+ libpcre3-dev,
  libsodium-dev (>= 1.0.8~),
  libudns-dev,
- libev-dev,
- mime-support,
  pkg-config,
- xmlto,
+ xmlto
 Standards-Version: 3.9.8
 Homepage: https://www.shadowsocks.org
 Vcs-Git: https://github.com/shadowsocks/shadowsocks-libev.git
