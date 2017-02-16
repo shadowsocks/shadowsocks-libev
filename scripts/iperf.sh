@@ -15,6 +15,10 @@ sleep 1
 
 iperf -c 127.0.0.1 -p 8387 -n $number
 
+# Wait for iperf server to receive all data.
+# One second should be enough in most cases.
+sleep 1
+
 kill $ss_tunnel_pid
 kill $ss_server_pid
 kill $iperf_pid
