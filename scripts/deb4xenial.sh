@@ -6,13 +6,8 @@
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 
-# Please add xenial-backports repo to your apt source list
-# Because we use debhelper 10 in that repo
 DEPS="git-buildpackage equivs"
-DEPS_BPO="debhelper"
-BPO=xenial-backports
 sudo apt-get install -y $DEPS
-sudo apt-get install -y -t $BPO $DEPS_BPO
 
 gbp_build() {
 	REPO=$1
@@ -49,6 +44,11 @@ gbp_build https://github.com/rogers0/libcorkipset debian
 sudo dpkg -i libcorkipset-dev_*.deb libcorkipset1_*.deb
 
 # Build shadowsocks-libev
+DEPS_BPO="debhelper"
+BPO=xenial-backports
+sudo sh -c 'printf "deb http://archive.ubuntu.com/ubuntu xenial-backports main restricted universe multiverse" > /etc/apt/sources.list.d/xenial-backports.list'
+sudo apt-get update
+sudo apt-get install -y -t $BPO $DEPS_BPO
 gbp_build https://anonscm.debian.org/git/collab-maint/shadowsocks-libev.git master
 sudo dpkg -i shadowsocks-libev_*.deb
 sudo apt-get install -fy
