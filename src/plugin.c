@@ -157,8 +157,8 @@ static int start_obfsproxy(const char *plugin,
 {
     char *pch;
     char *opts_dump;
-    char buf[PATH_MAX];
-    int ret;
+    char *buf = NULL;
+    int ret, buf_size = 0;
 
     opts_dump = strndup(plugin_opts, OBFSPROXY_OPTS_MAX);
     if (!opts_dump) {
@@ -171,7 +171,10 @@ static int start_obfsproxy(const char *plugin,
     cork_exec_add_param(exec, plugin);
 
     cork_exec_add_param(exec, "--data-dir");
-    snprintf(buf, PATH_MAX, "/tmp/%s_%s:%s_%s:%s", plugin,
+    buf_size = 20 + strlen(plugin) + strlen(remote_host)
+        + strlen(remote_port) + strlen(local_host) + strlen(local_port);
+    buf = malloc(buf_size);
+    snprintf(buf, buf_size, "/tmp/%s_%s:%s_%s:%s", plugin,
              remote_host, remote_port, local_host, local_port);
     cork_exec_add_param(exec, buf);
 
@@ -188,24 +191,25 @@ static int start_obfsproxy(const char *plugin,
     if (mode == MODE_CLIENT) {
         /* Client mode */
         cork_exec_add_param(exec, "--dest");
-        snprintf(buf, PATH_MAX, "%s:%s", remote_host, remote_port);
+        snprintf(buf, buf_size, "%s:%s", remote_host, remote_port);
         cork_exec_add_param(exec, buf);
         cork_exec_add_param(exec, "client");
-        snprintf(buf, PATH_MAX, "%s:%s", local_host, local_port);
+        snprintf(buf, buf_size, "%s:%s", local_host, local_port);
         cork_exec_add_param(exec, buf);
     } else {
         /* Server mode */
         cork_exec_add_param(exec, "--dest");
-        snprintf(buf, PATH_MAX, "%s:%s", local_host, local_port);
+        snprintf(buf, buf_size, "%s:%s", local_host, local_port);
         cork_exec_add_param(exec, buf);
         cork_exec_add_param(exec, "server");
-        snprintf(buf, PATH_MAX, "%s:%s", remote_host, remote_port);
+        snprintf(buf, buf_size, "%s:%s", remote_host, remote_port);
         cork_exec_add_param(exec, buf);
     }
     cork_exec_set_env(exec, env);
     sub = cork_subprocess_new_exec(exec, NULL, NULL, &exit_code);
     ret = cork_subprocess_start(sub);
     ss_free(opts_dump);
+    free(buf);
     return ret;
 }
 
@@ -220,7 +224,6 @@ start_plugin(const char *plugin,
 {
     char *new_path = NULL;
     const char *current_path;
-    char cwd[PATH_MAX];
     size_t new_path_len;
     int ret;
 
@@ -236,10 +239,12 @@ start_plugin(const char *plugin,
     env = cork_env_clone_current();
     current_path = cork_env_get(env, "PATH");
     if (current_path != NULL) {
-        if (!getcwd(cwd, PATH_MAX)) {
+        char *cwd = get_current_dir_name();
+        if (cwd) {
             new_path_len = strlen(current_path) + strlen(cwd) + 2;
             new_path = ss_malloc(new_path_len);
             snprintf(new_path, new_path_len, "%s:%s", cwd, current_path);
+            free(cwd);
         }
     }
     if (new_path != NULL)
