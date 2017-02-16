@@ -6,7 +6,7 @@
 # the Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 
-DEPS="git-buildpackage equivs dh-autoreconf dh-systemd"
+DEPS="git-buildpackage equivs"
 sudo apt-get install -y $DEPS
 
 gbp_build() {
@@ -55,8 +55,9 @@ sudo dpkg -i libsodium*.deb
 gbp clone --pristine-tar https://anonscm.debian.org/git/collab-maint/shadowsocks-libev.git
 # Add patch to work with ubuntu trusty (14.04)
 cd shadowsocks-libev
-sed -i s/--with\ systemd/--with\ systemd\ --with\ autoreconf/ debian/rules
-sed -i s/debhelper\ \(\>=\ 10\)/debhelper\ \(\>=\ 9\)/ debian/control
+sed -i 's/dh $@/dh $@ --with systemd,autoreconf/' debian/rules
+sed -i 's/debhelper (>= 10)/debhelper (>= 9), dh-systemd, dh-autoreconf/' debian/control
+echo 9 > debian/compat
 git add -u
 git commit -m "Patch to work with ubuntu trusty (14.04)"
 cd -
