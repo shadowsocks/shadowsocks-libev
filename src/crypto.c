@@ -110,7 +110,7 @@ crypto_init(const char *password, const char *key, const char *method)
     }
 
     // Initialize NONCE bloom filter
-    ppbloom_init(1000000, 0.0001);
+    ppbloom_init(1000000, 0.00001);
 
     if (method != NULL) {
         for (i = 0; i < STREAM_CIPHER_NUM; i++)
