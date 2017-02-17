@@ -6,3 +6,7 @@
 	path = libipset
 	url = https://github.com/shadowsocks/ipset.git
     ignore = dirty
+[submodule "libbloom"]
+	path = libbloom
+	url = https://github.com/shadowsocks/libbloom.git
+    ignore = dirty

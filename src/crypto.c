@@ -29,13 +29,11 @@
 #include <mbedtls/md5.h>
 
 #include "base64.h"
-#include "cache.h"
 #include "crypto.h"
 #include "stream.h"
 #include "aead.h"
 #include "utils.h"
-
-struct cache *nonce_cache;
+#include "ppbloom.h"
 
 int
 balloc(buffer_t *ptr, size_t capacity)
@@ -111,8 +109,8 @@ crypto_init(const char *password, const char *key, const char *method)
         FATAL("Failed to initialize sodium");
     }
 
-    // Initialize NONCE cache
-    cache_create(&nonce_cache, 1024, NULL);
+    // Initialize NONCE bloom filter
+    ppbloom_init(1000000, 0.0001);
 
     if (method != NULL) {
         for (i = 0; i < STREAM_CIPHER_NUM; i++)

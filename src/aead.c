@@ -33,7 +33,7 @@
 #include <sodium.h>
 #include <arpa/inet.h>
 
-#include "cache.h"
+#include "ppbloom.h"
 #include "aead.h"
 #include "utils.h"
 
@@ -634,12 +634,10 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 
         aead_cipher_ctx_set_key(cipher_ctx, 0);
 
-        if (cache_key_exist(nonce_cache, (char *)cipher_ctx->salt, salt_len)) {
+        if (ppbloom_check((void *)cipher_ctx->salt, salt_len) == 1) {
             LOGE("crypto: AEAD: repeat salt detected");
             bfree(ciphertext);
             return CRYPTO_ERROR;
-        } else {
-            cache_insert(nonce_cache, (char *)cipher_ctx->salt, salt_len, NULL);
         }
 
         memmove(cipher_ctx->chunk->data, cipher_ctx->chunk->data + salt_len,
@@ -647,6 +645,9 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         cipher_ctx->chunk->len -= salt_len;
 
         cipher_ctx->init = 1;
+
+    } else {
+        ppbloom_add((void *)cipher_ctx->salt, salt_len);
     }
 
     size_t plen = 0;
@@ -684,9 +685,6 @@ aead_key_init(int method, const char *pass, const char *key)
         LOGE("aead_key_init(): Illegal method");
         return NULL;
     }
-
-    // Initialize cache
-    cache_create(&nonce_cache, 1024, NULL);
 
     cipher_t *cipher = (cipher_t *)ss_malloc(sizeof(cipher_t));
     memset(cipher, 0, sizeof(cipher_t));

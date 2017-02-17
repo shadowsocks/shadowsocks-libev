@@ -31,7 +31,7 @@
 
 #include <sodium.h>
 
-#include "cache.h"
+#include "ppbloom.h"
 #include "stream.h"
 #include "utils.h"
 
@@ -506,13 +506,15 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         cipher_ctx->init    = 1;
 
         if (cipher->method >= RC4_MD5) {
-            if (cache_key_exist(nonce_cache, (char *)nonce, nonce_len)) {
+            if (ppbloom_check((void *)nonce, nonce_len) == 1) {
                 LOGE("crypto: stream: repeat IV detected");
                 bfree(ciphertext);
                 return -1;
-            } else {
-                cache_insert(nonce_cache, (char *)nonce, nonce_len, NULL);
             }
+        }
+    } else {
+        if (cipher->method >= RC4_MD5) {
+            ppbloom_add((void *)cipher_ctx->nonce, cipher->nonce_len);
         }
     }
 
