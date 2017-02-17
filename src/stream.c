@@ -463,7 +463,7 @@ int
 stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 {
     if (cipher_ctx == NULL)
-        return -1;
+        return CRYPTO_ERROR;
 
     cipher_t *cipher = cipher_ctx->cipher;
 
@@ -509,12 +509,13 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
             if (ppbloom_check((void *)nonce, nonce_len) == 1) {
                 LOGE("crypto: stream: repeat IV detected");
                 bfree(ciphertext);
-                return -1;
+                return CRYPTO_ERROR;
             }
         }
-    } else {
+    } else if (cipher_ctx->init == 1) {
         if (cipher->method >= RC4_MD5) {
             ppbloom_add((void *)cipher_ctx->nonce, cipher->nonce_len);
+            cipher_ctx->init = 2;
         }
     }
 
