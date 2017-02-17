@@ -405,13 +405,11 @@ aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
                               (uint8_t *)plaintext->data, plaintext->len,
                               NULL, 0, cipher_ctx.nonce, cipher_ctx.skey);
 
-    if (err) {
-        bfree(plaintext);
-        aead_ctx_release(&cipher_ctx);
-        return CRYPTO_ERROR;
-    }
-
     aead_ctx_release(&cipher_ctx);
+
+    if (err)
+        return CRYPTO_ERROR;
+
     assert(ciphertext->len == clen);
 
     brealloc(plaintext, salt_len + ciphertext->len, capacity);
@@ -453,13 +451,10 @@ aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
                               ciphertext->len - salt_len, NULL, 0,
                               cipher_ctx.nonce, cipher_ctx.skey);
 
-    if (err) {
-        bfree(ciphertext);
-        aead_ctx_release(&cipher_ctx);
-        return CRYPTO_ERROR;
-    }
-
     aead_ctx_release(&cipher_ctx);
+
+    if (err)
+        return CRYPTO_ERROR;
 
     brealloc(ciphertext, plaintext->len, capacity);
     memcpy(ciphertext->data, plaintext->data, plaintext->len);
@@ -488,6 +483,7 @@ aead_chunk_encrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c,
                                NULL, 0, n, ctx->skey);
     if (err)
         return CRYPTO_ERROR;
+
     assert(clen == CHUNK_SIZE_LEN + tlen);
 
     sodium_increment(n, nlen);
@@ -497,6 +493,7 @@ aead_chunk_encrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c,
                                NULL, 0, n, ctx->skey);
     if (err)
         return CRYPTO_ERROR;
+
     assert(clen == plen + tlen);
 
     sodium_increment(n, nlen);
@@ -636,7 +633,6 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 
         if (ppbloom_check((void *)cipher_ctx->salt, salt_len) == 1) {
             LOGE("crypto: AEAD: repeat salt detected");
-            bfree(ciphertext);
             return CRYPTO_ERROR;
         }
 

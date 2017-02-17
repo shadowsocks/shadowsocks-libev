@@ -321,19 +321,16 @@ stream_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
                                 plaintext->len);
     }
 
-    if (err) {
-        bfree(plaintext);
-        stream_ctx_release(&cipher_ctx);
+    stream_ctx_release(&cipher_ctx);
+
+    if (err)
         return CRYPTO_ERROR;
-    }
 
 #ifdef SS_DEBUG
     dump("PLAIN", plaintext->data, plaintext->len);
     dump("CIPHER", ciphertext->data + nonce_len, ciphertext->len);
     dump("NONCE", ciphertext->data, nonce_len);
 #endif
-
-    stream_ctx_release(&cipher_ctx);
 
     brealloc(plaintext, nonce_len + ciphertext->len, capacity);
     memcpy(plaintext->data, ciphertext->data, nonce_len + ciphertext->len);
@@ -443,19 +440,16 @@ stream_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
                                 ciphertext->len - nonce_len);
     }
 
-    if (err) {
-        bfree(ciphertext);
-        stream_ctx_release(&cipher_ctx);
+    stream_ctx_release(&cipher_ctx);
+
+    if (err)
         return CRYPTO_ERROR;
-    }
 
 #ifdef SS_DEBUG
     dump("PLAIN", plaintext->data, plaintext->len);
     dump("CIPHER", ciphertext->data + nonce_len, ciphertext->len - nonce_len);
     dump("NONCE", ciphertext->data, nonce_len);
 #endif
-
-    stream_ctx_release(&cipher_ctx);
 
     brealloc(ciphertext, plaintext->len, capacity);
     memcpy(ciphertext->data, plaintext->data, plaintext->len);
@@ -513,7 +507,6 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         if (cipher->method >= RC4_MD5) {
             if (ppbloom_check((void *)nonce, nonce_len) == 1) {
                 LOGE("crypto: stream: repeat IV detected");
-                bfree(ciphertext);
                 return CRYPTO_ERROR;
             }
         }
@@ -553,10 +546,8 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
                                 ciphertext->len);
     }
 
-    if (err) {
-        bfree(ciphertext);
+    if (err)
         return CRYPTO_ERROR;
-    }
 
 #ifdef SS_DEBUG
     dump("PLAIN", plaintext->data, plaintext->len);
