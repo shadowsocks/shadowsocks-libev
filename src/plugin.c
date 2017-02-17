@@ -173,7 +173,7 @@ static int start_obfsproxy(const char *plugin,
     cork_exec_add_param(exec, "--data-dir");
     buf_size = 20 + strlen(plugin) + strlen(remote_host)
         + strlen(remote_port) + strlen(local_host) + strlen(local_port);
-    buf = malloc(buf_size);
+    buf = ss_malloc(buf_size);
     snprintf(buf, buf_size, "/tmp/%s_%s:%s_%s:%s", plugin,
              remote_host, remote_port, local_host, local_port);
     cork_exec_add_param(exec, buf);
@@ -239,12 +239,19 @@ start_plugin(const char *plugin,
     env = cork_env_clone_current();
     current_path = cork_env_get(env, "PATH");
     if (current_path != NULL) {
+#ifdef _GNU_SOURCE
         char *cwd = get_current_dir_name();
         if (cwd) {
+#else
+        char cwd[PATH_MAX];
+        if (!getcwd(cwd, PATH_MAX)) {
+#endif
             new_path_len = strlen(current_path) + strlen(cwd) + 2;
             new_path = ss_malloc(new_path_len);
             snprintf(new_path, new_path_len, "%s:%s", cwd, current_path);
+#ifdef _GNU_SOURCE
             free(cwd);
+#endif
         }
     }
     if (new_path != NULL)
