@@ -175,6 +175,7 @@ int set_nofile(int nofile);
 #endif
 
 void *ss_malloc(size_t size);
+void *ss_align(size_t size);
 void *ss_realloc(void *ptr, size_t new_size);
 
 #define ss_free(ptr)     \

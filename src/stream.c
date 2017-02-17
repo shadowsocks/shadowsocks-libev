@@ -216,13 +216,18 @@ stream_cipher_ctx_init(cipher_ctx_t *ctx, int method, int enc)
 }
 
 void
-stream_cipher_ctx_release(cipher_ctx_t *cipher_ctx)
+stream_ctx_release(cipher_ctx_t *cipher_ctx)
 {
     if (cipher_ctx->chunk != NULL) {
         bfree(cipher_ctx->chunk);
         ss_free(cipher_ctx->chunk);
         cipher_ctx->chunk = NULL;
     }
+
+    if (cipher_ctx->cipher->method >= SALSA20) {
+        return;
+    }
+
     mbedtls_cipher_free(cipher_ctx->evp);
     ss_free(cipher_ctx->evp);
 }
@@ -575,17 +580,6 @@ stream_ctx_init(cipher_t *cipher, cipher_ctx_t *cipher_ctx, int enc)
     if (enc) {
         rand_bytes(cipher_ctx->nonce, cipher->nonce_len);
     }
-}
-
-void
-stream_ctx_release(cipher_ctx_t *cipher_ctx)
-{
-    if (cipher_ctx->cipher->method >= SALSA20) {
-        return;
-    }
-
-    mbedtls_cipher_free(cipher_ctx->evp);
-    ss_free(cipher_ctx->evp);
 }
 
 cipher_t *

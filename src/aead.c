@@ -365,14 +365,14 @@ aead_ctx_init(cipher_t *cipher, cipher_ctx_t *cipher_ctx, int enc)
 void
 aead_ctx_release(cipher_ctx_t *cipher_ctx)
 {
-    if (cipher_ctx->cipher->method >= CHACHA20POLY1305IETF) {
-        return;
-    }
-
     if (cipher_ctx->chunk != NULL) {
         bfree(cipher_ctx->chunk);
         ss_free(cipher_ctx->chunk);
         cipher_ctx->chunk = NULL;
+    }
+
+    if (cipher_ctx->cipher->method >= CHACHA20POLY1305IETF) {
+        return;
     }
 
     mbedtls_cipher_free(cipher_ctx->evp);
