@@ -212,7 +212,7 @@ dnl Checks for library functions.
 AC_FUNC_FORK
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([memset select setresuid setreuid strerror getpwnam_r setrlimit])
+AC_CHECK_FUNCS([memset select setresuid setreuid strerror get_current_dir_name getpwnam_r setrlimit])
 
 AC_CHECK_LIB(socket, connect)
 

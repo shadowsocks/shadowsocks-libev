@@ -239,7 +239,7 @@ start_plugin(const char *plugin,
     env = cork_env_clone_current();
     current_path = cork_env_get(env, "PATH");
     if (current_path != NULL) {
-#ifdef _GNU_SOURCE
+#ifdef HAVE_GET_CURRENT_DIR_NAME
         char *cwd = get_current_dir_name();
         if (cwd) {
 #else
@@ -249,7 +249,7 @@ start_plugin(const char *plugin,
             new_path_len = strlen(current_path) + strlen(cwd) + 2;
             new_path = ss_malloc(new_path_len);
             snprintf(new_path, new_path_len, "%s:%s", cwd, current_path);
-#ifdef _GNU_SOURCE
+#ifdef HAVE_GET_CURRENT_DIR_NAME
             free(cwd);
 #endif
         }
