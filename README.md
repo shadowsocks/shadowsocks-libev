@@ -15,12 +15,8 @@ Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.svg
 
 ## Features
 
-Shadowsocks-libev is written in pure C and depends on
-[libev](http://software.schmorp.de/pkg/libev.html).
-
-In normal usage, the memory footprint is about 600KB and the CPU utilization is
-no more than 5% on a low-end router (Buffalo WHR-G300N V2 with a 400MHz MIPS CPU,
-32MB memory and 4MB flash).
+Shadowsocks-libev is written in pure C and depends on [libev](http://software.schmorp.de/pkg/libev.html). It's designed
+to be a very simple implementation of shadowsocks protocol, in order to keep the resource usage as low as possible.
 
 For a full list of feature comparison between different versions of shadowsocks,
 refer to the [Wiki page](https://github.com/shadowsocks/shadowsocks/wiki/Feature-Comparison-across-Different-Versions).
