@@ -84,7 +84,7 @@ typedef struct {
 } cipher_t;
 
 typedef struct {
-    uint8_t init;
+    uint32_t init;
     uint64_t counter;
     cipher_evp_t *evp;
     cipher_t *cipher;
