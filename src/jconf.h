@@ -59,7 +59,6 @@ typedef struct {
     char *user;
     char *plugin;
     char *plugin_opts;
-    int auth;
     int fast_open;
     int reuse_port;
     int nofile;

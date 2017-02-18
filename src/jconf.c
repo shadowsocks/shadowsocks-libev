@@ -223,9 +223,7 @@ read_jconf(const char *file)
                         "invalid config file: option 'reuse_port' must be a boolean");
                 conf.reuse_port = value->u.boolean;
             } else if (strcmp(name, "auth") == 0) {
-                check_json_value_type(value, json_boolean,
-                        "invalid config file: option 'auth' must be a boolean");
-                conf.auth = value->u.boolean;
+                FATAL("One time auth has been deprecated. Try AEAD ciphers instead.");
             } else if (strcmp(name, "nofile") == 0) {
                 check_json_value_type(value, json_integer,
                     "invalid config file: option 'nofile' must be an integer");

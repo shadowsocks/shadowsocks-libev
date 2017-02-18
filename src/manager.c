@@ -151,10 +151,6 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -u");
     }
-    if (manager->auth) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -A");
-    }
     if (manager->fast_open) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --fast-open");
@@ -884,7 +880,6 @@ main(int argc, char **argv)
     char *plugin          = NULL;
     char *plugin_opts     = NULL;
 
-    int auth       = 0;
     int fast_open  = 0;
     int reuse_port = 0;
     int mode       = TCP_ONLY;
@@ -999,9 +994,6 @@ main(int argc, char **argv)
         case 'h':
             usage();
             exit(EXIT_SUCCESS);
-        case 'A':
-            auth = 1;
-            break;
 #ifdef HAVE_SETRLIMIT
         case 'n':
             nofile = atoi(optarg);
@@ -1046,9 +1038,6 @@ main(int argc, char **argv)
         }
         if (conf->nameserver != NULL) {
             nameservers[nameserver_num++] = conf->nameserver;
-        }
-        if (auth == 0) {
-            auth = conf->auth;
         }
         if (mode == TCP_ONLY) {
             mode = conf->mode;
@@ -1107,10 +1096,6 @@ main(int argc, char **argv)
 #endif
     }
 
-    if (auth) {
-        LOGI("onetime authentication enabled");
-    }
-
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
@@ -1130,7 +1115,6 @@ main(int argc, char **argv)
     manager.fast_open       = fast_open;
     manager.verbose         = verbose;
     manager.mode            = mode;
-    manager.auth            = auth;
     manager.password        = password;
     manager.timeout         = timeout;
     manager.method          = method;

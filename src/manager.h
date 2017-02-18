@@ -38,7 +38,6 @@ struct manager_ctx {
     int reuse_port;
     int verbose;
     int mode;
-    int auth;
     char *password;
     char *key;
     char *timeout;
