@@ -132,9 +132,10 @@ Please follow the instructions on [Debian Backports Website](https://backports.d
 You can build shadowsocks-libev and all its dependencies by script:
 
 ```bash
-./scripts/deb4trusty.sh   # for 14.04 (Trusty)
- - or -
-./scripts/deb4xenial.sh   # for 16.04 (Xenial)
+mkdir -p ~/build-area/
+cp ./scripts/build_deb.sh ~/build-area/
+cd ~/build-area
+./build_deb.sh
 ```
 
 Otherwise, try to build and install directly from source. See the [Linux](#linux)
