@@ -37,7 +37,7 @@ Files: m4/stack-protector.m4
 Copyright: 2007 Google Inc.
 License: Apache-2.0
 
-Files: scripts/deb4*.sh
+Files: scripts/build_deb.sh
 Copyright: 2017 Roger Shimizu <rogershimizu@gmail.com>
 License: GPL-3+
 
