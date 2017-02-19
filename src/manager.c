@@ -999,6 +999,9 @@ main(int argc, char **argv)
             nofile = atoi(optarg);
             break;
 #endif
+        case 'A':
+            FATAL("One time auth has been deprecated. Try AEAD ciphers instead.");
+            break;
         case '?':
             // The option character is not recognized.
             LOGE("Unrecognized option: %s", optarg);

@@ -1384,7 +1384,7 @@ main(int argc, char **argv)
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:b:c:i:d:a:n:huUv6",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:b:c:i:d:a:n:huUv6A",
                             long_options, NULL)) != -1) {
         switch (c) {
         case GETOPT_VAL_FAST_OPEN:
@@ -1476,6 +1476,9 @@ main(int argc, char **argv)
             exit(EXIT_SUCCESS);
         case '6':
             ipv6first = 1;
+            break;
+        case 'A':
+            FATAL("One time auth has been deprecated. Try AEAD ciphers instead.");
             break;
         case '?':
             // The option character is not recognized.

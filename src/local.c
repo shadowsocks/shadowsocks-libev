@@ -1211,10 +1211,10 @@ main(int argc, char **argv)
     USE_TTY();
 
 #ifdef ANDROID
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUvV6",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUvV6A",
                             long_options, NULL)) != -1) {
 #else
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUv6",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUv6A",
                             long_options, NULL)) != -1) {
 #endif
         switch (c) {
@@ -1309,6 +1309,9 @@ main(int argc, char **argv)
             vpn = 1;
             break;
 #endif
+        case 'A':
+            FATAL("One time auth has been deprecated. Try AEAD ciphers instead.");
+            break;
         case '?':
             // The option character is not recognized.
             LOGE("Unrecognized option: %s", optarg);
