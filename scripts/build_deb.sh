@@ -17,8 +17,24 @@ if [ -d .git ]; then
 fi
 
 apt_init() {
-	DEPS="git-buildpackage equivs"
-	sudo apt-get update
+	DEPS="$1"
+	DEPS_BPO="$2"
+	if [ -n "$DEPS_BPO" ]; then
+		BPO=${OSVER}-backports
+		case "$OSID" in
+		debian)
+			REPO=http://httpredir.debian.org/debian
+			;;
+		ubuntu)
+			REPO=http://archive.ubuntu.com/ubuntu
+			;;
+		esac
+		sudo sh -c "printf \"deb $REPO ${OSVER}-backports main\" > /etc/apt/sources.list.d/${OSVER}-backports.list"
+		sudo apt-get update
+		sudo apt-get install -y -t $BPO $DEPS_BPO
+	else
+		sudo apt-get update
+	fi
 	sudo apt-get install -y $DEPS
 }
 
@@ -123,15 +139,17 @@ wheezy|precise)
 	echo Sorry, your system $OSID/$OSVER is not supported.
 	;;
 jessie)
-	echo Please install from official backports repository:
-	echo "    apt install -t jessie-backports shadowsocks-libev"
+	apt_init "git-buildpackage equivs" "debhelper libsodium-dev"
+	build_install_sslibev
+	apt_clean
 	;;
 stretch|unstable|sid|yakkety)
-	echo Please install from official repository:
-	echo "    apt install shadowsocks-libev"
+	apt_init "git-buildpackage equivs"
+	build_install_sslibev
+	apt_clean
 	;;
 trusty)
-	apt_init
+	apt_init "git-buildpackage equivs"
 	build_install_libcork trusty
 	build_install_libcorkipset trusty
 	build_install_libmbedtls
@@ -141,12 +159,7 @@ trusty)
 	apt_clean
 	;;
 xenial)
-	DEPS_BPO="debhelper"
-	BPO=xenial-backports
-	sudo sh -c 'printf "deb http://archive.ubuntu.com/ubuntu xenial-backports main restricted universe multiverse" > /etc/apt/sources.list.d/xenial-backports.list'
-	sudo apt-get update
-	sudo apt-get install -y -t $BPO $DEPS_BPO
-	apt_init
+	apt_init "git-buildpackage equivs" debhelper
 	build_install_libcork debian
 	build_install_libcorkipset debian
 	build_install_sslibev
