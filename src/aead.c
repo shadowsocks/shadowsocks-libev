@@ -442,6 +442,11 @@ aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
     uint8_t *salt = cipher_ctx.salt;
     memcpy(salt, ciphertext->data, salt_len);
 
+    if (ppbloom_check((void *)salt, salt_len) == 1) {
+        LOGE("crypto: AEAD: repeat salt detected");
+        return CRYPTO_ERROR;
+    }
+
     aead_cipher_ctx_set_key(&cipher_ctx, 0);
 
     size_t plen = plaintext->len;
@@ -455,6 +460,8 @@ aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 
     if (err)
         return CRYPTO_ERROR;
+
+    ppbloom_add((void *)salt, salt_len);
 
     brealloc(ciphertext, plaintext->len, capacity);
     memcpy(ciphertext->data, plaintext->data, plaintext->len);

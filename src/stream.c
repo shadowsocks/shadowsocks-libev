@@ -427,6 +427,12 @@ stream_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 
     uint8_t *nonce = cipher_ctx.nonce;
     memcpy(nonce, ciphertext->data, nonce_len);
+
+    if (ppbloom_check((void *)nonce, nonce_len) == 1) {
+        LOGE("crypto: stream: repeat IV detected");
+        return CRYPTO_ERROR;
+    }
+
     cipher_ctx_set_nonce(&cipher_ctx, nonce, nonce_len, 0);
 
     if (cipher->method >= SALSA20) {
@@ -450,6 +456,8 @@ stream_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
     dump("CIPHER", ciphertext->data + nonce_len, ciphertext->len - nonce_len);
     dump("NONCE", ciphertext->data, nonce_len);
 #endif
+
+    ppbloom_add((void *)nonce, nonce_len);
 
     brealloc(ciphertext, plaintext->len, capacity);
     memcpy(ciphertext->data, plaintext->data, plaintext->len);
