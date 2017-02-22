@@ -1,4 +1,5 @@
 %bcond_with completion
+%bcond_with autogen
 
 
 Name:		shadowsocks-libev
@@ -54,6 +55,10 @@ shadowsocks-libev is a lightweight secured scoks5 proxy for embedded devices and
 
 
 %build
+%if %{with autogen}
+./autogen.sh
+%endif
+
 %if 0%{?use_system_lib}
 %configure --enable-shared --enable-system-shared-lib
 %else
