@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 
 g_version=$(git tag -l v* | sort --version-sort | tail -1)
 g_version=${g_version#"v"}
@@ -59,6 +59,12 @@ pushd rpm
 sed -e "s/^\(Version:	\).*$/\1${version}/" \
     -e "s/^\(Source0:	\).*$/\1${name}-${version}.${format}/" \
     SPECS/"${spec_name}".in > SPECS/"${spec_name}"
+
+supported_max_version="2.6.2"
+if ! version_greater_equal ${supported_max_version} ${version}; then
+    echo "version(${version}) greater than ${supported_max_version} are not currently supported."
+    exit 1
+fi
 
 completion_min_verion="2.6.0"
 version_greater_equal ${version} ${completion_min_verion} \
