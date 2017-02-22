@@ -1,3 +1,6 @@
+%bcond_with completion
+
+
 Name:		shadowsocks-libev
 Version:	VERSION
 Release:	1%{?dist}
@@ -73,8 +76,11 @@ install -m 644 %{_builddir}/%{buildsubdir}/debian/shadowsocks-libev.service %{bu
 install -m 644 %{_builddir}/%{buildsubdir}/debian/shadowsocks-libev-*.service %{buildroot}%{_unitdir}/
 %endif
 install -m 644 %{_builddir}/%{buildsubdir}/debian/config.json %{buildroot}%{_sysconfdir}/shadowsocks-libev/config.json
+
+%if %{with completion}
 mkdir -p %{buildroot}%{_datadir}/bash-completion/completions/
 install -m 644 %{_builddir}/%{buildsubdir}/completions/bash/* %{buildroot}%{_datadir}/bash-completion/completions/
+%endif
 
 %pre
 %if 0%{?use_systemd} && 0%{?suse_version}
@@ -126,7 +132,9 @@ fi
 %{_bindir}/*
 %{_libdir}/*.so.*
 %config(noreplace) %{_sysconfdir}/shadowsocks-libev/config.json
+%if %{with completion}
 %{_datadir}/bash-completion/completions/*
+%endif
 %doc %{_mandir}/*
 %if ! 0%{?use_systemd}
 %{_initddir}/shadowsocks-libev

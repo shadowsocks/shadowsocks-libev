@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-set -e
+set -ex
 
 g_version=$(git tag -l v* | sort --version-sort | tail -1)
-g_version=${version#"v"}
+g_version=${g_version#"v"}
 
 show_help()
 {
@@ -16,6 +16,11 @@ show_help()
     echo -e "Examples:"
     echo -e "  to build base on version \`2.4.1' with format \`tar.xz', run:"
     echo -e "    `basename $0` -f tar.xz -v 2.4.1"
+}
+
+version_greater_equal()
+{
+    [ "$1" = $(printf "$1\n$2\n" | sort --version-sort | tail -1) ]
 }
 
 while getopts "hv:f:" opt
@@ -55,4 +60,9 @@ sed -e "s/^\(Version:	\).*$/\1${version}/" \
     -e "s/^\(Source0:	\).*$/\1${name}-${version}.${format}/" \
     SPECS/"${spec_name}".in > SPECS/"${spec_name}"
 
-rpmbuild -bb SPECS/"${spec_name}" --define "%_topdir `pwd`"
+completion_min_verion="2.6.0"
+version_greater_equal ${version} ${completion_min_verion} \
+    && with_completion="--with completion" || :
+
+rpmbuild -bb SPECS/"${spec_name}" --define "%_topdir `pwd`" \
+         ${with_completion}
