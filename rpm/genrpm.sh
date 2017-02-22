@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 
 g_script_path=$(dirname $(readlink -e $0))
 g_toplevel_path=$(pushd $g_script_path > /dev/null 2>&1; \
@@ -56,7 +56,9 @@ generate_tarball()
 {
     local tarball_name="${g_name}-${g_version}"
     local tarball_dir="${g_rpmbuild_topdir}/SOURCES"
+
     pushd ${g_toplevel_path}
+
     git archive "v${g_version}" \
         --format="${g_format}" \
         --prefix="${tarball_name}/" \
@@ -74,6 +76,8 @@ generate_tarball()
                 && rm "${tarball_dir}/sub_mod.tar" \
                 && popd) \
             done
+
+    popd
 }
 
 while getopts "hv:f:" opt
