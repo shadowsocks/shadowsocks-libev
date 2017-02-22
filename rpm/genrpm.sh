@@ -49,6 +49,12 @@ done
 : ${version:=${g_version}}
 : ${format:=tar.gz}
 
+supported_max_version="2.6.2"
+if ! version_greater_equal ${supported_max_version} ${version}; then
+    echo "version(${version}) greater than ${supported_max_version} are not currently supported."
+    exit 1
+fi
+
 name="shadowsocks-libev"
 spec_name="shadowsocks-libev.spec"
 
@@ -59,12 +65,6 @@ pushd rpm
 sed -e "s/^\(Version:	\).*$/\1${version}/" \
     -e "s/^\(Source0:	\).*$/\1${name}-${version}.${format}/" \
     SPECS/"${spec_name}".in > SPECS/"${spec_name}"
-
-supported_max_version="2.6.2"
-if ! version_greater_equal ${supported_max_version} ${version}; then
-    echo "version(${version}) greater than ${supported_max_version} are not currently supported."
-    exit 1
-fi
 
 completion_min_verion="2.6.0"
 version_greater_equal ${version} ${completion_min_verion} \
