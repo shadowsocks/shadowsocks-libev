@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 set -e
 
+g_version=$(git tag -l v* | sort --version-sort | tail -1)
+g_version=${version#"v"}
+
 show_help()
 {
     echo -e "`basename $0`  [option] [argument]"
     echo
     echo -e "Options:"
     echo -e "  -h    show this help."
-    echo -e "  -v    with argument version (3.0.2 by default)."
-    echo -e "  -f    with argument format (tar.xz by default) used by git archive."
+    echo -e "  -v    with argument version (${g_version} by default)."
+    echo -e "  -f    with argument format (tar.gz by default) used by git archive."
     echo
     echo -e "Examples:"
     echo -e "  to build base on version \`2.4.1' with format \`tar.xz', run:"
@@ -38,7 +41,7 @@ do
     esac
 done
 
-: ${version:=3.0.2}
+: ${version:=${g_version}}
 : ${format:=tar.gz}
 
 name="shadowsocks-libev"
