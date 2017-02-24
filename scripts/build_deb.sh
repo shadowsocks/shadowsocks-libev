@@ -102,6 +102,13 @@ build_install_libsodium() {
 	sudo dpkg -i libsodium*.deb
 }
 
+# Build libbloom deb
+build_install_libbloom() {
+	BRANCH=$1
+	gbp_build https://github.com/rogers0/libbloom $BRANCH
+	sudo dpkg -i libbloom-dev_*.deb libbloom1_*.deb
+}
+
 # Add patch to work on system with debhelper 9 only
 patch_sslibev_dh9() {
 	gbp clone --pristine-tar https://anonscm.debian.org/git/collab-maint/shadowsocks-libev.git
@@ -116,7 +123,8 @@ patch_sslibev_dh9() {
 
 # Build and install shadowsocks-libev deb
 build_install_sslibev() {
-	gbp_build https://anonscm.debian.org/git/collab-maint/shadowsocks-libev.git master
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/collab-maint/shadowsocks-libev.git $BRANCH
 	sudo dpkg -i shadowsocks-libev_*.deb
 	sudo apt-get install -fy
 }
@@ -140,12 +148,14 @@ wheezy|precise)
 	;;
 jessie)
 	apt_init "git-buildpackage equivs" "debhelper libsodium-dev"
-	build_install_sslibev
+	build_install_libbloom exp1
+	build_install_sslibev exp1
 	apt_clean
 	;;
-stretch|unstable|sid|yakkety)
+stretch|unstable|sid)
 	apt_init "git-buildpackage equivs"
-	build_install_sslibev
+	build_install_libbloom exp1
+	build_install_sslibev exp1
 	apt_clean
 	;;
 trusty)
@@ -154,15 +164,25 @@ trusty)
 	build_install_libcorkipset trusty
 	build_install_libmbedtls
 	build_install_libsodium
+	build_install_libbloom exp1_trusty
 	patch_sslibev_dh9
-	build_install_sslibev
+	build_install_sslibev exp1
 	apt_clean
 	;;
 xenial)
 	apt_init "git-buildpackage equivs" debhelper
 	build_install_libcork debian
 	build_install_libcorkipset debian
-	build_install_sslibev
+	build_install_libbloom exp1
+	build_install_sslibev exp1
+	apt_clean
+	;;
+yakkety)
+	apt_init "git-buildpackage equivs"
+	build_install_libcork debian
+	build_install_libcorkipset debian
+	build_install_libbloom exp1
+	build_install_sslibev exp1
 	apt_clean
 	;;
 *)
