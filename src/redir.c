@@ -97,6 +97,7 @@ static int mode      = TCP_ONLY;
 #ifdef HAVE_SETRLIMIT
 static int nofile    = 0;
 #endif
+static int fast_open = 0;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
@@ -190,6 +191,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     server_ctx_t *server_recv_ctx = (server_ctx_t *)w;
     server_t *server              = server_recv_ctx->server;
     remote_t *remote              = server->remote;
+
+    ev_timer_stop(EV_A_ & server->delayed_connect_watcher);
 
     ssize_t r = recv(server->fd, remote->buf->data + remote->buf->len,
                      BUF_SIZE - remote->buf->len, 0);
@@ -333,6 +336,28 @@ server_send_cb(EV_P_ ev_io *w, int revents)
 }
 
 static void
+delayed_connect_cb(EV_P_ ev_timer *watcher, int revents)
+{
+    server_t *server = cork_container_of(watcher, server_t,
+                                         delayed_connect_watcher);
+    remote_t *remote = server->remote;
+
+    int r = connect(remote->fd, remote->addr,
+                    get_sockaddr_len(remote->addr));
+
+    if (r == -1 && errno != CONNECT_IN_PROGRESS) {
+        ERROR("connect");
+        close_and_free_remote(EV_A_ remote);
+        close_and_free_server(EV_A_ server);
+        return;
+    } else {
+        // listen to remote connected event
+        ev_io_start(EV_A_ & remote->send_ctx->io);
+        ev_timer_start(EV_A_ & remote->send_ctx->watcher);
+    }
+}
+
+static void
 remote_timeout_cb(EV_P_ ev_timer *watcher, int revents)
 {
     remote_ctx_t *remote_ctx
@@ -426,10 +451,13 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     server_t *server              = remote->server;
 
     if (!remote_send_ctx->connected) {
-        struct sockaddr_storage addr;
-        memset(&addr, 0, sizeof(struct sockaddr_storage));
-        socklen_t len = sizeof addr;
-        int r         = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+        int r = 0;
+        if (remote->addr == NULL) {
+            struct sockaddr_storage addr;
+            memset(&addr, 0, sizeof(struct sockaddr_storage));
+            socklen_t len = sizeof addr;
+            r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+        }
         if (r == 0) {
             remote_send_ctx->connected = 1;
             ev_io_stop(EV_A_ & remote_send_ctx->io);
@@ -516,8 +544,37 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
-        ssize_t s = send(remote->fd, remote->buf->data + remote->buf->idx,
-                         remote->buf->len, 0);
+        ssize_t s;
+        if (remote->addr != NULL) {
+            s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
+                       remote->buf->len, MSG_FASTOPEN, remote->addr,
+                       get_sockaddr_len(remote->addr));
+            if (s == -1 && (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
+                errno == ENOPROTOOPT)) {
+                fast_open = 0;
+                LOGE("fast open is not supported on this platform");
+                s = connect(remote->fd, remote->addr,
+                            get_sockaddr_len(remote->addr));
+            }
+            remote->addr = NULL;
+
+            if (s == -1) {
+                if (errno == CONNECT_IN_PROGRESS || errno == EAGAIN
+                    || errno == EWOULDBLOCK) {
+                    ev_io_start(EV_A_ & remote_send_ctx->io);
+                    ev_timer_start(EV_A_ & remote_send_ctx->watcher);
+                    return;
+                } else {
+                    ERROR("connect");
+                    close_and_free_remote(EV_A_ remote);
+                    close_and_free_server(EV_A_ server);
+                }
+            }
+        } else {
+            s = send(remote->fd, remote->buf->data + remote->buf->idx,
+                     remote->buf->len, 0);
+        }
+
         if (s == -1) {
             if (errno != EAGAIN && errno != EWOULDBLOCK) {
                 ERROR("send");
@@ -626,6 +683,9 @@ new_server(int fd)
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
 
+    ev_timer_init(&server->delayed_connect_watcher, delayed_connect_cb, 0.05,
+                  0);
+
     return server;
 }
 
@@ -661,6 +721,7 @@ close_and_free_server(EV_P_ server_t *server)
     if (server != NULL) {
         ev_io_stop(EV_A_ & server->send_ctx->io);
         ev_io_stop(EV_A_ & server->recv_ctx->io);
+        ev_timer_stop(EV_A_ & server->delayed_connect_watcher);
         close(server->fd);
         free_server(server);
     }
@@ -736,18 +797,23 @@ accept_cb(EV_P_ ev_io *w, int revents)
     remote->server   = server;
     server->destaddr = destaddr;
 
-    int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
+    if (fast_open) {
+        // save remote addr for fast open
+        remote->addr = remote_addr;
+        ev_timer_start(EV_A_ & server->delayed_connect_watcher);
+    } else {
+        int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
 
-    if (r == -1 && errno != CONNECT_IN_PROGRESS) {
-        ERROR("connect");
-        close_and_free_remote(EV_A_ remote);
-        close_and_free_server(EV_A_ server);
-        return;
+        if (r == -1 && errno != CONNECT_IN_PROGRESS) {
+            ERROR("connect");
+            close_and_free_remote(EV_A_ remote);
+            close_and_free_server(EV_A_ server);
+            return;
+        }
+        // listen to remote connected event
+        ev_io_start(EV_A_ & remote->send_ctx->io);
+        ev_timer_start(EV_A_ & remote->send_ctx->watcher);
     }
-
-    // listen to remote connected event
-    ev_io_start(EV_A_ & remote->send_ctx->io);
-    ev_timer_start(EV_A_ & remote->send_ctx->watcher);
     ev_io_start(EV_A_ & server->recv_ctx->io);
 }
 
@@ -803,6 +869,7 @@ main(int argc, char **argv)
     char *remote_port = NULL;
 
     static struct option long_options[] = {
+        { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
         { "mtu",         required_argument, NULL, GETOPT_VAL_MTU },
         { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP },
         { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN },
@@ -821,6 +888,9 @@ main(int argc, char **argv)
     while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:huUv6A",
                             long_options, NULL)) != -1) {
         switch (c) {
+        case GETOPT_VAL_FAST_OPEN:
+            fast_open = 1;
+            break;
         case GETOPT_VAL_MTU:
             mtu = atoi(optarg);
             LOGI("set MTU to %d", mtu);
@@ -968,6 +1038,9 @@ main(int argc, char **argv)
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
+        if (fast_open == 0) {
+            fast_open = conf->fast_open;
+        }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;
@@ -1016,6 +1089,16 @@ main(int argc, char **argv)
 
     if (local_addr == NULL) {
         local_addr = "127.0.0.1";
+    }
+
+
+    if (fast_open == 1) {
+#ifdef TCP_FASTOPEN
+        LOGI("using tcp fast open");
+#else
+        LOGE("tcp fast open is not supported by this environment");
+        fast_open = 0;
+#endif
     }
 
     if (pid_flags) {

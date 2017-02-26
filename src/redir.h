@@ -61,6 +61,7 @@ typedef struct server {
     size_t hostname_len;
 
     struct sockaddr_storage destaddr;
+    ev_timer delayed_connect_watcher;
 } server_t;
 
 typedef struct remote_ctx {
@@ -77,6 +78,7 @@ typedef struct remote {
     struct remote_ctx *send_ctx;
     struct server *server;
     uint32_t counter;
+    struct sockaddr *addr;
 } remote_t;
 
 #endif // _REDIR_H

@@ -345,7 +345,7 @@ usage()
 #endif
     printf(
         "       [--reuse-port]             Enable port reuse.\n");
-#if defined(MODULE_REMOTE) || defined(MODULE_LOCAL)
+#if defined(MODULE_REMOTE) || defined(MODULE_LOCAL) || defined(MODULE_REDIR)
     printf(
         "       [--fast-open]              Enable TCP fast open.\n");
     printf(
