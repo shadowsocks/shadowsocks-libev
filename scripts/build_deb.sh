@@ -40,11 +40,13 @@ apt_init() {
 
 # Cleanup
 apt_clean() {
-	sudo apt-get purge -y $DEPS $DEPS_BPO shadowsocks-libev-build-deps \
-		libcork-dev libcorkipset-dev debhelper
+	sudo apt-get purge -y $DEPS $DEPS_BPO debhelper \
+		libbloom-dev libcork-dev libcorkipset-dev libmbedtls-dev \
+		libsodium-dev libbloom-build-deps simple-obfs-build-deps \
+		shadowsocks-libev-build-deps
 	sudo apt-get purge -y libcork-build-deps libcorkipset-build-deps
-	sudo apt-get purge -y mbedtls-build-deps libmbedtls-dev
-	sudo apt-get purge -y libsodium-build-deps libsodium-dev
+	sudo apt-get purge -y libsodium-build-deps
+	sudo apt-get purge -y mbedtls-build-deps
 	sudo apt-get autoremove -y
 }
 
@@ -58,6 +60,21 @@ gbp_build() {
 	mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
 	rm ${PROJECT_NAME}-build-deps_*.deb
 	gbp buildpackage -us -uc --git-ignore-branch --git-pristine-tar
+	git clean -fdx
+	git reset --hard HEAD
+	cd -
+}
+
+git_build() {
+	REPO=$1
+	BRANCH=$2
+	PROJECT_NAME=$(basename $1|sed s/\.git$//)
+	git clone $REPO
+	cd $PROJECT_NAME
+	git checkout $BRANCH
+	mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
+	rm ${PROJECT_NAME}-build-deps_*.deb
+	gbp buildpackage -us -uc --git-ignore-branch
 	git clean -fdx
 	git reset --hard HEAD
 	cd -
@@ -129,6 +146,14 @@ build_install_sslibev() {
 	sudo apt-get install -fy
 }
 
+# Build and install simple-obfs
+build_install_simpleobfs() {
+	BRANCH=$1
+	git_build https://github.com/rogers0/simple-obfs $BRANCH
+	sudo dpkg -i simple-obfs_*.deb
+	sudo apt-get install -fy
+}
+
 OSID=$(grep ^ID= /etc/os-release|cut -d= -f2)
 case "$OSID" in
 debian)
@@ -150,12 +175,14 @@ jessie)
 	apt_init "git-buildpackage equivs" "debhelper libsodium-dev"
 	build_install_libbloom exp1
 	build_install_sslibev exp1
+	build_install_simpleobfs exp1
 	apt_clean
 	;;
 stretch|unstable|sid)
 	apt_init "git-buildpackage equivs"
 	build_install_libbloom exp1
 	build_install_sslibev exp1
+	build_install_simpleobfs exp1
 	apt_clean
 	;;
 trusty)
@@ -167,6 +194,7 @@ trusty)
 	build_install_libbloom exp1_trusty
 	patch_sslibev_dh9
 	build_install_sslibev exp1
+	build_install_simpleobfs exp1_trusty
 	apt_clean
 	;;
 xenial)
@@ -175,6 +203,7 @@ xenial)
 	build_install_libcorkipset debian
 	build_install_libbloom exp1
 	build_install_sslibev exp1
+	build_install_simpleobfs exp1
 	apt_clean
 	;;
 yakkety)
@@ -183,6 +212,7 @@ yakkety)
 	build_install_libcorkipset debian
 	build_install_libbloom exp1
 	build_install_sslibev exp1
+	build_install_simpleobfs exp1
 	apt_clean
 	;;
 *)
