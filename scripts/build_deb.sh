@@ -109,7 +109,8 @@ build_install_libcorkipset() {
 
 # Build libmbedtls deb
 build_install_libmbedtls() {
-	gbp_build https://anonscm.debian.org/cgit/collab-maint/mbedtls.git debian/jessie-backports
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/collab-maint/mbedtls.git $BRANCH
 	sudo dpkg -i libmbed*.deb
 }
 
@@ -128,8 +129,10 @@ build_install_libbloom() {
 
 # Add patch to work on system with debhelper 9 only
 patch_sslibev_dh9() {
+	BRANCH=$1
 	gbp clone --pristine-tar https://anonscm.debian.org/git/collab-maint/shadowsocks-libev.git
 	cd shadowsocks-libev
+	git checkout $BRANCH
 	sed -i 's/dh $@/dh $@ --with systemd,autoreconf/' debian/rules
 	sed -i 's/debhelper (>= 10)/debhelper (>= 9), dh-systemd, dh-autoreconf/' debian/control
 	echo 9 > debian/compat
@@ -154,18 +157,10 @@ build_install_simpleobfs() {
 	sudo apt-get install -fy
 }
 
+export XZ_DEFAULTS=--memlimit=128MiB
+
 OSID=$(grep ^ID= /etc/os-release|cut -d= -f2)
-case "$OSID" in
-debian)
-	OSVER=$(grep ^VERSION= /etc/os-release|cut -d\( -f2|cut -d\) -f1)
-	;;
-ubuntu)
-	OSVER=$(grep DISTRIB_CODENAME /etc/lsb-release|cut -d= -f2)
-	;;
-*)
-	OSVER=unknown
-	;;
-esac
+OSVER=$(lsb_release -cs)
 
 case "$OSVER" in
 wheezy|precise)
@@ -189,10 +184,10 @@ trusty)
 	apt_init "git-buildpackage equivs"
 	build_install_libcork trusty
 	build_install_libcorkipset trusty
-	build_install_libmbedtls
+	build_install_libmbedtls debian/jessie-backports
 	build_install_libsodium
 	build_install_libbloom exp1_trusty
-	patch_sslibev_dh9
+	patch_sslibev_dh9 exp1
 	build_install_sslibev exp1
 	build_install_simpleobfs exp1_trusty
 	apt_clean
