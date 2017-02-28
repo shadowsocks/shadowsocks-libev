@@ -59,6 +59,7 @@ pushd mbedtls-$MBEDTLS_VER
 make SHARED=1 CFLAGS=-fPIC
 sudo make DESTDIR=/usr install
 popd
+sudo ldconfig
 ```
 
 ## Installation
