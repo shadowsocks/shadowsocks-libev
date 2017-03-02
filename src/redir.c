@@ -784,9 +784,21 @@ accept_cb(EV_P_ ev_io *w, int revents)
     setnonblocking(remotefd);
 
     // Enable MPTCP
-    if (listener->mptcp == 1) {
-        int err = setsockopt(remotefd, SOL_TCP, MPTCP_ENABLED, &opt, sizeof(opt));
+    if (listener->mptcp > 1) {
+        int err = setsockopt(remotefd, SOL_TCP, listener->mptcp, &opt, sizeof(opt));
         if (err == -1) {
+            ERROR("failed to enable multipath TCP");
+        }
+    } else if (listener->mptcp == 1) {
+        int i = 0;
+        while((listener->mptcp = mptcp_enabled_values[i]) > 0) {
+            int err = setsockopt(remotefd, SOL_TCP, listener->mptcp, &opt, sizeof(opt));
+            if (err != -1) {
+                break;
+            }
+            i++;
+        }
+        if (listener->mptcp == 0) {
             ERROR("failed to enable multipath TCP");
         }
     }

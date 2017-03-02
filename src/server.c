@@ -388,8 +388,15 @@ create_and_bind(const char *host, const char *port, int mptcp)
         }
 
         if (mptcp == 1) {
-            int err = setsockopt(listen_sock, SOL_TCP, MPTCP_ENABLED, &opt, sizeof(opt));
-            if (err == -1) {
+            int i = 0;
+            while((mptcp = mptcp_enabled_values[i]) > 0) {
+                int err = setsockopt(listen_sock, IPPROTO_TCP, mptcp, &opt, sizeof(opt));
+                if (err != -1) {
+                    break;
+                }
+                i++;
+            }
+            if (mptcp == 0) {
                 ERROR("failed to enable multipath TCP");
             }
         }

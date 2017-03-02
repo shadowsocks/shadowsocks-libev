@@ -46,13 +46,11 @@
 #endif
 #endif
 
-/* Backward compatibility for MPTCP_ENABLED between kernel 3 & 4 */
+/* MPTCP_ENABLED setsockopt values for kernel 4 & 3, best behaviour to be independant of kernel version is to test from newest to the latest values */
 #ifndef MPTCP_ENABLED
-#ifdef TCP_CC_INFO
-#define MPTCP_ENABLED 42
+static const char mptcp_enabled_values[] = { 42, 26, 0 };
 #else
-#define MPTCP_ENABLED 26
-#endif
+static const char mptcp_enabled_values[] = { MPTCP_ENABLED, 0 };
 #endif
 
 #ifndef UPDATE_INTERVAL
