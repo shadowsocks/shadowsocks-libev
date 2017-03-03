@@ -10,6 +10,7 @@ g_version=$(git tag -l v* | sort --version-sort | tail -1)
 g_version=${g_version#"v"}
 g_format="tar.gz"
 g_name="shadowsocks-libev"
+g_use_system_shared_lib=0
 
 g_rpmbuild_topdir="${g_toplevel_path}/rpm"
 g_rpmbuild_conditions=
@@ -22,6 +23,7 @@ show_help()
     echo -e "  -h    show this help."
     echo -e "  -v    with argument version (${g_version} by default)."
     echo -e "  -f    with argument format (tar.gz by default) used by git archive."
+    echo -e "  -s    use system shared libraries"
     echo
     echo -e "Examples:"
     echo -e "  to build base on version \`2.4.1' with format \`tar.xz', run:"
@@ -80,7 +82,7 @@ generate_tarball()
     popd
 }
 
-while getopts "hv:f:" opt
+while getopts "hsv:f:" opt
 do
     case ${opt} in
         h)
@@ -97,6 +99,9 @@ do
         f)
             g_format=${OPTARG}
             ;;
+        s)
+            g_use_system_shared_lib=1
+            ;;
         *)
             exit 1
             ;;
@@ -112,7 +117,7 @@ sed -e "s/^\(Version:	\).*$/\1${g_version}/" \
     -e "s/^\(Source0:	\).*$/\1${g_name}-${g_version}.${g_format}/" \
     "${spec_path}".in > "${spec_path}"
 
-rpmbuild -bb ${spec_path} \
+rpmbuild -ba ${spec_path} \
          --define "%_topdir ${g_rpmbuild_topdir}" \
-         --define "%use_system_lib 1" \
+         --define "%use_system_lib $g_use_system_shared_lib" \
          ${g_rpmbuild_conditions}
