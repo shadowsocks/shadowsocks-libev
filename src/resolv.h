@@ -31,16 +31,11 @@
 #endif
 
 #include <stdint.h>
-
-#ifdef __MINGW32__
-#include "win32.h"
-#else
 #include <sys/socket.h>
-#endif
 
 struct ResolvQuery;
 
-int resolv_init(struct ev_loop *, char **, int);
+int resolv_init(struct ev_loop *, char **, int, int);
 struct ResolvQuery *resolv_query(const char *, void (*)(struct sockaddr *,
                                                         void *), void (*)(
                                      void *), void *, uint16_t);

@@ -1,7 +1,7 @@
 /*
  * utils.c - Misc utilities
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -20,20 +20,22 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#ifndef __MINGW32__
+#include <ctype.h>
 #include <pwd.h>
-#endif
+#include <grp.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <sodium.h>
 
 #include "utils.h"
 
@@ -45,25 +47,24 @@
 #define INT_DIGITS 19           /* enough for 64 bit integer */
 
 #ifdef LIB_ONLY
-FILE * logfile;
+FILE *logfile;
 #endif
 
 #ifdef HAS_SYSLOG
 int use_syslog = 0;
 #endif
 
-#ifndef __MINGW32__
-void ERROR(const char *s)
+void
+ERROR(const char *s)
 {
     char *msg = strerror(errno);
     LOGE("%s: %s", s, msg);
-
 }
-#endif
 
 int use_tty = 1;
 
-char *ss_itoa(int i)
+char *
+ss_itoa(int i)
 {
     /* Room for INT_DIGITS digits, - and '\0' */
     static char buf[INT_DIGITS + 2];
@@ -71,28 +72,49 @@ char *ss_itoa(int i)
     if (i >= 0) {
         do {
             *--p = '0' + (i % 10);
-            i /= 10;
+            i   /= 10;
         } while (i != 0);
         return p;
     } else {                     /* i < 0 */
         do {
             *--p = '0' - (i % 10);
-            i /= 10;
+            i   /= 10;
         } while (i != 0);
         *--p = '-';
     }
     return p;
 }
 
+int
+ss_isnumeric(const char *s) {
+    if (!s || !*s)
+        return 0;
+    while (isdigit((unsigned char)*s))
+        ++s;
+    return *s == '\0';
+}
+
 /*
  * setuid() and setgid() for a specified user.
  */
-int run_as(const char *user)
+int
+run_as(const char *user)
 {
-#ifndef __MINGW32__
     if (user[0]) {
+        /* Convert user to a long integer if it is a non-negative number.
+         * -1 means it is a user name. */
+        long uid = -1;
+        if (ss_isnumeric(user)) {
+            errno = 0;
+            char *endptr;
+            uid = strtol(user, &endptr, 10);
+            if (errno || endptr == user)
+                uid = -1;
+        }
+
 #ifdef HAVE_GETPWNAM_R
         struct passwd pwdbuf, *pwd;
+        memset(&pwdbuf, 0, sizeof(struct passwd));
         size_t buflen;
         int err;
 
@@ -100,36 +122,45 @@ int run_as(const char *user)
             char buf[buflen];  /* variable length array */
 
             /* Note that we use getpwnam_r() instead of getpwnam(),
-               which returns its result in a statically allocated buffer and
-               cannot be considered thread safe. */
-            err = getpwnam_r(user, &pwdbuf, buf, buflen, &pwd);
+             * which returns its result in a statically allocated buffer and
+             * cannot be considered thread safe. */
+            err = uid >= 0 ? getpwuid_r((uid_t)uid, &pwdbuf, buf, buflen, &pwd)
+                : getpwnam_r(user, &pwdbuf, buf, buflen, &pwd);
+
             if (err == 0 && pwd) {
                 /* setgid first, because we may not be allowed to do it anymore after setuid */
                 if (setgid(pwd->pw_gid) != 0) {
                     LOGE(
                         "Could not change group id to that of run_as user '%s': %s",
-                        user, strerror(errno));
+                        pwd->pw_name, strerror(errno));
                     return 0;
                 }
+
+#ifndef __CYGWIN__
+                if (initgroups(pwd->pw_name, pwd->pw_gid) == -1) {
+                    LOGE("Could not change supplementary groups for user '%s'.", pwd->pw_name);
+                    return 0;
+                }
+#endif
 
                 if (setuid(pwd->pw_uid) != 0) {
                     LOGE(
                         "Could not change user id to that of run_as user '%s': %s",
-                        user, strerror(errno));
+                        pwd->pw_name, strerror(errno));
                     return 0;
                 }
                 break;
             } else if (err != ERANGE) {
                 if (err) {
-                    LOGE("run_as user '%s' could not be found: %s", user, strerror(
-                             err));
+                    LOGE("run_as user '%s' could not be found: %s", user,
+                            strerror(err));
                 } else {
                     LOGE("run_as user '%s' could not be found.", user);
                 }
                 return 0;
             } else if (buflen >= 16 * 1024) {
                 /* If getpwnam_r() seems defective, call it quits rather than
-                   keep on allocating ever larger buffers until we crash. */
+                 * keep on allocating ever larger buffers until we crash. */
                 LOGE(
                     "getpwnam_r() requires more than %u bytes of buffer space.",
                     (unsigned)buflen);
@@ -141,31 +172,33 @@ int run_as(const char *user)
         /* No getpwnam_r() :-(  We'll use getpwnam() and hope for the best. */
         struct passwd *pwd;
 
-        if (!(pwd = getpwnam(user))) {
+        if (!(pwd = uid >=0 ? getpwuid((uid_t)uid) : getpwnam(user))) {
             LOGE("run_as user %s could not be found.", user);
             return 0;
         }
         /* setgid first, because we may not allowed to do it anymore after setuid */
         if (setgid(pwd->pw_gid) != 0) {
             LOGE("Could not change group id to that of run_as user '%s': %s",
-                 user, strerror(errno));
+                 pwd->pw_name, strerror(errno));
+            return 0;
+        }
+        if (initgroups(pwd->pw_name, pwd->pw_gid) == -1) {
+            LOGE("Could not change supplementary groups for user '%s'.", pwd->pw_name);
             return 0;
         }
         if (setuid(pwd->pw_uid) != 0) {
             LOGE("Could not change user id to that of run_as user '%s': %s",
-                 user, strerror(errno));
+                 pwd->pw_name, strerror(errno));
             return 0;
         }
 #endif
     }
 
-#endif //__MINGW32__
     return 1;
 }
 
-
-
-char *ss_strndup(const char *s, size_t n)
+char *
+ss_strndup(const char *s, size_t n)
 {
     size_t len = strlen(s);
     char *ret;
@@ -174,121 +207,189 @@ char *ss_strndup(const char *s, size_t n)
         return strdup(s);
     }
 
-    ret = malloc(n + 1);
+    ret = ss_malloc(n + 1);
     strncpy(ret, s, n);
     ret[n] = '\0';
     return ret;
 }
 
-void FATAL(const char *msg)
+void
+FATAL(const char *msg)
 {
     LOGE("%s", msg);
     exit(-1);
 }
 
-void usage()
+void *
+ss_malloc(size_t size)
+{
+    void *tmp = malloc(size);
+    if (tmp == NULL)
+        exit(EXIT_FAILURE);
+    return tmp;
+}
+
+void *
+ss_align(size_t size)
+{
+    int err;
+    void *tmp;
+#ifdef HAVE_POSIX_MEMALIGN
+    err = posix_memalign(&tmp, sizeof(void *), size);
+#else
+    err = -1;
+#endif
+    if (err) {
+        return ss_malloc(size);
+    } else {
+        return tmp;
+    }
+}
+
+void *
+ss_realloc(void *ptr, size_t new_size)
+{
+    void *new = realloc(ptr, new_size);
+    if (new == NULL) {
+        free(ptr);
+        ptr = NULL;
+        exit(EXIT_FAILURE);
+    }
+    return new;
+}
+
+void
+usage()
 {
     printf("\n");
     printf("shadowsocks-libev %s\n\n", VERSION);
     printf(
         "  maintained by Max Lv <max.c.lv@gmail.com> and Linus Yang <laokongzi@gmail.com>\n\n");
     printf("  usage:\n\n");
-    printf("    ss-[local|redir|server|tunnel|manager]\n");
+#ifdef MODULE_LOCAL
+    printf("    ss-local\n");
+#elif MODULE_REMOTE
+    printf("    ss-server\n");
+#elif MODULE_TUNNEL
+    printf("    ss-tunnel\n");
+#elif MODULE_REDIR
+    printf("    ss-redir\n");
+#elif MODULE_MANAGER
+    printf("    ss-manager\n");
+#endif
     printf("\n");
     printf(
-        "       -s <server_host>           host name or ip address of your remote server\n");
-    printf("\n");
+        "       -s <server_host>           Host name or IP address of your remote server.\n");
     printf(
-        "       -p <server_port>           port number of your remote server\n");
-    printf("\n");
+        "       -p <server_port>           Port number of your remote server.\n");
     printf(
-        "       -l <local_port>            port number of your local server\n");
-    printf("\n");
+        "       -l <local_port>            Port number of your local server.\n");
     printf(
-        "       -k <password>              password of your remote server\n");
-    printf("\n");
+        "       -k <password>              Password of your remote server.\n");
     printf(
-        "       [-m <encrypt_method>]      encrypt method: table, rc4, rc4-md5,\n");
+        "       -m <encrypt_method>        Encrypt method: rc4-md5, \n");
+    printf(
+        "                                  aes-128-gcm, aes-192-gcm, aes-256-gcm,\n");
     printf(
         "                                  aes-128-cfb, aes-192-cfb, aes-256-cfb,\n");
     printf(
-        "                                  bf-cfb, camellia-128-cfb, camellia-192-cfb,\n");
+        "                                  aes-128-ctr, aes-192-ctr, aes-256-ctr,\n");
     printf(
-        "                                  camellia-256-cfb, cast5-cfb, des-cfb, idea-cfb,\n");
+        "                                  camellia-128-cfb, camellia-192-cfb,\n");
     printf(
-        "                                  rc2-cfb, seed-cfb, salsa20 and chacha20\n");
+        "                                  camellia-256-cfb, bf-cfb,\n");
+    printf(
+        "                                  chacha20-ietf-poly1305,\n");
+    printf(
+        "                                  salsa20, chacha20 and chacha20-ietf.\n");
+    printf(
+        "                                  The default cipher is rc4-md5.\n");
     printf("\n");
     printf(
-        "       [-f <pid_file>]            the file path to store pid\n");
+        "       [-a <user>]                Run as another user.\n");
+    printf(
+        "       [-f <pid_file>]            The file path to store pid.\n");
+    printf(
+        "       [-t <timeout>]             Socket timeout in seconds.\n");
+    printf(
+        "       [-c <config_file>]         The path to config file.\n");
+#ifdef HAVE_SETRLIMIT
+    printf(
+        "       [-n <number>]              Max number of open files.\n");
+#endif
+#ifndef MODULE_REDIR
+    printf(
+        "       [-i <interface>]           Network interface to bind.\n");
+#endif
+    printf(
+        "       [-b <local_address>]       Local address to bind.\n");
     printf("\n");
     printf(
-        "       [-t <timeout>]             socket timeout in seconds\n");
+        "       [-u]                       Enable UDP relay.\n");
+#ifdef MODULE_REDIR
+    printf(
+        "                                  TPROXY is required in redir mode.\n");
+#endif
+    printf(
+        "       [-U]                       Enable UDP relay and disable TCP relay.\n");
+#ifdef MODULE_REMOTE
+    printf(
+        "       [-6]                       Resovle hostname to IPv6 address first.\n");
+#endif
+    printf("\n");
+#ifdef MODULE_TUNNEL
+    printf(
+        "       [-L <addr>:<port>]         Destination server address and port\n");
+    printf(
+        "                                  for local port forwarding.\n");
+#endif
+#ifdef MODULE_REMOTE
+    printf(
+        "       [-d <addr>]                Name servers for internal DNS resolver.\n");
+#endif
+    printf(
+        "       [--reuse-port]             Enable port reuse.\n");
+#if defined(MODULE_REMOTE) || defined(MODULE_LOCAL) || defined(MODULE_REDIR)
+    printf(
+        "       [--fast-open]              Enable TCP fast open.\n");
+    printf(
+        "                                  with Linux kernel > 3.7.0.\n");
+    printf(
+        "       [--acl <acl_file>]         Path to ACL (Access Control List).\n");
+#endif
+#if defined(MODULE_REMOTE) || defined(MODULE_MANAGER)
+    printf(
+        "       [--manager-address <addr>] UNIX domain socket address.\n");
+#endif
+#ifdef MODULE_MANAGER
+    printf(
+        "       [--executable <path>]      Path to the executable of ss-server.\n");
+#endif
+    printf(
+        "       [--mtu <MTU>]              MTU of your network interface.\n");
+#ifdef __linux__
+    printf(
+        "       [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.\n");
+#endif
+#ifndef MODULE_MANAGER
+    printf(
+        "       [--key <key_in_base64>]    Key of your remote server.\n");
+#endif
+    printf(
+        "       [--plugin <name>]          Enable SIP003 plugin. (Experimental)\n");
+    printf(
+        "       [--plugin-opts <options>]  Set SIP003 plugin options. (Experimental)\n");
     printf("\n");
     printf(
-        "       [-c <config_file>]         the path to config file\n");
-    printf("\n");
+        "       [-v]                       Verbose mode.\n");
     printf(
-        "       [-i <interface>]           network interface to bind,\n");
-    printf(
-        "                                  not available in redir mode\n");
-    printf("\n");
-    printf(
-        "       [-b <local_address>]       local address to bind,\n");
-    printf(
-        "                                  not available in server mode\n");
-    printf("\n");
-    printf(
-        "       [-u]                       enable UDP relay,\n");
-    printf(
-        "                                  TPROXY is required in redir mode\n");
-    printf("\n");
-    printf(
-        "       [-U]                       enable UDP relay and disable TCP relay,\n");
-    printf(
-        "                                  not available in local mode\n");
-    printf("\n");
-    printf(
-        "       [-L <addr>:<port>]         specify destination server address and port\n");
-    printf(
-        "                                  for local port forwarding,\n");
-    printf(
-        "                                  only available in tunnel mode\n");
-    printf("\n");
-    printf(
-        "       [-d <addr>]                setup name servers for internal DNS resolver,\n");
-    printf(
-        "                                  only available in server mode\n");
-    printf("\n");
-    printf(
-        "       [--fast-open]              enable TCP fast open,\n");
-    printf(
-        "                                  only available in local and server mode,\n");
-    printf(
-        "                                  with Linux kernel > 3.7.0\n");
-    printf("\n");
-    printf(
-        "       [--acl <acl_file>]         config file of ACL (Access Control List)\n");
-    printf(
-        "                                  only available in local and server mode\n");
-    printf("\n");
-    printf(
-        "       [--manager_address <addr>] UNIX domain socket address\n");
-    printf(
-        "                                  only available in server and manager mode\n");
-    printf("\n");
-    printf(
-        "       [--executable <path>]      path to the executable of ss-server\n");
-    printf(
-        "                                  only available in manager mode\n");
-    printf("\n");
-    printf(
-        "       [-v]                       verbose mode\n");
+        "       [-h, --help]               Print this message.\n");
     printf("\n");
 }
 
-void daemonize(const char * path)
+void
+daemonize(const char *path)
 {
-#ifndef __MINGW32__
     /* Our process ID and Session ID */
     pid_t pid, sid;
 
@@ -299,14 +400,14 @@ void daemonize(const char * path)
     }
 
     /* If we got a good PID, then
-       we can exit the parent process. */
+     * we can exit the parent process. */
     if (pid > 0) {
         FILE *file = fopen(path, "w");
         if (file == NULL) {
             FATAL("Invalid pid file\n");
         }
 
-        fprintf(file, "%d", pid);
+        fprintf(file, "%d", (int)pid);
         fclose(file);
         exit(EXIT_SUCCESS);
     }
@@ -333,11 +434,11 @@ void daemonize(const char * path)
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-#endif
 }
 
 #ifdef HAVE_SETRLIMIT
-int set_nofile(int nofile)
+int
+set_nofile(int nofile)
 {
     struct rlimit limit = { nofile, nofile }; /* set both soft and hard limit */
 
@@ -361,5 +462,5 @@ int set_nofile(int nofile)
 
     return 0;
 }
-#endif
 
+#endif

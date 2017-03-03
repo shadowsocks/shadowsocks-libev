@@ -1,7 +1,6 @@
-/*
- * redir.h - Define the redirector's buffers and callbacks
+/* * redir.h - Define the redirector's buffers and callbacks
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -20,56 +19,66 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _LOCAL_H
-#define _LOCAL_H
+#ifndef _REDIR_H
+#define _REDIR_H
 
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
 #include <ev.h>
-#include "encrypt.h"
+#endif
+
+#include "crypto.h"
 #include "jconf.h"
 
-struct listen_ctx {
+typedef struct listen_ctx {
     ev_io io;
     int remote_num;
     int timeout;
     int fd;
-    int method;
+    int mptcp;
     struct sockaddr **remote_addr;
-};
+} listen_ctx_t;
 
-struct server_ctx {
+typedef struct server_ctx {
     ev_io io;
     int connected;
     struct server *server;
-};
+} server_ctx_t;
 
-struct server {
+typedef struct server {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // server send from, remote recv into
-    struct sockaddr_storage destaddr;
-    struct enc_ctx *e_ctx;
-    struct enc_ctx *d_ctx;
+
+    buffer_t *buf;
+
+    cipher_ctx_t *e_ctx;
+    cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
-};
 
-struct remote_ctx {
+    char *hostname;
+    size_t hostname_len;
+
+    struct sockaddr_storage destaddr;
+    ev_timer delayed_connect_watcher;
+} server_t;
+
+typedef struct remote_ctx {
     ev_io io;
     ev_timer watcher;
     int connected;
     struct remote *remote;
-};
+} remote_ctx_t;
 
-struct remote {
+typedef struct remote {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // remote send from, server recv into
+    buffer_t *buf;
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
-};
+    uint32_t counter;
+    struct sockaddr *addr;
+} remote_t;
 
-#endif // _LOCAL_H
+#endif // _REDIR_H

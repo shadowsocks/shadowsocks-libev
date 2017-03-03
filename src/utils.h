@@ -1,7 +1,7 @@
 /*
  * utils.h - Misc utilities
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -20,9 +20,26 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#if defined(USE_CRYPTO_OPENSSL)
+
+#include <openssl/opensslv.h>
+#define USING_CRYPTO OPENSSL_VERSION_TEXT
+
+#elif defined(USE_CRYPTO_POLARSSL)
+#include <polarssl/version.h>
+#define USING_CRYPTO POLARSSL_VERSION_STRING_FULL
+
+#elif defined(USE_CRYPTO_MBEDTLS)
+#include <mbedtls/version.h>
+#define USING_CRYPTO MBEDTLS_VERSION_STRING_FULL
+
+#endif
+
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#include <stddef.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -32,7 +49,6 @@
 #ifdef ANDROID
 
 #include <android/log.h>
-
 #define USE_TTY()
 #define USE_SYSLOG(ident)
 #define LOGI(...)                                                \
@@ -42,21 +58,17 @@
     ((void)__android_log_print(ANDROID_LOG_ERROR, "shadowsocks", \
                                __VA_ARGS__))
 
-#else
+#else // not ANDROID
 
-#define STR(x) #x
+#define STR(x) # x
 #define TOSTR(x) STR(x)
 
 #ifdef LIB_ONLY
 
-extern FILE * logfile;
-
+extern FILE *logfile;
 #define TIME_FORMAT "%Y-%m-%d %H:%M:%S"
-
 #define USE_TTY()
-
 #define USE_SYSLOG(ident)
-
 #define USE_LOGFILE(ident)                                     \
     do {                                                       \
         if (ident != NULL) { logfile = fopen(ident, "w+"); } } \
@@ -66,7 +78,6 @@ extern FILE * logfile;
     do {                                            \
         if (logfile != NULL) { fclose(logfile); } } \
     while (0)
-
 #define LOGI(format, ...)                                                        \
     do {                                                                         \
         if (logfile != NULL) {                                                   \
@@ -77,7 +88,6 @@ extern FILE * logfile;
             fflush(logfile); }                                                   \
     }                                                                            \
     while (0)
-
 #define LOGE(format, ...)                                        \
     do {                                                         \
         if (logfile != NULL) {                                   \
@@ -90,46 +100,19 @@ extern FILE * logfile;
     }                                                            \
     while (0)
 
-#elif defined(_WIN32)
-
-#define TIME_FORMAT "%Y-%m-%d %H:%M:%S"
-
-#define USE_TTY()
-
-#define USE_SYSLOG(ident)
-
-#define LOGI(format, ...)                                                   \
-    do {                                                                    \
-        time_t now = time(NULL);                                            \
-        char timestr[20];                                                   \
-        strftime(timestr, 20, TIME_FORMAT, localtime(&now));                \
-        fprintf(stderr, " %s INFO: " format "\n", timestr, ## __VA_ARGS__); \
-        fflush(stderr); }                                                   \
-    while (0)
-
-#define LOGE(format, ...)                                                    \
-    do {                                                                     \
-        time_t now = time(NULL);                                             \
-        char timestr[20];                                                    \
-        strftime(timestr, 20, TIME_FORMAT, localtime(&now));                 \
-        fprintf(stderr, " %s ERROR: " format "\n", timestr, ## __VA_ARGS__); \
-        fflush(stderr); }                                                    \
-    while (0)
-
-#else
+#else // not LIB_ONLY
 
 #include <syslog.h>
-
 extern int use_tty;
+extern int use_syslog;
+
+#define HAS_SYSLOG
+#define TIME_FORMAT "%F %T"
+
 #define USE_TTY()                        \
     do {                                 \
         use_tty = isatty(STDERR_FILENO); \
-    } while (0)                          \
-
-#define HAS_SYSLOG
-extern int use_syslog;
-
-#define TIME_FORMAT "%F %T"
+    } while (0)
 
 #define USE_SYSLOG(ident)                          \
     do {                                           \
@@ -149,7 +132,7 @@ extern int use_syslog;
                 fprintf(stderr, "\e[01;32m %s INFO: \e[0m" format "\n", timestr, \
                         ## __VA_ARGS__);                                         \
             } else {                                                             \
-                fprintf(stderr, "%s INFO: " format "\n", timestr,                \
+                fprintf(stderr, " %s INFO: " format "\n", timestr,               \
                         ## __VA_ARGS__);                                         \
             }                                                                    \
         }                                                                        \
@@ -174,32 +157,32 @@ extern int use_syslog;
         } }                                                                       \
     while (0)
 
-#endif
-/* _WIN32 */
+#endif // if LIB_ONLY
 
-#endif
-
-#ifdef __MINGW32__
-
-#ifdef ERROR
-#undef ERROR
-#endif
-#define ERROR(s) ss_error(s)
-
-#else
+#endif // if ANDROID
 
 void ERROR(const char *s);
 
-#endif
-
 char *ss_itoa(int i);
+int ss_isnumeric(const char *s);
 int run_as(const char *user);
 void FATAL(const char *msg);
 void usage(void);
-void daemonize(const char * path);
+void daemonize(const char *path);
 char *ss_strndup(const char *s, size_t n);
 #ifdef HAVE_SETRLIMIT
 int set_nofile(int nofile);
 #endif
 
+void *ss_malloc(size_t size);
+void *ss_align(size_t size);
+void *ss_realloc(void *ptr, size_t new_size);
+
+#define ss_free(ptr)     \
+    do {                 \
+        free(ptr);       \
+        ptr = NULL;      \
+    } while (0)
+
 #endif // _UTILS_H
+

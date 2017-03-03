@@ -1,24 +1,27 @@
 #!/usr/bin/make -f
-# -*- makefile -*-
-# Sample debian/rules that uses debhelper.
-#
-# This file was originally written by Joey Hess and Craig Small.
-# As a special exception, when this file is copied by dh-make into a
-# dh-make output file, you may use that output file without restriction.
-# This special exception was added by Craig Small in version 0.37 of dh-make.
-#
-# Modified to make a template file for a multi-binary package with separated
-# build-arch and build-indep targets  by Bill Allombert 2001
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
 
-# Uncomment this to turn on verbose mode.
-#export DH_VERBOSE=1
+# Security Hardening
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
-# This has to be exported to make some magic below work.
-export DH_OPTIONS
+DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/buildflags.mk
+
+override_dh_auto_install:
+	find src/ -name '*.la' -delete
+	dh_auto_install
 
 override_dh_auto_configure:
+	# Whether to have stack-protector is decided by dpkg-buildflags.
+	# So --disable-ssp here should be safe. See Bug#829498
 	dh_auto_configure -- \
-        --enable-shared
+		--enable-shared \
+		--disable-ssp
+
+override_dh_installchangelogs:
+	dh_installchangelogs -XChanges
 
 %:
-	dh $@ 
+	dh $@

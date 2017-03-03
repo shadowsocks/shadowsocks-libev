@@ -1,7 +1,7 @@
 /*
  * shadowsocks.h - Header files of library interfaces
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  * shadowsocks-libev is free software; you can redistribute it and/or modify
@@ -36,26 +36,28 @@ typedef struct {
     char *acl;            // file path to acl
     char *log;            // file path to log
     int fast_open;        // enable tcp fast open
-    int mode;        // enable udp relay
+    int mode;             // enable udp relay
+    int mtu;              // MTU of interface
+    int mptcp;            // enable multipath TCP
     int verbose;          // verbose mode
 } profile_t;
 
 /* An example profile
-
-   const profile_t EXAMPLE_PROFILE = {
-    .remote_host = "example.com",
-    .local_addr = "127.0.0.1",
-    .method = "bf-cfb",
-    .password = "barfoo!",
-    .remote_port = 8338,
-    .local_port = 1080,
-    .timeout = 600;
-    .acl = NULL,
-    .log = NULL,
-    .fast_open = 0,
-    .mode = 0,
-    .verbose = 0
-   };
+ *
+ * const profile_t EXAMPLE_PROFILE = {
+ *  .remote_host = "example.com",
+ *  .local_addr = "127.0.0.1",
+ *  .method = "bf-cfb",
+ *  .password = "barfoo!",
+ *  .remote_port = 8338,
+ *  .local_port = 1080,
+ *  .timeout = 600;
+ *  .acl = NULL,
+ *  .log = NULL,
+ *  .fast_open = 0,
+ *  .mode = 0,
+ *  .verbose = 0
+ * };
  */
 
 #ifdef __cplusplus
@@ -68,7 +70,7 @@ extern "C" {
  * Calling this function will block the current thread forever if the server
  * starts successfully.
  *
- * Make sure start the server in a seperate process to avoid any potential
+ * Make sure start the server in a separate process to avoid any potential
  * memory and socket leak.
  *
  * If failed, -1 is returned. Errors will output to the log file.
@@ -81,5 +83,7 @@ int start_ss_local_server(profile_t profile);
 
 // To stop the service on posix system, just kill the daemon process
 // kill(pid, SIGKILL);
+// Otherwise, If you start the service in a thread, you may need to send a signal SIGUSER1 to the thread.
+// pthread_kill(pthread_t, SIGUSR1);
 
 #endif // _SHADOWSOCKS_H

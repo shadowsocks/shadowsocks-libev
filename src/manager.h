@@ -1,7 +1,7 @@
 /*
  * server.h - Define shadowsocks server's buffers and callbacks
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -23,9 +23,14 @@
 #ifndef _MANAGER_H
 #define _MANAGER_H
 
-#include <ev.h>
 #include <time.h>
 #include <libcork/ds.h>
+
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
+#include <ev.h>
+#endif
 
 #include "jconf.h"
 
@@ -35,19 +40,28 @@ struct manager_ctx {
     ev_io io;
     int fd;
     int fast_open;
+    int reuse_port;
     int verbose;
     int mode;
     char *password;
+    char *key;
     char *timeout;
     char *method;
     char *iface;
     char *acl;
     char *user;
+    char *plugin;
+    char *plugin_opts;
     char *manager_address;
     char **hosts;
     int host_num;
     char **nameservers;
     int nameserver_num;
+    int mtu;
+    int ipv6first;
+#ifdef HAVE_SETRLIMIT
+    int nofile;
+#endif
 };
 
 struct server {
@@ -55,5 +69,12 @@ struct server {
     char password[128];
     uint64_t traffic;
 };
+
+typedef struct sock_lock {
+    char *port;
+    int *fds;
+    int fd_count;
+    ev_timer watcher;
+} sock_lock_t;
 
 #endif // _MANAGER_H

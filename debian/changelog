@@ -1,3 +1,178 @@
+shadowsocks-libev (3.0.3-1) unstable; urgency=medium
+
+  * Replace nonce cache with a ping-pong bloom filter.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 24 Feb 2017 12:08:31 +0800
+
+shadowsocks-libev (3.0.2-1) unstable; urgency=high
+
+  * Add session key for AEAD. (SIP007)
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 13 Feb 2017 09:07:17 +0800
+
+shadowsocks-libev (3.0.1-1) unstable; urgency=medium
+
+  * Fix a crashe when using stream ciphers.
+  * Fix a protocol bug in AEAD ciphers. (SIP004)
+  * Allow setting keys directly. (SIP006)
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 07 Feb 2017 13:18:02 +0800
+
+shadowsocks-libev (3.0.0-1) unstable; urgency=medium
+
+  * Drop dependencies of OpenSSL and PolarSSL.
+  * Deprecate OTA (One-Time-Auth).
+  * Add new ciphers for SIP004: aes-128-gcm, aes-192-gcm, aes-256-gcm,
+    chacha20-poly1305 and chacha20-ietf-poly1305.
+  * Refine SIP003 to support standalone mode of obfsproxy.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 01 Feb 2017 19:10:14 +0800
+
+shadowsocks-libev (2.6.3-1) unstable; urgency=medium
+
+  * Refine the project structure.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 24 Jan 2017 19:10:45 +0800
+
+shadowsocks-libev (2.6.2-1) unstable; urgency=medium
+
+  * Refine SIP003 plugin support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 16 Jan 2017 10:16:12 +0800
+
+shadowsocks-libev (2.6.1-1) unstable; urgency=medium
+
+  * Deprecate HTTP/TLS obfuscating.
+  * Add SIP003 plugin support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 08 Jan 2017 15:14:19 +0800
+
+shadowsocks-libev (2.6.0-1) unstable; urgency=medium
+
+  * Add HTTP/TLS obfuscating.
+  * Add support of aunch_activate_socket on macOS.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 27 Dec 2016 16:37:23 +0800
+
+shadowsocks-libev (2.5.6-1) unstable; urgency=medium
+
+  * Add outbound ACL for server.
+  * Refine log format.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 01 Nov 2016 09:51:52 +0800
+
+shadowsocks-libev (2.5.5-1) unstable; urgency=medium
+
+  * Refine attack detection.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 11 Oct 2016 15:45:09 +0800
+
+shadowsocks-libev (2.5.4-1) unstable; urgency=medium
+
+  * Fix a bug of auto blocking mechanism.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 09 Oct 2016 19:36:37 +0800
+
+shadowsocks-libev (2.5.3-1) unstable; urgency=medium
+
+  * Fix TCP Fast Open on macOS.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 21 Sep 2016 19:31:57 +0800
+
+shadowsocks-libev (2.5.2-1) unstable; urgency=medium
+
+  * Fix a bug of UDP relay mode of ss-local.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 12 Sep 2016 12:54:33 +0800
+
+shadowsocks-libev (2.5.1-1) unstable; urgency=medium
+
+  * Refine ACL feature with hostname support.
+  * Add HTTP/SNI parser for ss-local/ss-redir.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 10 Sep 2016 17:06:49 +0800
+
+shadowsocks-libev (2.5.0-1) unstable; urgency=medium
+
+  * Fix several bugs of the command line interface.
+  * Add aes-128/192/256-ctr ciphers.
+  * Add option MTU for UDP relay.
+  * Add MultiPath TCP support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 29 Aug 2016 13:07:51 +0800
+
+shadowsocks-libev (2.4.8-1) unstable; urgency=low
+
+  * Update manual pages with asciidoc.
+  * Fix issues of bind_address option.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 20 Jul 2016 09:25:50 +0800
+
+shadowsocks-libev (2.4.7-1) unstable; urgency=low
+
+  * Add ss-nat, a helper script to set up NAT rules for ss-redir.
+  * Fix several issues for debian package.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 1 Jun 2016 18:21:45 +0800
+
+shadowsocks-libev (2.4.6-1) unstable; urgency=low
+
+  * Update manual pages.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 21 Apr 2016 17:33:34 +0800
+
+shadowsocks-libev (2.4.5-1) unstable; urgency=low
+
+  * Fix build issues on OpenWRT.
+  * Reduce the latency of redir mode.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 01 Feb 2016 13:22:50 +0800
+
+shadowsocks-libev (2.4.4-1) unstable; urgency=low
+
+  * Fix a potential memory leak.
+  * Fix some compiler related issues.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 13 Jan 2016 11:50:12 +0800
+
+shadowsocks-libev (2.4.3-1) unstable; urgency=high
+
+  * Refine the buffer allocation.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 19 Dec 2015 12:30:21 +0900
+
+shadowsocks-libev (2.4.1-1) unstable; urgency=high
+
+  * Fix a security bug.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 29 Oct 2015 15:42:47 +0900
+
+shadowsocks-libev (2.4.0-1) unstable; urgency=low
+
+  * Update the one-time authentication
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 24 Sep 2015 14:11:05 +0900
+
+shadowsocks-libev (2.3.3-1) unstable; urgency=low
+
+  * Refine the onetime authentication of header.
+  * Enforce CRC16 on the payload.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 18 Sep 2015 10:38:21 +0900
+
+shadowsocks-libev (2.3.2-1) unstable; urgency=low
+
+  * Fix minor issues of build scripts.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 13 Sep 2015 15:22:28 +0900
+
+shadowsocks-libev (2.3.1-1) unstable; urgency=low
+
+  * Fix an issue of connection cache of UDP relay.
+  * Add support of onetime authentication for header verification.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 04 Sep 2015 07:54:02 +0900
+
 shadowsocks-libev (2.3.0-1) unstable; urgency=low
 
   * Add manager mode to support multi-user and traffic stat.

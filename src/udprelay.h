@@ -1,7 +1,7 @@
 /*
  * udprelay.h - Define UDP relay's buffers and callbacks
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -23,13 +23,18 @@
 #ifndef _UDPRELAY_H
 #define _UDPRELAY_H
 
-#include <ev.h>
 #include <time.h>
 
-#include "encrypt.h"
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
+#include <ev.h>
+#endif
+
+#include "crypto.h"
 #include "jconf.h"
 
-#ifdef UDPRELAY_REMOTE
+#ifdef MODULE_REMOTE
 #include "resolv.h"
 #endif
 
@@ -39,41 +44,40 @@
 
 #define MAX_UDP_PACKET_SIZE (65507)
 
-#define MTU 1397 // 1492 - 1 - 28 - 2 - 64 = 1397, the default MTU for UDP relay
+#define DEFAULT_PACKET_SIZE 1397 // 1492 - 1 - 28 - 2 - 64 = 1397, the default MTU for UDP relay
 
-struct server_ctx {
+typedef struct server_ctx {
     ev_io io;
     int fd;
-    int method;
+    crypto_t *crypto;
     int timeout;
     const char *iface;
     struct cache *conn_cache;
-#ifdef UDPRELAY_LOCAL
+#ifdef MODULE_LOCAL
     const struct sockaddr *remote_addr;
     int remote_addr_len;
-#ifdef UDPRELAY_TUNNEL
+#ifdef MODULE_TUNNEL
     ss_addr_t tunnel_addr;
 #endif
 #endif
-#ifdef UDPRELAY_REMOTE
+#ifdef MODULE_REMOTE
     struct ev_loop *loop;
 #endif
-};
+} server_ctx_t;
 
-#ifdef UDPRELAY_REMOTE
-struct query_ctx {
+#ifdef MODULE_REMOTE
+typedef struct query_ctx {
     struct ResolvQuery *query;
     struct sockaddr_storage src_addr;
-    int buf_len;
-    char *buf; // server send from, remote recv into
+    buffer_t *buf;
     int addr_header_len;
     char addr_header[384];
     struct server_ctx *server_ctx;
     struct remote_ctx *remote_ctx;
-};
+} query_ctx_t;
 #endif
 
-struct remote_ctx {
+typedef struct remote_ctx {
     ev_io io;
     ev_timer watcher;
     int af;
@@ -81,17 +85,10 @@ struct remote_ctx {
     int addr_header_len;
     char addr_header[384];
     struct sockaddr_storage src_addr;
-    struct server_ctx *server_ctx;
-};
-
-#ifdef ANDROID
-struct protect_ctx {
-    int buf_len;
-    char *buf;
-    struct sockaddr_storage addr;
-    int addr_len;
-    struct remote_ctx *remote_ctx;
-};
+#ifdef MODULE_REMOTE
+    struct sockaddr_storage dst_addr;
 #endif
+    struct server_ctx *server_ctx;
+} remote_ctx_t;
 
 #endif // _UDPRELAY_H

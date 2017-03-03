@@ -4,5 +4,5 @@
     "local_port":1080,
     "password":"barfoo!",
     "timeout":60,
-    "method":null
+    "method":"rc4-md5"
 }

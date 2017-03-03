@@ -1,7 +1,7 @@
 /*
  * tunnel.h - Define tunnel's buffers and callbacks
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -23,57 +23,60 @@
 #ifndef _TUNNEL_H
 #define _TUNNEL_H
 
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
 #include <ev.h>
-#include "encrypt.h"
+#endif
+
+#include "crypto.h"
 #include "jconf.h"
 
 #include "common.h"
 
-struct listen_ctx {
+typedef struct listen_ctx {
     ev_io io;
     ss_addr_t tunnel_addr;
     char *iface;
     int remote_num;
-    int method;
     int timeout;
     int fd;
+    int mptcp;
     struct sockaddr **remote_addr;
-};
+} listen_ctx_t;
 
-struct server_ctx {
+typedef struct server_ctx {
     ev_io io;
     int connected;
     struct server *server;
-};
+} server_ctx_t;
 
-struct server {
+typedef struct server {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // server send from, remote recv into
-    struct enc_ctx *e_ctx;
-    struct enc_ctx *d_ctx;
+
+    buffer_t *buf;
+    cipher_ctx_t *e_ctx;
+    cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
     ss_addr_t destaddr;
-};
+} server_t;
 
-struct remote_ctx {
+typedef struct remote_ctx {
     ev_io io;
     ev_timer watcher;
     int connected;
     struct remote *remote;
-};
+} remote_ctx_t;
 
-struct remote {
+typedef struct remote {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // remote send from, server recv into
+    buffer_t *buf;
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
-};
+    uint32_t counter;
+} remote_t;
 
 #endif // _TUNNEL_H

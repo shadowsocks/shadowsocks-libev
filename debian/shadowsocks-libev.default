@@ -5,6 +5,8 @@
 #
 # This is a POSIX shell fragment
 #
+# Note: `START', `GROUP' and `MAXFD' options are not recognized by systemd.
+# Please change those settings in the corresponding systemd unit file.
 
 # Enable during startup?
 START=yes
@@ -13,11 +15,11 @@ START=yes
 CONFFILE="/etc/shadowsocks-libev/config.json"
 
 # Extra command line arguments
-DAEMON_ARGS=""
+DAEMON_ARGS="-u"
 
 # User and group to run the server as
-USER=root
-GROUP=root
+USER=nobody
+GROUP=nogroup
 
 # Number of maximum file descriptors
-MAXFD=1024
+MAXFD=32768

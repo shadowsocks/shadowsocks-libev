@@ -28,6 +28,7 @@
  */
 
 #include "json.h"
+#include "utils.h"
 
 #ifdef _MSC_VER
 #ifndef _CRT_SECURE_NO_WARNINGS
@@ -38,7 +39,7 @@
 #ifdef __cplusplus
 const struct _json_value json_value_none; /* zero-d by ctor */
 #else
-const struct _json_value json_value_none = { 0 };
+const struct _json_value json_value_none = { NULL, 0, { 0 }, { NULL } };
 #endif
 
 #include <stdio.h>
@@ -48,7 +49,8 @@ const struct _json_value json_value_none = { 0 };
 
 typedef unsigned short json_uchar;
 
-static unsigned char hex_value(json_char c)
+static unsigned char
+hex_value(json_char c)
 {
     if (isdigit((uint8_t)c)) {
         return c - '0';
@@ -86,20 +88,22 @@ typedef struct {
 
     json_settings settings;
     int first_pass;
-
 } json_state;
 
-static void * default_alloc(size_t size, int zero, void * user_data)
+static void *
+default_alloc(size_t size, int zero, void *user_data)
 {
-    return zero ? calloc(1, size) : malloc(size);
+    return zero ? calloc(1, size) : ss_malloc(size);
 }
 
-static void default_free(void * ptr, void * user_data)
+static void
+default_free(void *ptr, void *user_data)
 {
-    free(ptr);
+    ss_free(ptr);
 }
 
-static void * json_alloc(json_state * state, unsigned long size, int zero)
+static void *
+json_alloc(json_state *state, unsigned long size, int zero)
 {
     if ((state->ulong_max - state->used_memory) < size) {
         return 0;
@@ -113,15 +117,15 @@ static void * json_alloc(json_state * state, unsigned long size, int zero)
     return state->settings.mem_alloc(size, zero, state->settings.user_data);
 }
 
-static int new_value
-    (json_state * state, json_value ** top, json_value ** root,
-    json_value ** alloc, json_type type)
+static int
+new_value(json_state *state, json_value **top, json_value **root,
+          json_value **alloc, json_type type)
 {
-    json_value * value;
+    json_value *value;
     int values_size;
 
     if (!state->first_pass) {
-        value = *top = *alloc;
+        value  = *top = *alloc;
         *alloc = (*alloc)->_reserved.next_alloc;
 
         if (!*root) {
@@ -133,7 +137,7 @@ static int new_value
 
             if (!(value->u.array.values = (json_value **)json_alloc
                                               (state, value->u.array.length *
-                                              sizeof(json_value *), 0)) ) {
+                                              sizeof(json_value *), 0))) {
                 return 0;
             }
 
@@ -150,7 +154,7 @@ static int new_value
                                                             values_size +
                                                             ((size_t)value->u.
                                                              object.values),
-                                                            0)) ) {
+                                                            0))) {
                 return 0;
             }
 
@@ -165,7 +169,7 @@ static int new_value
             if (!(value->u.string.ptr = (json_char *)json_alloc
                                             (state,
                                             (value->u.string.length +
-                                             1) * sizeof(json_char), 0)) ) {
+                                             1) * sizeof(json_char), 0))) {
                 return 0;
             }
 
@@ -175,7 +179,6 @@ static int new_value
         default:
             break;
         }
-        ;
 
         return 1;
     }
@@ -190,7 +193,7 @@ static int new_value
         *root = value;
     }
 
-    value->type = type;
+    value->type   = type;
     value->parent = *top;
 
     if (*alloc) {
@@ -206,55 +209,59 @@ static int new_value
     ((int)(i - cur_line_begin))
 
 #define whitespace                          \
-case '\n': ++cur_line;  cur_line_begin = i; \
-case ' ': case '\t': case '\r'
+case '\n': \
+    ++cur_line; cur_line_begin = i; \
+case ' ': \
+case '\t': \
+case '\r'
 
 #define string_add(b)                                         \
-    do { if (!state.first_pass) { string [string_length] = b; \
+    do { if (!state.first_pass) { string[string_length] = b; \
          } ++string_length; } while (0)
 
 static const long
-    flag_next = 1 << 0,
-    flag_reproc = 1 << 1,
-    flag_need_comma = 1 << 2,
-    flag_seek_value = 1 << 3,
-    flag_escaped = 1 << 4,
-    flag_string = 1 << 5,
-    flag_need_colon = 1 << 6,
-    flag_done = 1 << 7,
-    flag_num_negative = 1 << 8,
-    flag_num_zero = 1 << 9,
-    flag_num_e = 1 << 10,
+    flag_next           = 1 << 0,
+    flag_reproc         = 1 << 1,
+    flag_need_comma     = 1 << 2,
+    flag_seek_value     = 1 << 3,
+    flag_escaped        = 1 << 4,
+    flag_string         = 1 << 5,
+    flag_need_colon     = 1 << 6,
+    flag_done           = 1 << 7,
+    flag_num_negative   = 1 << 8,
+    flag_num_zero       = 1 << 9,
+    flag_num_e          = 1 << 10,
     flag_num_e_got_sign = 1 << 11,
     flag_num_e_negative = 1 << 12,
-    flag_line_comment = 1 << 13,
-    flag_block_comment = 1 << 14;
+    flag_line_comment   = 1 << 13,
+    flag_block_comment  = 1 << 14;
 
-json_value * json_parse_ex(json_settings * settings,
-                           const json_char * json,
-                           size_t length,
-                           char * error_buf)
+json_value *
+json_parse_ex(json_settings *settings,
+              const json_char *json,
+              size_t length,
+              char *error_buf)
 {
-    json_char error [json_error_max];
-    unsigned int cur_line;
-    const json_char * cur_line_begin, * i, * end;
-    json_value * top, * root, * alloc = 0;
-    json_state state = { 0 };
+    json_char error[json_error_max];
+    int cur_line;
+    const json_char *cur_line_begin, *i, *end;
+    json_value *top, *root, *alloc = 0;
+    json_state state = { 0UL, 0U, 0UL, { 0UL, 0, NULL, NULL, NULL }, 0 };
     long flags;
     long num_digits = 0, num_e = 0;
     json_int_t num_fraction = 0;
 
     /* Skip UTF-8 BOM
      */
-    if (length >= 3 && ((unsigned char)json [0]) == 0xEF
-        && ((unsigned char)json [1]) == 0xBB
-        && ((unsigned char)json [2]) == 0xBF) {
-        json += 3;
+    if (length >= 3 && ((unsigned char)json[0]) == 0xEF
+        && ((unsigned char)json[1]) == 0xBB
+        && ((unsigned char)json[2]) == 0xBF) {
+        json   += 3;
         length -= 3;
     }
 
     error[0] = '\0';
-    end = (json + length);
+    end      = (json + length);
 
     memcpy(&state.settings, settings, sizeof(json_settings));
 
@@ -269,19 +276,19 @@ json_value * json_parse_ex(json_settings * settings,
     memset(&state.uint_max, 0xFF, sizeof(state.uint_max));
     memset(&state.ulong_max, 0xFF, sizeof(state.ulong_max));
 
-    state.uint_max -= 8; /* limit of how much can be added before next check */
+    state.uint_max  -= 8; /* limit of how much can be added before next check */
     state.ulong_max -= 8;
 
     for (state.first_pass = 1; state.first_pass >= 0; --state.first_pass) {
         json_uchar uchar;
         unsigned char uc_b1, uc_b2, uc_b3, uc_b4;
-        json_char * string = 0;
+        json_char *string          = 0;
         unsigned int string_length = 0;
 
-        top = root = 0;
+        top   = root = 0;
         flags = flag_seek_value;
 
-        cur_line = 1;
+        cur_line       = 1;
         cur_line_begin = json;
 
         for (i = json;; ++i) {
@@ -345,13 +352,13 @@ json_value * json_parse_ex(json_settings * settings,
                             if (state.first_pass) {
                                 string_length += 2;
                             } else {
-                                string [string_length++] = 0xC0 |
-                                                           ((uc_b2 &
-                                                             0xC0) >>
-                                                            6) |
-                                                           ((uc_b1 & 0x7) << 2);
-                                string [string_length++] = 0x80 |
-                                                           (uc_b2 & 0x3F);
+                                string[string_length++] = 0xC0 |
+                                                          ((uc_b2 &
+                                                            0xC0) >>
+                                                           6) |
+                                                          ((uc_b1 & 0x7) << 2);
+                                string[string_length++] = 0x80 |
+                                                          (uc_b2 & 0x3F);
                             }
 
                             break;
@@ -360,14 +367,14 @@ json_value * json_parse_ex(json_settings * settings,
                         if (state.first_pass) {
                             string_length += 3;
                         } else {
-                            string [string_length++] = 0xE0 |
-                                                       ((uc_b1 & 0xF0) >> 4);
-                            string [string_length++] = 0x80 |
-                                                       ((uc_b1 &
-                                                         0xF) <<
-                                                        2) |
-                                                       ((uc_b2 & 0xC0) >> 6);
-                            string [string_length++] = 0x80 | (uc_b2 & 0x3F);
+                            string[string_length++] = 0xE0 |
+                                                      ((uc_b1 & 0xF0) >> 4);
+                            string[string_length++] = 0x80 |
+                                                      ((uc_b1 &
+                                                        0xF) <<
+                                                       2) |
+                                                      ((uc_b2 & 0xC0) >> 6);
+                            string[string_length++] = 0x80 | (uc_b2 & 0x3F);
                         }
 
                         break;
@@ -375,7 +382,6 @@ json_value * json_parse_ex(json_settings * settings,
                     default:
                         string_add(b);
                     }
-                    ;
 
                     continue;
                 }
@@ -387,7 +393,7 @@ json_value * json_parse_ex(json_settings * settings,
 
                 if (b == '"') {
                     if (!state.first_pass) {
-                        string [string_length] = 0;
+                        string[string_length] = 0;
                     }
 
                     flags &= ~flag_string;
@@ -397,7 +403,7 @@ json_value * json_parse_ex(json_settings * settings,
                     case json_string:
 
                         top->u.string.length = string_length;
-                        flags |= flag_next;
+                        flags               |= flag_next;
 
                         break;
 
@@ -407,10 +413,10 @@ json_value * json_parse_ex(json_settings * settings,
                             (*(json_char **)&top->u.object.values) +=
                                 string_length + 1;
                         } else {
-                            top->u.object.values [top->u.object.length].name
+                            top->u.object.values[top->u.object.length].name
                                 = (json_char *)top->_reserved.object_mem;
 
-                            top->u.object.values [top->u.object.length].
+                            top->u.object.values[top->u.object.length].
                             name_length
                                 = string_length;
 
@@ -424,7 +430,6 @@ json_value * json_parse_ex(json_settings * settings,
                     default:
                         break;
                     }
-                    ;
                 } else {
                     string_add(b);
                     continue;
@@ -450,7 +455,7 @@ json_value * json_parse_ex(json_settings * settings,
                             goto e_failed;
                         }
 
-                        if (b == '*' && i < (end - 1) && i [1] == '/') {
+                        if (b == '*' && i < (end - 1) && i[1] == '/') {
                             flags &= ~flag_block_comment;
                             ++i;   /* skip closing sequence */
                         }
@@ -486,7 +491,6 @@ json_value * json_parse_ex(json_settings * settings,
                                 b);
                         goto e_failed;
                     }
-                    ;
                 }
             }
 
@@ -496,7 +500,7 @@ json_value * json_parse_ex(json_settings * settings,
                 }
 
                 switch (b) {
- whitespace:
+whitespace:
                     continue;
 
                 default:
@@ -504,12 +508,11 @@ json_value * json_parse_ex(json_settings * settings,
                             e_off, b);
                     goto e_failed;
                 }
-                ;
             }
 
             if (flags & flag_seek_value) {
                 switch (b) {
- whitespace:
+whitespace:
                     continue;
 
                 case ']':
@@ -580,7 +583,7 @@ json_value * json_parse_ex(json_settings * settings,
 
                         flags |= flag_string;
 
-                        string = top->u.string.ptr;
+                        string        = top->u.string.ptr;
                         string_length = 0;
 
                         continue;
@@ -644,7 +647,7 @@ json_value * json_parse_ex(json_settings * settings,
                                 while (isdigit((uint8_t)b) || b == '+' || b ==
                                        '-'
                                        || b == 'e' || b == 'E' || b == '.') {
-                                    if ( (++i) == end) {
+                                    if ((++i) == end) {
                                         b = 0;
                                         break;
                                     }
@@ -661,9 +664,9 @@ json_value * json_parse_ex(json_settings * settings,
                                        flag_num_e_negative |
                                        flag_num_zero);
 
-                            num_digits = 0;
+                            num_digits   = 0;
                             num_fraction = 0;
-                            num_e = 0;
+                            num_e        = 0;
 
                             if (b != '-') {
                                 flags |= flag_reproc;
@@ -679,15 +682,13 @@ json_value * json_parse_ex(json_settings * settings,
                             goto e_failed;
                         }
                     }
-                    ;
                 }
-                ;
             } else {
                 switch (top->type) {
                 case json_object:
 
                     switch (b) {
- whitespace:
+whitespace:
                         continue;
 
                     case '"':
@@ -700,7 +701,7 @@ json_value * json_parse_ex(json_settings * settings,
 
                         flags |= flag_string;
 
-                        string = (json_char *)top->_reserved.object_mem;
+                        string        = (json_char *)top->_reserved.object_mem;
                         string_length = 0;
 
                         break;
@@ -723,7 +724,6 @@ json_value * json_parse_ex(json_settings * settings,
                                 cur_line, e_off, b);
                         goto e_failed;
                     }
-                    ;
 
                     break;
 
@@ -747,7 +747,7 @@ json_value * json_parse_ex(json_settings * settings,
                                 }
                             } else {
                                 flags |= flag_num_e_got_sign;
-                                num_e = (num_e * 10) + (b - '0');
+                                num_e  = (num_e * 10) + (b - '0');
                                 continue;
                             }
 
@@ -760,8 +760,8 @@ json_value * json_parse_ex(json_settings * settings,
                     }
 
                     if (b == '+' || b == '-') {
-                        if ( (flags & flag_num_e) &&
-                             !(flags & flag_num_e_got_sign)) {
+                        if ((flags & flag_num_e) &&
+                            !(flags & flag_num_e_got_sign)) {
                             flags |= flag_num_e_got_sign;
 
                             if (b == '-') {
@@ -777,7 +777,7 @@ json_value * json_parse_ex(json_settings * settings,
                             goto e_failed;
                         }
 
-                        top->type = json_double;
+                        top->type  = json_double;
                         top->u.dbl = (double)top->u.integer;
 
                         num_digits = 0;
@@ -801,12 +801,12 @@ json_value * json_parse_ex(json_settings * settings,
                             flags |= flag_num_e;
 
                             if (top->type == json_integer) {
-                                top->type = json_double;
+                                top->type  = json_double;
                                 top->u.dbl = (double)top->u.integer;
                             }
 
                             num_digits = 0;
-                            flags &= ~flag_num_zero;
+                            flags     &= ~flag_num_zero;
 
                             continue;
                         }
@@ -819,8 +819,8 @@ json_value * json_parse_ex(json_settings * settings,
 
                         top->u.dbl *=
                             pow(10,
-                                (double)(flags &
-                                         flag_num_e_negative ? -num_e : num_e));
+                                (double)((flags &
+                                         flag_num_e_negative) ? -num_e : num_e));
                     }
 
                     if (flags & flag_num_negative) {
@@ -837,7 +837,6 @@ json_value * json_parse_ex(json_settings * settings,
                 default:
                     break;
                 }
-                ;
             }
 
             if (flags & flag_reproc) {
@@ -860,7 +859,7 @@ json_value * json_parse_ex(json_settings * settings,
                 }
 
                 if (!state.first_pass) {
-                    json_value * parent = top->parent;
+                    json_value *parent = top->parent;
 
                     switch (parent->type) {
                     case json_object:
@@ -880,10 +879,9 @@ json_value * json_parse_ex(json_settings * settings,
                     default:
                         break;
                     }
-                    ;
                 }
 
-                if ( (++top->parent->u.array.length) > state.uint_max) {
+                if ((++top->parent->u.array.length) > state.uint_max) {
                     goto e_overflow;
                 }
 
@@ -898,22 +896,22 @@ json_value * json_parse_ex(json_settings * settings,
 
     return root;
 
- e_unknown_value:
+e_unknown_value:
 
     sprintf(error, "%d:%d: Unknown value", cur_line, e_off);
     goto e_failed;
 
- e_alloc_failure:
+e_alloc_failure:
 
     strcpy(error, "Memory allocation failure");
     goto e_failed;
 
- e_overflow:
+e_overflow:
 
     sprintf(error, "%d:%d: Too long (caught overflow)", cur_line, e_off);
     goto e_failed;
 
- e_failed:
+e_failed:
 
     if (error_buf) {
         if (*error) {
@@ -940,15 +938,17 @@ json_value * json_parse_ex(json_settings * settings,
     return 0;
 }
 
-json_value * json_parse(const json_char * json, size_t length)
+json_value *
+json_parse(const json_char *json, size_t length)
 {
-    json_settings settings = { 0 };
+    json_settings settings = { 0UL, 0, NULL, NULL, NULL };
     return json_parse_ex(&settings, json, length, 0);
 }
 
-void json_value_free_ex(json_settings * settings, json_value * value)
+void
+json_value_free_ex(json_settings *settings, json_value *value)
 {
-    json_value * cur_value;
+    json_value *cur_value;
 
     if (!value) {
         return;
@@ -965,7 +965,7 @@ void json_value_free_ex(json_settings * settings, json_value * value)
                 break;
             }
 
-            value = value->u.array.values [--value->u.array.length];
+            value = value->u.array.values[--value->u.array.length];
             continue;
 
         case json_object:
@@ -975,7 +975,7 @@ void json_value_free_ex(json_settings * settings, json_value * value)
                 break;
             }
 
-            value = value->u.object.values [--value->u.object.length].value;
+            value = value->u.object.values[--value->u.object.length].value;
             continue;
 
         case json_string:
@@ -986,18 +986,17 @@ void json_value_free_ex(json_settings * settings, json_value * value)
         default:
             break;
         }
-        ;
 
         cur_value = value;
-        value = value->parent;
+        value     = value->parent;
         settings->mem_free(cur_value, settings->user_data);
     }
 }
 
-void json_value_free(json_value * value)
+void
+json_value_free(json_value *value)
 {
-    json_settings settings = { 0 };
+    json_settings settings = { 0UL, 0, NULL, NULL, NULL };
     settings.mem_free = default_free;
     json_value_free_ex(&settings, value);
 }
-
