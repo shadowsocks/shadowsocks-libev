@@ -783,6 +783,12 @@ accept_cb(EV_P_ ev_io *w, int revents)
     // Set non blocking
     setnonblocking(remotefd);
 
+    if (listener->tos >= 0) {
+        if (setsockopt(remotefd, IPPROTO_IP, IP_TOS, &listener->tos, sizeof(listener->tos)) != 0) {
+            ERROR("setsockopt IP_TOS");
+        }
+    }
+
     // Enable MPTCP
     if (listener->mptcp > 1) {
         int err = setsockopt(remotefd, SOL_TCP, listener->mptcp, &opt, sizeof(opt));
@@ -879,6 +885,9 @@ main(int argc, char **argv)
     int remote_num = 0;
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
     char *remote_port = NULL;
+
+    int dscp_num   = 0;
+    ss_dscp_t * dscp = NULL;
 
     static struct option long_options[] = {
         { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
@@ -1058,6 +1067,8 @@ main(int argc, char **argv)
             nofile = conf->nofile;
         }
 #endif
+	dscp_num = conf->dscp_num;
+	dscp = conf->dscp;
     }
 
     if (remote_num == 0 || remote_port == NULL || local_port == NULL
@@ -1184,44 +1195,59 @@ main(int argc, char **argv)
 
     struct ev_loop *loop = EV_DEFAULT;
 
-    if (mode != UDP_ONLY) {
-        // Setup socket
-        int listenfd;
-        listenfd = create_and_bind(local_addr, local_port);
-        if (listenfd == -1) {
-            FATAL("bind() error");
+    listen_ctx_t* listen_ctx_current = &listen_ctx;
+    do {
+        if (mode != UDP_ONLY) {
+            // Setup socket
+            int listenfd;
+            listenfd = create_and_bind(local_addr, local_port);
+            if (listenfd == -1) {
+               FATAL("bind() error");
+            }
+            if (listen(listenfd, SOMAXCONN) == -1) {
+               FATAL("listen() error");
+            }
+            setnonblocking(listenfd);
+
+            listen_ctx_current->fd = listenfd;
+
+            ev_io_init(&listen_ctx_current->io, accept_cb, listenfd, EV_READ);
+            ev_io_start(loop, &listen_ctx_current->io);
         }
-        if (listen(listenfd, SOMAXCONN) == -1) {
-            FATAL("listen() error");
+
+        // Setup UDP
+        if (mode != TCP_ONLY) {
+            LOGI("UDP relay enabled");
+            char *host = remote_addr[0].host;
+            char *port = remote_addr[0].port == NULL ? remote_port : remote_addr[0].port;
+            struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
+            memset(storage, 0, sizeof(struct sockaddr_storage));
+            if (get_sockaddr(host, port, storage, 1, ipv6first) == -1) {
+                FATAL("failed to resolve the provided hostname");
+            }
+            struct sockaddr *addr = (struct sockaddr *)storage;
+            init_udprelay(local_addr, local_port, addr,
+                          get_sockaddr_len(addr), mtu, crypto, listen_ctx_current->timeout, NULL);
         }
-        setnonblocking(listenfd);
 
-        listen_ctx.fd = listenfd;
-
-        ev_io_init(&listen_ctx.io, accept_cb, listenfd, EV_READ);
-        ev_io_start(loop, &listen_ctx.io);
-    }
-
-    // Setup UDP
-    if (mode != TCP_ONLY) {
-        LOGI("UDP relay enabled");
-        char *host = remote_addr[0].host;
-        char *port = remote_addr[0].port == NULL ? remote_port : remote_addr[0].port;
-        struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
-        memset(storage, 0, sizeof(struct sockaddr_storage));
-        if (get_sockaddr(host, port, storage, 1, ipv6first) == -1) {
-            FATAL("failed to resolve the provided hostname");
+        if (mode == UDP_ONLY) {
+            LOGI("TCP relay disabled");
         }
-        struct sockaddr *addr = (struct sockaddr *)storage;
-        init_udprelay(local_addr, local_port, addr,
-                      get_sockaddr_len(addr), mtu, crypto, listen_ctx.timeout, NULL);
-    }
 
-    if (mode == UDP_ONLY) {
-        LOGI("TCP relay disabled");
-    }
+        if(listen_ctx_current->tos) {
+            LOGI("listening at %s:%s (TOS/DSCP 0x%x)", local_addr, local_port, listen_ctx_current->tos);
+        } else {
+            LOGI("listening at %s:%s", local_addr, local_port);
+        }
 
-    LOGI("listening at %s:%s", local_addr, local_port);
+        // Handle additionals TOS/DSCP listening ports
+        if (dscp_num > 0) {
+            listen_ctx_current = (listen_ctx_t*) malloc(sizeof(listen_ctx_t));
+            listen_ctx_current = memcpy(listen_ctx_current, &listen_ctx, sizeof(listen_ctx_t));
+            local_port = dscp[dscp_num-1].port;
+            listen_ctx_current->tos = dscp[dscp_num-1].dscp;
+        }
+    } while (dscp_num-- > 0);
 
     // setuid
     if (user != NULL && !run_as(user)) {

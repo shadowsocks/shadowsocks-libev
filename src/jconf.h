@@ -24,11 +24,21 @@
 
 #define MAX_PORT_NUM 1024
 #define MAX_REMOTE_NUM 10
+#define MAX_DSCP_NUM 64
 #define MAX_CONF_SIZE 128 * 1024
 #define MAX_DNS_NUM 4
 #define MAX_CONNECT_TIMEOUT 10
 #define MAX_REQUEST_TIMEOUT 60
 #define MIN_UDP_TIMEOUT 10
+
+#define DSCP_EF      0x2E
+#define DSCP_MIN     0x0
+#define DSCP_MAX     0x3F
+#define DSCP_DEFAULT 0x0
+#define DSCP_MIN_LEN 2
+#define DSCP_MAX_LEN 4
+#define DSCP_CS_LEN  3
+#define DSCP_AF_LEN  4
 
 #define TCP_ONLY     0
 #define TCP_AND_UDP  1
@@ -43,6 +53,11 @@ typedef struct {
     char *port;
     char *password;
 } ss_port_password_t;
+
+typedef struct {
+    char *port;
+    int dscp;
+} ss_dscp_t;
 
 typedef struct {
     int remote_num;
@@ -63,6 +78,8 @@ typedef struct {
     int reuse_port;
     int nofile;
     char *nameserver;
+    int dscp_num;
+    ss_dscp_t dscp[MAX_DSCP_NUM];
     char *tunnel_address;
     int mode;
     int mtu;
