@@ -66,7 +66,7 @@ mkdir -p -- "$TARGET_TARBALL_DIR"
 #git archive HEAD --format=tar --prefix="$TARGET_TARBALL_NAME/" \
 #    -o "$TARGET_TARBALL_DIR/$TARGET_TARBALL_NAME.tar"   
 pushd "$HERE"/..
-pwd
+make clean
 tar --exclude './rpm' --exclude '.[^/]*'  --transform "s,^\.,$TARGET_TARBALL_NAME," \
     -cvf "$TARGET_TARBALL_DIR/$TARGET_TARBALL_NAME.tar" .
 popd

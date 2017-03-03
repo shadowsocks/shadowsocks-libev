@@ -43,6 +43,11 @@ shadowsocks-libev.pc
 debian/libshadowsocks-libev*.symbols
 libsodium/src/libsodium/include/sodium/version.h
 rpm/SPECS/shadowsocks-libev.spec
+rpm/SRPMS
+rpm/RPMS/
+rpm/SOURCES/
+!rpm/SOURCES/etc/init.d/shadowsocks-libev
+rpm/BUILD
 
 # Ignore per-project vim config
 .vimrc

@@ -30,11 +30,11 @@ AC_DEFUN([ss_SODIUM],
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
     #include <sodium.h>
     ], [
-    #if SODIUM_LIBRARY_VERSION_MAJOR < 8
+    #if SODIUM_LIBRARY_VERSION_MAJOR < 7 || SODIUM_LIBRARY_VERSION_MAJOR ==7 && SODIUM_LIBRARY_VERSION_MINOR < 6
     # error
     #endif
     ])],
     [AC_MSG_RESULT([checking for version of libsodium... yes])],
-    [AC_MSG_ERROR([Wrong libsodium: version >= 1.0.8 required])])
+    [AC_MSG_ERROR([Wrong libsodium: version >= 1.0.4 required])])
 
 ])

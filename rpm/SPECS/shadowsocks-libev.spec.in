@@ -10,8 +10,10 @@ Source0:	%{url}/archive/v%{version}.tar.gz
 
 AutoReq:        no
 Conflicts:	    python-shadowsocks python3-shadowsocks
-BuildRequires:	make gcc pcre-devel asciidoc xmlto
-Requires:       pcre
+BuildRequires:	make gcc pcre-devel asciidoc xmlto automake libtool mbedtls-devel libsodium-devel >= 1.0.4 libev-devel udns-devel
+Requires:       pcre mbedtls libsodium >= 1.0.4
+Requires:       libev udns
+
 
 %if 0%{?suse_version}
 Requires:       libopenssl1_0_0
@@ -34,11 +36,6 @@ BuildRequires:   systemd-rpm-macros
 %else
 BuildRequires:   systemd
 %endif
-%endif
-
-%if 0%{?use_system_lib}
-BuildRequires:  libev-devel libsodium-devel >= 1.0.4 udns-devel
-Requires:       libev libsodium >= 1.0.4 udns
 %endif
 
 
@@ -84,7 +81,8 @@ install -m 644 %{_builddir}/%{buildsubdir}/completions/bash/* %{buildroot}%{_dat
 %service_add_pre shadowsocks-libev.service
 %endif
 
-%post -p /sbin/ldconfig
+%post
+/sbin/ldconfig
 %if ! 0%{?use_systemd}
 /sbin/chkconfig --add shadowsocks-libev > /dev/null 2>&1 || :
 %else
@@ -109,7 +107,8 @@ fi
 %endif
 %endif
 
-%postun -p /sbin/ldconfig
+%postun
+/sbin/ldconfig
 %if 0%{?use_systemd}
 %if 0%{?suse_version}
 %service_del_postun shadowsocks-libev.service
