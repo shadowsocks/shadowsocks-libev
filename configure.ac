@@ -242,4 +242,35 @@ AM_COND_IF([ENABLE_DOCUMENTATION],
   [AC_CONFIG_FILES([doc/Makefile])
 ])
 
+AC_ARG_ENABLE(connmarktos,
+[AS_HELP_STRING(--enable-connmarktos, Enable saved connmark to IP TOS QoS feature)],
+[
+  enable_connmarktos="yes"
+],
+[
+  enable_connmarktos="no"
+])
+
+if test x"$enable_connmarktos" = "xyes" ; then
+	AC_MSG_NOTICE([Linux Netfilter Conntrack support requested by --enable-connmarktos: ${enable_connmarktos}])
+	if test "x$enable_connmarktos" != "xno"; then
+	    AC_SEARCH_LIBS([nfct_query], [netfilter_conntrack],,[
+	        if test x"$enable_connmarktos" = "xyes"; then
+	            AC_MSG_ERROR([--enable-connmarktos specified but libnetfilter-conntrack library not found])
+	        fi
+	        with_netfilter_conntrack=no])
+	    AC_CHECK_HEADERS([libnetfilter_conntrack/libnetfilter_conntrack.h \
+	        libnetfilter_conntrack/libnetfilter_conntrack_tcp.h],,[
+	        if test x"$enable_connmarktos" = "xyes"; then
+	            AC_MSG_ERROR([--enable-connmarktos specified but libnetfilter-conntrack headers not found])
+	        fi
+	        with_netfilter_conntrack=no])
+	  # If nothing is broken; enable the libraries usage.
+	  if test "x$with_netfilter_conntrack" != "xno"; then
+		with_netfilter_conntrack=yes
+		AC_DEFINE(USE_NFCONNTRACK_TOS, 1, [Enable support for QOS netfilter mark preservation])
+	  fi
+	fi
+fi
+
 AC_OUTPUT
