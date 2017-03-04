@@ -40,11 +40,6 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-#ifdef LIB_ONLY
-#include <pthread.h>
-#include "shadowsocks.h"
-#endif
-
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
 #include <net/if.h>
 #include <sys/ioctl.h>
@@ -63,13 +58,11 @@
 #include "plugin.h"
 #include "local.h"
 
-#ifndef LIB_ONLY
 #ifdef __APPLE__
 #include <AvailabilityMacros.h>
 #if defined(MAC_OS_X_VERSION_10_10) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_10
 #include <launch.h>
 #define HAVE_LAUNCHD
-#endif
 #endif
 #endif
 
@@ -109,9 +102,7 @@ static struct ev_signal sigchld_watcher;
 static struct ev_signal sigusr1_watcher;
 
 #ifdef HAVE_SETRLIMIT
-#ifndef LIB_ONLY
 static int nofile = 0;
-#endif
 #endif
 
 static void server_recv_cb(EV_P_ ev_io *w, int revents);
@@ -1192,7 +1183,6 @@ accept_cb(EV_P_ ev_io *w, int revents)
     ev_io_start(EV_A_ & server->recv_ctx->io);
 }
 
-#ifndef LIB_ONLY
 int
 main(int argc, char **argv)
 {
@@ -1247,7 +1237,7 @@ main(int argc, char **argv)
 #else
     while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUv6A",
                             long_options, NULL)) != -1) {
-#endif
+#endif /* ANDROID */
         switch (c) {
         case GETOPT_VAL_FAST_OPEN:
             fast_open = 1;
@@ -1508,7 +1498,7 @@ main(int argc, char **argv)
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
-    crypto = crypto_init(password, key, method);
+    crypto = crypto_init(password, key, method, BF_NUM_ENTRIES_FOR_CLIENT, BF_ERROR_RATE_FOR_CLIENT);
     if (crypto == NULL)
         FATAL("failed to initialize ciphers");
 
@@ -1634,142 +1624,3 @@ main(int argc, char **argv)
 
     return 0;
 }
-
-#else
-
-int
-start_ss_local_server(profile_t profile)
-{
-    srand(time(NULL));
-
-    char *remote_host = profile.remote_host;
-    char *local_addr  = profile.local_addr;
-    char *method      = profile.method;
-    char *password    = profile.password;
-    char *log         = profile.log;
-    int remote_port   = profile.remote_port;
-    int local_port    = profile.local_port;
-    int timeout       = profile.timeout;
-    int mtu           = 0;
-    int mptcp         = 0;
-
-    mode      = profile.mode;
-    fast_open = profile.fast_open;
-    verbose   = profile.verbose;
-    mtu       = profile.mtu;
-    mptcp     = profile.mptcp;
-
-    char local_port_str[16];
-    char remote_port_str[16];
-    sprintf(local_port_str, "%d", local_port);
-    sprintf(remote_port_str, "%d", remote_port);
-
-    USE_LOGFILE(log);
-
-    if (profile.acl != NULL) {
-        acl = !init_acl(profile.acl);
-    }
-
-    if (local_addr == NULL) {
-        local_addr = "127.0.0.1";
-    }
-
-    // ignore SIGPIPE
-    signal(SIGPIPE, SIG_IGN);
-    signal(SIGABRT, SIG_IGN);
-
-    ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
-    ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
-    ev_signal_start(EV_DEFAULT, &sigint_watcher);
-    ev_signal_start(EV_DEFAULT, &sigterm_watcher);
-    ev_signal_init(&sigusr1_watcher, signal_cb, SIGUSR1);
-    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
-    ev_signal_start(EV_DEFAULT, &sigusr1_watcher);
-    ev_signal_start(EV_DEFAULT, &sigchld_watcher);
-
-    // Setup keys
-    LOGI("initializing ciphers... %s", method);
-    crypto = crypto_init(password, NULL, method);
-    if (crypto == NULL)
-        FATAL("failed to init ciphers");
-
-    struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
-    memset(storage, 0, sizeof(struct sockaddr_storage));
-    if (get_sockaddr(remote_host, remote_port_str, storage, 0, ipv6first) == -1) {
-        return -1;
-    }
-
-    // Setup proxy context
-    struct ev_loop *loop = EV_DEFAULT;
-
-    struct sockaddr **remote_addr_tmp = ss_malloc(sizeof(struct sockaddr *));
-    listen_ctx_t listen_ctx;
-    listen_ctx.remote_num     = 1;
-    listen_ctx.remote_addr    = remote_addr_tmp;
-    listen_ctx.remote_addr[0] = (struct sockaddr *)storage;
-    listen_ctx.timeout        = timeout;
-    listen_ctx.iface          = NULL;
-    listen_ctx.mptcp          = mptcp;
-
-    if (mode != UDP_ONLY) {
-        // Setup socket
-        int listenfd;
-        listenfd = create_and_bind(local_addr, local_port_str);
-        if (listenfd == -1) {
-            ERROR("bind()");
-            return -1;
-        }
-        if (listen(listenfd, SOMAXCONN) == -1) {
-            ERROR("listen()");
-            return -1;
-        }
-        setnonblocking(listenfd);
-
-        listen_ctx.fd = listenfd;
-
-        ev_io_init(&listen_ctx.io, accept_cb, listenfd, EV_READ);
-        ev_io_start(loop, &listen_ctx.io);
-    }
-
-    // Setup UDP
-    if (mode != TCP_ONLY) {
-        LOGI("udprelay enabled");
-        struct sockaddr *addr = (struct sockaddr *)storage;
-        init_udprelay(local_addr, local_port_str, addr,
-                      get_sockaddr_len(addr), mtu, crypto, timeout, NULL);
-    }
-
-    if (strcmp(local_addr, ":") > 0)
-        LOGI("listening at [%s]:%s", local_addr, local_port_str);
-    else
-        LOGI("listening at %s:%s", local_addr, local_port_str);
-
-    // Init connections
-    cork_dllist_init(&connections);
-
-    // Enter the loop
-    ev_run(loop, 0);
-
-    if (verbose) {
-        LOGI("closed gracefully");
-    }
-
-    // Clean up
-    if (mode != TCP_ONLY) {
-        free_udprelay();
-    }
-
-    if (mode != UDP_ONLY) {
-        ev_io_stop(loop, &listen_ctx.io);
-        free_connections(loop);
-        close(listen_ctx.fd);
-    }
-
-    ss_free(listen_ctx.remote_addr[0]);
-    ss_free(remote_addr_tmp);
-
-    // cannot reach here
-    return 0;
-}
-
-#endif

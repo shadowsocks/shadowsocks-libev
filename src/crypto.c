@@ -100,7 +100,7 @@ crypto_md5(const unsigned char *d, size_t n, unsigned char *md)
 }
 
 crypto_t *
-crypto_init(const char *password, const char *key, const char *method)
+crypto_init(const char *password, const char *key, const char *method, int bloom_entries, double bloom_error)
 {
     int i, m = -1;
 
@@ -110,11 +110,7 @@ crypto_init(const char *password, const char *key, const char *method)
     }
 
     // Initialize NONCE bloom filter
-#ifdef MODULE_REMOTE
-    ppbloom_init(BF_NUM_ENTRIES_FOR_SERVER, BF_ERROR_RATE_FOR_SERVER);
-#else
-    ppbloom_init(BF_NUM_ENTRIES_FOR_CLIENT, BF_ERROR_RATE_FOR_CLIENT);
-#endif
+    ppbloom_init(bloom_entries, bloom_error);
 
     if (method != NULL) {
         for (i = 0; i < STREAM_CIPHER_NUM; i++)

@@ -63,45 +63,6 @@
 #define STR(x) # x
 #define TOSTR(x) STR(x)
 
-#ifdef LIB_ONLY
-
-extern FILE *logfile;
-#define TIME_FORMAT "%Y-%m-%d %H:%M:%S"
-#define USE_TTY()
-#define USE_SYSLOG(ident)
-#define USE_LOGFILE(ident)                                     \
-    do {                                                       \
-        if (ident != NULL) { logfile = fopen(ident, "w+"); } } \
-    while (0)
-
-#define CLOSE_LOGFILE                               \
-    do {                                            \
-        if (logfile != NULL) { fclose(logfile); } } \
-    while (0)
-#define LOGI(format, ...)                                                        \
-    do {                                                                         \
-        if (logfile != NULL) {                                                   \
-            time_t now = time(NULL);                                             \
-            char timestr[20];                                                    \
-            strftime(timestr, 20, TIME_FORMAT, localtime(&now));                 \
-            fprintf(logfile, " %s INFO: " format "\n", timestr, ## __VA_ARGS__); \
-            fflush(logfile); }                                                   \
-    }                                                                            \
-    while (0)
-#define LOGE(format, ...)                                        \
-    do {                                                         \
-        if (logfile != NULL) {                                   \
-            time_t now = time(NULL);                             \
-            char timestr[20];                                    \
-            strftime(timestr, 20, TIME_FORMAT, localtime(&now)); \
-            fprintf(logfile, " %s ERROR: " format "\n", timestr, \
-                    ## __VA_ARGS__);                             \
-            fflush(logfile); }                                   \
-    }                                                            \
-    while (0)
-
-#else // not LIB_ONLY
-
 #include <syslog.h>
 extern int use_tty;
 extern int use_syslog;
@@ -156,8 +117,6 @@ extern int use_syslog;
             }                                                                     \
         } }                                                                       \
     while (0)
-
-#endif // if LIB_ONLY
 
 #endif // if ANDROID
 

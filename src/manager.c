@@ -66,6 +66,7 @@
 #endif
 
 int verbose          = 0;
+int keep_resolving = 1;
 char *executable     = "ss-server";
 char *working_dir    = NULL;
 int working_dir_size = 0;

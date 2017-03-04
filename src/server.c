@@ -101,6 +101,7 @@ static void query_free_cb(void *data);
 
 int verbose     = 0;
 int reuse_port = 0;
+int keep_resolving = 1;
 
 static crypto_t *crypto;
 
@@ -1651,7 +1652,7 @@ main(int argc, char **argv)
 
     // setup keys
     LOGI("initializing ciphers... %s", method);
-    crypto = crypto_init(password, key, method);
+    crypto = crypto_init(password, key, method, BF_NUM_ENTRIES_FOR_SERVER, BF_ERROR_RATE_FOR_SERVER);
     if (crypto == NULL)
         FATAL("failed to initialize ciphers");
 

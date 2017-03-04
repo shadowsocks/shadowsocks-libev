@@ -1152,7 +1152,7 @@ main(int argc, char **argv)
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
-    crypto = crypto_init(password, key, method);
+    crypto = crypto_init(password, key, method, BF_NUM_ENTRIES_FOR_CLIENT, BF_ERROR_RATE_FOR_CLIENT);
     if (crypto == NULL)
         FATAL("failed to initialize ciphers");
 
