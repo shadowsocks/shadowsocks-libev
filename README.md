@@ -304,7 +304,7 @@ For a detailed and complete list of all supported arguments, you may refer to th
 man pages of the applications, respectively.
 
 ```
-    ss-[local|redir|server|tunnel]
+    ss-[local|redir|server|tunnel|manager]
 
        -s <server_host>           host name or ip address of your remote server
 
