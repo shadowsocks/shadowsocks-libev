@@ -23,7 +23,7 @@ Replaces: shadowsocks (<< 1.5.3-2)
 Breaks: shadowsocks (<< 1.5.3-2)
 Architecture: any
 Depends:
- apg,
+ apg | pwgen,
  libcap2-bin [linux-any],
  lsb-base (>= 3.0-6),
  ${misc:Depends},

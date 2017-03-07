@@ -26,7 +26,12 @@ case "$1" in
 			cap_net_bind_service+ep /usr/bin/ss-server \
 			cap_net_bind_service+ep /usr/bin/ss-tunnel
 		if [ ! -f /etc/shadowsocks-libev/config.json ]; then
-			passwd=$(apg -n 1 -M ncl)
+			pathfind apg
+			if [ $? -eq 0 ]; then
+				passwd=$(apg -n 1 -M ncl)
+			else
+				passwd=$(pwgen 12 1)
+			fi
 			mkdir -p /etc/shadowsocks-libev
 			sed "s/barfoo!/$passwd/" /usr/share/shadowsocks-libev/config.json \
 				> /etc/shadowsocks-libev/config.json
