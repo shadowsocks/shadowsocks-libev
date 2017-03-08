@@ -566,12 +566,12 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                     || errno == EWOULDBLOCK) {
                     ev_io_start(EV_A_ & remote_send_ctx->io);
                     ev_timer_start(EV_A_ & remote_send_ctx->watcher);
-                    return;
                 } else {
                     ERROR("connect");
                     close_and_free_remote(EV_A_ remote);
                     close_and_free_server(EV_A_ server);
                 }
+                return;
             }
         } else {
             s = send(remote->fd, remote->buf->data + remote->buf->idx,
@@ -590,6 +590,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             // partly sent, move memory, wait for the next time to send
             remote->buf->len -= s;
             remote->buf->idx += s;
+            ev_io_start(EV_A_ & remote_send_ctx->io);
             return;
         } else {
             // all sent out, wait for reading
