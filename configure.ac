@@ -46,9 +46,9 @@ AM_CONDITIONAL([ENABLE_DOCUMENTATION], [test x$disable_documentation = xfalse])
 
 AM_COND_IF([ENABLE_DOCUMENTATION], [
   AC_PATH_PROG([ASCIIDOC], [asciidoc])
-  test x"${ASCIIDOC}" != x || AC_MSG_ERROR([Cannot find `asciidoc` in PATH.]) 
+  test x"${ASCIIDOC}" != x || AC_MSG_ERROR([Cannot find `asciidoc` in PATH.])
   AC_PATH_PROG([XMLTO], [xmlto])
-  test x"$XMLTO" != x || AC_MSG_ERROR([Cannot find `xmlto` in PATH.]) 
+  test x"$XMLTO" != x || AC_MSG_ERROR([Cannot find `xmlto` in PATH.])
   AC_PATH_PROG([GZIP], [gzip], [gzip])
   AC_PATH_PROG([MV], [mv], [mv])
   AC_PROG_SED
@@ -231,12 +231,11 @@ AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn
 
 AC_CONFIG_FILES([shadowsocks-libev.pc
                  Makefile
-                 src/Makefile
-                 libbloom/Makefile])
+                 src/Makefile])
 
 AM_COND_IF([USE_SYSTEM_SHARED_LIB],
 		   [AC_DEFINE([USE_SYSTEM_SHARED_LIB], [1], [Define if use system shared lib.])],
-		   [AC_CONFIG_FILES([libcork/Makefile libipset/Makefile])])
+		   [AC_CONFIG_FILES([libbloom/Makefile libcork/Makefile libipset/Makefile])])
 
 AM_COND_IF([ENABLE_DOCUMENTATION],
   [AC_CONFIG_FILES([doc/Makefile])

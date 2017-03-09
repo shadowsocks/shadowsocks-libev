@@ -1,5 +1,5 @@
 if USE_SYSTEM_SHARED_LIB
-SUBDIRS = src libbloom
+SUBDIRS = src
 else
 SUBDIRS = libcork libipset libbloom src
 endif
