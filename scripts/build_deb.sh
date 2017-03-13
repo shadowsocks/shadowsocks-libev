@@ -14,6 +14,7 @@ Usage:
 	$(basename $0) [--help|-h] [lib|bin|all]
 
 	--help|-h	Show this usage.
+	kcp		Build kcptun package (and its dependencies) only.
 	lib		Build library packages only.
 	bin		Build binary packages only.
 			However, you need the libraries built previously, in current working directory.
@@ -74,6 +75,18 @@ apt_clean() {
 	sudo apt-get purge -y libcork-build-deps libcorkipset-build-deps \
 		libbloom-build-deps libsodium-build-deps mbedtls-build-deps
 	sudo apt-get purge -y simple-obfs-build-deps shadowsocks-libev-build-deps
+	sudo apt-get purge -y dh-golang-build-deps golang-check.v1-build-deps \
+		golang-github-golang-snappy-build-deps \
+		golang-github-klauspost-reedsolomon-build-deps \
+		golang-github-pkg-errors-build-deps golang-github-urfave-cli-build-deps \
+		golang-github-xtaci-kcp-build-deps golang-github-xtaci-smux-build-deps \
+		golang-toml-build-deps golang-yaml.v2-build-deps kcptun-build-deps
+	sudo apt-get purge -y dh-golang golang-github-pkg-errors-dev \
+		golang-github-klauspost-reedsolomon-dev \
+		golang-github-burntsushi-toml-dev golang-gopkg-check.v1-dev \
+		golang-gopkg-yaml.v2-dev golang-github-urfave-cli-dev \
+		golang-github-golang-snappy-dev golang-github-xtaci-kcp-dev \
+		golang-github-xtaci-smux-dev
 	sudo apt-get autoremove -y
 }
 
@@ -84,9 +97,10 @@ gbp_build() {
 	gbp clone --pristine-tar $REPO
 	cd $PROJECT_NAME
 	git checkout $BRANCH
-	mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
-	rm ${PROJECT_NAME}-build-deps_*.deb
-	gbp buildpackage -us -uc --git-ignore-branch --git-pristine-tar
+	[ -n "$DEPS_BPO" ] && BPO_REPO="-t ${OSVER}-backports"
+	mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y $BPO_REPO"
+	rm -f ${PROJECT_NAME}-build-deps_*.deb
+	gbp buildpackage -us -uc --git-ignore-branch --git-pristine-tar --git-export-dir=../
 	git clean -fdx
 	git reset --hard HEAD
 	cd -
@@ -122,6 +136,7 @@ dsc_build() {
 
 # Build and install libcork deb
 build_install_libcork() {
+if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 	BRANCH=$1
 	if [ $BUILD_LIB -eq 1 ]; then
 		gbp_build https://github.com/rogers0/libcork $BRANCH
@@ -130,10 +145,12 @@ build_install_libcork() {
 			help_lib "libcork-dev libcork16"
 	fi
 	sudo dpkg -i libcork-dev_*.deb libcork16_*.deb
+fi
 }
 
 # Build and install libcorkipset deb
 build_install_libcorkipset() {
+if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 	BRANCH=$1
 	if [ $BUILD_LIB -eq 1 ]; then
 		gbp_build https://github.com/rogers0/libcorkipset $BRANCH
@@ -142,10 +159,12 @@ build_install_libcorkipset() {
 			help_lib "libcorkipset-dev libcorkipset1"
 	fi
 	sudo dpkg -i libcorkipset-dev_*.deb libcorkipset1_*.deb
+fi
 }
 
 # Build libmbedtls deb
 build_install_libmbedtls() {
+if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 	BRANCH=$1
 	if [ $BUILD_LIB -eq 1 ]; then
 		gbp_build https://anonscm.debian.org/git/collab-maint/mbedtls.git $BRANCH
@@ -154,10 +173,12 @@ build_install_libmbedtls() {
 			help_lib libmbedtls
 	fi
 	sudo dpkg -i libmbed*.deb
+fi
 }
 
 # Build libsodium deb
 build_install_libsodium() {
+if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 	if [ $BUILD_LIB -eq 1 ]; then
 		dsc_build http://httpredir.debian.org/debian/pool/main/libs/libsodium/libsodium_1.0.11-1~bpo8+1.dsc
 	else
@@ -165,10 +186,12 @@ build_install_libsodium() {
 			help_lib libsodium
 	fi
 	sudo dpkg -i libsodium*.deb
+fi
 }
 
 # Build libbloom deb
 build_install_libbloom() {
+if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 	BRANCH=$1
 	if [ $BUILD_LIB -eq 1 ]; then
 		gbp_build https://github.com/rogers0/libbloom $BRANCH
@@ -177,6 +200,7 @@ build_install_libbloom() {
 			help_lib "libbloom-dev libbloom1"
 	fi
 	sudo dpkg -i libbloom-dev_*.deb libbloom1_*.deb
+fi
 }
 
 # Add patch to work on system with debhelper 9 only
@@ -215,16 +239,130 @@ if [ $BUILD_BIN -eq 1 ]; then
 fi
 }
 
+# Build and install dh-golang deb
+build_install_dhgolang() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/cgit/pkg-go/packages/dh-golang.git $BRANCH
+	sudo dpkg -i dh-golang_*.deb
+	sudo apt-get install -fy
+fi
+}
+
+# Build and install golang-github-klauspost-reedsolomon deb
+build_install_reedsolomondev() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/pkg-go/packages/golang-github-klauspost-reedsolomon.git $BRANCH
+	sudo dpkg -i golang-github-klauspost-reedsolomon-dev_*.deb
+	sudo apt-get install -fy
+fi
+}
+
+# Build and install golang-github-pkg-errors deb
+build_install_errorsdev() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/pkg-go/packages/golang-github-pkg-errors.git $BRANCH
+	sudo dpkg -i golang-github-pkg-errors-dev_*.deb
+	sudo apt-get install -fy
+fi
+}
+
+# Build and install golang-toml deb
+build_install_tomldev() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/pkg-go/packages/golang-toml.git $BRANCH
+	sudo dpkg -i golang-github-burntsushi-toml-dev_*.deb
+	sudo apt-get install -fy
+fi
+}
+
+# Build and install golang-check.v1 deb
+build_install_checkdev() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/pkg-go/packages/golang-check.v1.git $BRANCH
+	sudo dpkg -i golang-gopkg-check.v1-dev_*.deb
+	sudo apt-get install -fy
+fi
+}
+
+# Build and install golang-yaml.v2 deb
+build_install_yamldev() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/pkg-go/packages/golang-yaml.v2.git $BRANCH
+	sudo dpkg -i golang-gopkg-yaml.v2-dev_*.deb
+	sudo apt-get install -fy
+fi
+}
+
+# Build and install golang-github-urfave-cli-dev deb
+build_install_urfaveclidev() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/pkg-go/packages/golang-github-urfave-cli.git $BRANCH
+	sudo dpkg -i golang-github-urfave-cli-dev_*.deb
+	sudo apt-get install -fy
+fi
+}
+
+# Build and install golang-github-golang-snappy deb
+build_install_snappydev() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/pkg-go/packages/golang-github-golang-snappy.git $BRANCH
+	sudo dpkg -i golang-github-golang-snappy-dev_*.deb
+	sudo apt-get install -fy
+fi
+}
+
+# Build and install golang-github-xtaci-kcp deb
+build_install_kcpdev() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/pkg-go/packages/golang-github-xtaci-kcp.git $BRANCH
+	sudo dpkg -i golang-github-xtaci-kcp-dev_*.deb
+	sudo apt-get install -fy
+fi
+}
+
+# Build and install golang-github-xtaci-smux deb
+build_install_smuxdev() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/pkg-go/packages/golang-github-xtaci-smux.git $BRANCH
+	sudo dpkg -i golang-github-xtaci-smux-dev_*.deb
+	sudo apt-get install -fy
+fi
+}
+
+# Build and install kcptun deb
+build_install_kcptun() {
+if [ $BUILD_KCP -eq 1 ]; then
+	BRANCH=$1
+	gbp_build https://anonscm.debian.org/git/pkg-go/packages/kcptun.git $BRANCH
+	sudo dpkg -i kcptun_*.deb
+	sudo apt-get install -fy
+fi
+}
+
 export XZ_DEFAULTS=--memlimit=128MiB
 
 OSID=$(grep ^ID= /etc/os-release|cut -d= -f2)
 OSVER=$(lsb_release -cs)
+BUILD_KCP=0
 BUILD_LIB=0
 BUILD_BIN=0
 
 case "$1" in
 --help|-h)
 	help_usage
+	;;
+kcp)
+	BUILD_KCP=1
 	;;
 lib)
 	BUILD_LIB=1
@@ -262,6 +400,17 @@ jessie|stretch|unstable|sid|zesty)
 	build_install_libbloom exp1
 	build_install_sslibev exp1
 	build_install_simpleobfs exp1
+	build_install_dhgolang debian/jessie-backports
+	build_install_reedsolomondev master
+	build_install_errorsdev master
+	build_install_tomldev master
+	build_install_checkdev master
+	build_install_yamldev master
+	build_install_urfaveclidev master
+	build_install_snappydev debian/jessie-backports
+	build_install_kcpdev master
+	build_install_smuxdev master
+	build_install_kcptun master
 	apt_clean
 	;;
 trusty)
@@ -281,6 +430,17 @@ xenial|yakkety)
 	build_install_libbloom exp1
 	build_install_sslibev exp1
 	build_install_simpleobfs exp1
+	build_install_dhgolang debian/jessie-backports
+	build_install_reedsolomondev master
+	build_install_errorsdev master
+	build_install_tomldev master
+	build_install_checkdev master
+	build_install_yamldev master
+	build_install_urfaveclidev master
+	build_install_snappydev debian/jessie-backports
+	build_install_kcpdev master
+	build_install_smuxdev master
+	build_install_kcptun master
 	apt_clean
 	;;
 *)
