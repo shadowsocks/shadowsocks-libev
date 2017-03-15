@@ -70,7 +70,10 @@ try `configure --help`.
 
 **Note: The repositories doesn't always contain the latest version. Please build from source if you want the latest version. (see below)**
 
-Shadowsocks-libev is available in the official repository for **Debian 9, Ubuntu 16.10** and later derivatives:
+Shadowsocks-libev is available in the official repository for following distributions:
+
+* Debian 9 or higher (including testing and unstable/sid)
+* Ubuntu 16.10 or higher
 
 ```bash
 sudo apt update
@@ -89,7 +92,7 @@ sudo apt -t jessie-backports install shadowsocks-libev
 
 #### Build deb package from source
 
-Supported Platforms:
+Supported distributions:
 
 * Debian 8, 9 or higher
 * Ubuntu 14.04 LTS, 16.04 LTS, 16.10 or higher
@@ -138,7 +141,7 @@ sudo systemctl start shadowsocks-libev      # for systemd
 
 ### Fedora & RHEL
 
-Supported Platforms:
+Supported distributions:
 
 * Fedora 22, 23, 24
 * RHEL 6, 7 and derivatives (including CentOS, Scientific Linux)
@@ -296,7 +299,8 @@ brew install shadowsocks-libev
 
 ## Usage
 
-For a detailed and complete list of all supported arguments, you may refer to the man pages of the applications, respectively.
+For a detailed and complete list of all supported arguments,
+you may refer to the man pages of the applications, respectively.
 
 ```
     ss-[local|redir|server|tunnel|manager]
