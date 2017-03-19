@@ -24,6 +24,13 @@
 #include "config.h"
 #endif
 
+#if defined(__linux__) && defined(HAVE_LINUX_RANDOM_H)
+# include <sys/ioctl.h>
+# include <sys/stat.h>
+# include <fcntl.h>
+# include <linux/random.h>
+#endif
+
 #include <stdint.h>
 #include <sodium.h>
 #include <mbedtls/md5.h>
@@ -99,11 +106,31 @@ crypto_md5(const unsigned char *d, size_t n, unsigned char *md)
     return md;
 }
 
+static void
+entropy_check(void)
+{
+#if defined(__linux__) && defined(HAVE_LINUX_RANDOM_H) && defined(RNDGETENTCNT)
+    int fd;
+    int c;
+
+    if ((fd = open("/dev/random", O_RDONLY)) != -1) {
+        if (ioctl(fd, RNDGETENTCNT, &c) == 0 && c < 160) {
+            LOGE("This system doesn't provide enough entropy to quickly generate high-quality random numbers\n"
+                 "Installing the rng-utils/rng-tools or haveged packages may help.\n"
+                 "On virtualized Linux environments, also consider using virtio-rng.\n"
+                 "The service will not start until enough entropy has been collected.");
+        }
+        close(fd);
+    }
+#endif
+}
+
 crypto_t *
 crypto_init(const char *password, const char *key, const char *method)
 {
     int i, m = -1;
 
+    entropy_check();
     // Initialize sodium for random generator
     if (sodium_init() == -1) {
         FATAL("Failed to initialize sodium");
