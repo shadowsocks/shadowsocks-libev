@@ -77,7 +77,7 @@ Shadowsocks-libev is available in the official repository for following distribu
 
 ```bash
 sudo apt update
-sudo apt install shadowsocks-libev
+sudo apt install shadowsocks
 ```
 
 For **Debian 8 (Jessie)** users, please install it from `jessie-backports`:
