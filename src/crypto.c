@@ -25,9 +25,9 @@
 #endif
 
 #if defined(__linux__) && defined(HAVE_LINUX_RANDOM_H)
-# include <sys/ioctl.h>
-# include <sys/stat.h>
 # include <fcntl.h>
+# include <unistd.h>
+# include <sys/ioctl.h>
 # include <linux/random.h>
 #endif
 
