@@ -79,6 +79,8 @@ Shadowsocks-libev is available in the official repository for following distribu
 sudo apt update
 sudo apt install shadowsocks-libev
 ```
+*```shadowsocks-libev``` only contains in Ubuntu16.10 or higher , if your Ubuntu version less than 16.10,please use ```sudo apt install shadowsocks```, which is written in python
+
 
 For **Debian 8 (Jessie)** users, please install it from `jessie-backports`:
 We strongly encourage you to install shadowsocks-libev from `jessie-backports`.
@@ -380,11 +382,11 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
     root@Wrt:~# iptables -t nat -N SHADOWSOCKS
     root@Wrt:~# iptables -t mangle -N SHADOWSOCKS
     root@Wrt:~# iptables -t mangle -N SHADOWSOCKS_MARK
-
+    
     # Ignore your shadowsocks server's addresses
     # It's very IMPORTANT, just be careful.
     root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 123.123.123.123 -j RETURN
-
+    
     # Ignore LANs and any other addresses you'd like to bypass the proxy
     # See Wikipedia and RFC5735 for full list of reserved networks.
     # See ashi009/bestroutetb for a highly optimized CHN route list.
@@ -396,21 +398,21 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
     root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 192.168.0.0/16 -j RETURN
     root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 224.0.0.0/4 -j RETURN
     root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 240.0.0.0/4 -j RETURN
-
+    
     # Anything else should be redirected to shadowsocks's local port
     root@Wrt:~# iptables -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports 12345
-
+    
     # Add any UDP rules
     root@Wrt:~# ip route add local default dev lo table 100
     root@Wrt:~# ip rule add fwmark 1 lookup 100
     root@Wrt:~# iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01
     root@Wrt:~# iptables -t mangle -A SHADOWSOCKS_MARK -p udp --dport 53 -j MARK --set-mark 1
-
+    
     # Apply the rules
     root@Wrt:~# iptables -t nat -A OUTPUT -p tcp -j SHADOWSOCKS
     root@Wrt:~# iptables -t mangle -A PREROUTING -j SHADOWSOCKS
     root@Wrt:~# iptables -t mangle -A OUTPUT -j SHADOWSOCKS_MARK
-
+    
     # Start the shadowsocks-redir
     root@Wrt:~# ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
 
