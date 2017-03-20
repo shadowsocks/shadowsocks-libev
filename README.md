@@ -79,7 +79,7 @@ Shadowsocks-libev is available in the official repository for following distribu
 sudo apt update
 sudo apt install shadowsocks-libev
 ```
-*```shadowsocks-libev``` only contains in Ubuntu16.10 or higher , if your Ubuntu version less than 16.10,please use ```sudo apt install shadowsocks```, which is written in python
+* ```shadowsocks-libev``` only contains in Ubuntu16.10 or higher , if your Ubuntu version less than 16.10,please use ```sudo apt install shadowsocks```, which is written in python
 
 
 For **Debian 8 (Jessie)** users, please install it from `jessie-backports`:
