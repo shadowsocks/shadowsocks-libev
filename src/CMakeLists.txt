@@ -197,9 +197,10 @@ target_link_libraries(shadowsocks-libev-shared cork-shared ipset-shared ${DEPS_S
 
 # ------------------------------------------------------------------
 # Misc
-install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-        DESTINATION bin
-        FILES_MATCHING PATTERN "ss-*")
+install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/
+        DESTINATION bin)
+install(DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
+        DESTINATION lib)
 
 
 add_custom_target(distclean

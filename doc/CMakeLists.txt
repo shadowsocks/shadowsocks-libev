@@ -68,18 +68,17 @@ add_custom_target(doc-html ALL DEPENDS ${HTML_FILES})
 
 if (NOT WITH_DOC_MAN)
     set_target_properties(doc-man PROPERTIES EXCLUDE_FROM_ALL TRUE)
+else ()
+    install(DIRECTORY ${CMAKE_BINARY_DIR}/man/
+            DESTINATION man)
 endif ()
 if (NOT WITH_DOC_HTML)
     set_target_properties(doc-html PROPERTIES EXCLUDE_FROM_ALL TRUE)
+else ()
+    install(DIRECTORY ${CMAKE_BINARY_DIR}/html/
+            DESTINATION doc/html)
 endif ()
 
 # This is required for custom command
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/man)
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/html)
-
-install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-        DESTINATION man
-        FILES_MATCHING PATTERN "*.[18]")
-install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-        DESTINATION html
-        FILES_MATCHING PATTERN "*.html")

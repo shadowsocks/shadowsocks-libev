@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 2.8)
 
+# Prevent warning, atleast we need 2.8 anyway.
+cmake_policy(VERSION 2.8)
+cmake_policy(SET CMP0048 OLD)
+
 set(PROJECT_NAME shadowsocks-libev)
 set(RELEASE_DATE 2017-3-21)
 set(PROJECT_VERSION "3.0.5")
@@ -37,13 +41,13 @@ add_definitions(-DHAVE_CONFIG_H)
 
 # pkg-config
 configure_file(
-        "${CMAKE_SOURCE_DIR}/cmake/shadowsocks-libev.pc.cmake"
-        "${CMAKE_BINARY_DIR}/pkgconfig/shadowsocks-libev.pc"
+        ${CMAKE_SOURCE_DIR}/cmake/shadowsocks-libev.pc.cmake
+        ${CMAKE_BINARY_DIR}/pkgconfig/shadowsocks-libev.pc
         @ONLY
 )
 install(FILES
-        "${CMAKE_BINARY_DIR}/pkgconfig/shadowsocks-libev.pc"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig"
+        ${CMAKE_BINARY_DIR}/pkgconfig/shadowsocks-libev.pc
+        DESTINATION pkgconfig
         )
 
 # We need libcork,libipset headers
