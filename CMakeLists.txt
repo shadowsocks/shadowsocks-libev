@@ -128,4 +128,5 @@ target_link_libraries(ipset-shared cork-shared bloom-shared)
 set_target_properties(bloom-shared PROPERTIES OUTPUT_NAME bloom)
 
 add_subdirectory(src)
+add_subdirectory(doc)
 
