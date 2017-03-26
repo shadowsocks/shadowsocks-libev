@@ -52,9 +52,7 @@ extern int verbose;
 static const char valid_label_bytes[] =
     "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
-#if defined(MODULE_LOCAL)
 extern int keep_resolving;
-#endif
 
 int
 set_reuseport(int socket)
@@ -147,10 +145,8 @@ get_sockaddr(char *host, char *port,
 
         for (i = 1; i < 8; i++) {
             err = getaddrinfo(host, port, &hints, &result);
-#if defined(MODULE_LOCAL)
             if (!keep_resolving)
                 break;
-#endif
             if ((!block || !err)) {
                 break;
             } else {

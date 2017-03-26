@@ -128,7 +128,7 @@ int bprepend(buffer_t *, buffer_t *, size_t);
 void bfree(buffer_t *);
 int rand_bytes(void *, int);
 
-crypto_t *crypto_init(const char *, const char *, const char *);
+crypto_t *crypto_init(const char *, const char *, const char *, int bloom_entries, double bloom_error);
 unsigned char *crypto_md5(const unsigned char *, size_t, unsigned char *);
 
 int crypto_derive_key(const char *, uint8_t *, size_t);

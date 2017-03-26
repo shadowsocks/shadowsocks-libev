@@ -1,4 +1,4 @@
-VERSION_INFO = 2:0:0
+VERSION_INFO = 3:0:0
 
 AM_CFLAGS = -g -O2 -Wall -Werror -Wno-deprecated-declarations -fno-strict-aliasing -std=gnu99 -D_GNU_SOURCE
 AM_CFLAGS += $(PTHREAD_CFLAGS)
@@ -19,11 +19,9 @@ SS_COMMON_LIBS += -lbloom -lcork -lcorkipset
 endif
 SS_COMMON_LIBS += -lev -lsodium -lm
 
-bin_PROGRAMS = ss-local ss-tunnel ss-server ss-manager
+common_src = utils.c jconf.c json.c cache.c acl.c netutils.c
 
-sni_src = http.c \
-          tls.c \
-          rule.c
+sni_src = http.c tls.c rule.c
 
 crypto_src = crypto.c \
              aead.c \
@@ -33,51 +31,34 @@ crypto_src = crypto.c \
 
 plugin_src = plugin.c
 
-ss_local_SOURCES = utils.c \
-                   jconf.c \
-                   json.c \
-                   udprelay.c \
-                   cache.c \
-                   acl.c \
-                   netutils.c \
+lib_LTLIBRARIES = libshadowsocks-libev.la
+libshadowsocks_libev_la_SOURCES = $(common_src) $(sni_src) $(crypto_src) $(plugin_src)
+libshadowsocks_libev_la_CFLAGS = $(AM_CFLAGS)
+libshadowsocks_libev_la_LDFLAGS = -version-info $(VERSION_INFO)
+libshadowsocks_libev_la_LIBADD = $(SS_COMMON_LIBS)
+
+bin_PROGRAMS = ss-local ss-tunnel ss-server ss-manager
+
+ss_local_SOURCES = udprelay.c \
                    local.c \
-                   $(crypto_src) \
-                   $(plugin_src) \
-                   $(sni_src)
+				   conditional.c
 
-ss_tunnel_SOURCES = utils.c \
-                    jconf.c \
-                    json.c \
-                    udprelay.c \
-                    cache.c \
-                    netutils.c \
+ss_tunnel_SOURCES = udprelay.c \
                     tunnel.c \
-                    $(crypto_src) \
-                    $(plugin_src)
+				    conditional.c
 
-ss_server_SOURCES = utils.c \
-                    netutils.c \
-                    jconf.c \
-                    json.c \
-                    udprelay.c \
-                    cache.c \
-                    acl.c \
+ss_server_SOURCES = udprelay.c \
                     resolv.c \
                     server.c \
-                    $(crypto_src) \
-                    $(plugin_src) \
-                    $(sni_src)
+				    conditional.c
 
-ss_manager_SOURCES = utils.c \
-                     jconf.c \
-                     json.c \
-                     netutils.c \
+ss_manager_SOURCES = conditional.c \
                      manager.c
 
-ss_local_LDADD = $(SS_COMMON_LIBS)
-ss_tunnel_LDADD = $(SS_COMMON_LIBS)
-ss_server_LDADD = $(SS_COMMON_LIBS)
-ss_manager_LDADD = $(SS_COMMON_LIBS)
+ss_local_LDADD = $(SS_COMMON_LIBS) libshadowsocks-libev.la
+ss_tunnel_LDADD = $(SS_COMMON_LIBS) libshadowsocks-libev.la
+ss_server_LDADD = $(SS_COMMON_LIBS) libshadowsocks-libev.la
+ss_manager_LDADD = $(SS_COMMON_LIBS) libshadowsocks-libev.la
 ss_local_LDADD += -ludns
 ss_tunnel_LDADD += -ludns
 ss_server_LDADD += -ludns
@@ -98,20 +79,15 @@ ss_redir_SOURCES = utils.c \
                    cache.c \
                    udprelay.c \
                    redir.c \
+				   conditional.c \
                    $(crypto_src) \
-                   $(plugin_src) \
-                   $(sni_src)
+                   $(plugin_src)
 
 ss_redir_CFLAGS = $(AM_CFLAGS) -DMODULE_REDIR
 ss_redir_LDADD = $(SS_COMMON_LIBS)
 ss_redir_LDADD += -ludns
 endif
 
-lib_LTLIBRARIES = libshadowsocks-libev.la
-libshadowsocks_libev_la_SOURCES = $(ss_local_SOURCES)
-libshadowsocks_libev_la_CFLAGS = $(ss_local_CFLAGS) -DLIB_ONLY
-libshadowsocks_libev_la_LDFLAGS = -version-info $(VERSION_INFO)
-libshadowsocks_libev_la_LIBADD = $(ss_local_LDADD)
 include_HEADERS = shadowsocks.h
 
 noinst_HEADERS = acl.h crypto.h stream.h aead.h json.h netutils.h redir.h server.h tls.h uthash.h \
