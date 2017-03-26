@@ -721,8 +721,6 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
 
         remove_server(working_dir, server->port);
         int ret = add_server(manager, server);
-        destroy_server(server);
-        ss_free(server);
 
         char *msg;
         int msg_len;
