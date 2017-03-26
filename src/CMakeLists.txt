@@ -200,8 +200,10 @@ target_link_libraries(shadowsocks-libev-shared cork-shared ipset-shared ${DEPS_S
 # Recommend to install shared by default
 install(DIRECTORY ${RUNTIME_SHARED_OUTPUT_DIRECTORY}/
         DESTINATION bin)
-install(DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
-        DESTINATION lib)
+install(TARGETS shadowsocks-libev shadowsocks-libev-shared
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib)
+install(FILES shadowsocks.h DESTINATION include)
 
 
 add_custom_target(distclean
