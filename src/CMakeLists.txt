@@ -188,7 +188,7 @@ set_target_properties(ss-redir-shared PROPERTIES OUTPUT_NAME ss-redir)
 
 set_target_properties(ss-server-shared ss-tunnel-shared ss-manager-shared ss-local-shared ss-redir-shared
         PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/shared/bin"
+        RUNTIME_OUTPUT_DIRECTORY ${RUNTIME_SHARED_OUTPUT_DIRECTORY}
         )
 
 set_target_properties(shadowsocks-libev-shared PROPERTIES OUTPUT_NAME shadowsocks-libev)
@@ -197,7 +197,8 @@ target_link_libraries(shadowsocks-libev-shared cork-shared ipset-shared ${DEPS_S
 
 # ------------------------------------------------------------------
 # Misc
-install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/
+# Recommend to install shared by default
+install(DIRECTORY ${RUNTIME_SHARED_OUTPUT_DIRECTORY}/
         DESTINATION bin)
 install(DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/
         DESTINATION lib)
