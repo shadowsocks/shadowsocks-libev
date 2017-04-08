@@ -4,5 +4,5 @@
     "local_port":1080,
     "password":"barfoo!",
     "timeout":60,
-    "method":"rc4-md5"
+    "method":"chacha20-ietf-poly1305"
 }
