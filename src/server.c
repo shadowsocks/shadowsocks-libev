@@ -287,7 +287,9 @@ report_addr(int fd, int err_level, const char* info)
     peer_name = get_peer_name(fd);
     if (peer_name != NULL) {
         LOGE("failed to handshake with %s: %s", peer_name, info);
-        update_block_list(peer_name, err_level);
+        // Avoid block local plugins
+        if (strcmp(peer_name, "127.0.0.1") != 0)
+            update_block_list(peer_name, err_level);
     }
 }
 
