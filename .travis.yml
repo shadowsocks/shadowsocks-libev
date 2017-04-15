@@ -1,9 +1,7 @@
 sudo: required
 language: c
 dist : trusty
-compiler:
-    - gcc
-    - clang
+compiler: gcc
 env:
     global:
         - LIBSODIUM_VER=1.0.12
@@ -34,8 +32,6 @@ addons:
             - libev-dev
             - asciidoc
             - xmlto
-            - cmake
-            - cmake-data
 script:
     - ./autogen.sh
     - ./configure && make
