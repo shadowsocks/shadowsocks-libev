@@ -1,5 +1,6 @@
-sudo: true
+sudo: required
 language: c
+dist : trusty
 compiler:
     - gcc
     - clang
