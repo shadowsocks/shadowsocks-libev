@@ -97,7 +97,7 @@ gbp_build() {
 	PROJECT_NAME=$(basename $1|sed s/\.git$//)
 	gbp clone --pristine-tar $REPO
 	cd $PROJECT_NAME
-	git checkout $BRANCH
+	[ -n "$BRANCH" ] && git checkout $BRANCH
 	[ -n "$DEPS_BPO" ] && BPO_REPO="-t ${OSVER}-backports"
 	mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y $BPO_REPO"
 	rm -f ${PROJECT_NAME}-build-deps_*.deb
@@ -113,7 +113,7 @@ git_build() {
 	PROJECT_NAME=$(basename $1|sed s/\.git$//)
 	git clone $REPO
 	cd $PROJECT_NAME
-	git checkout $BRANCH
+	[ -n "$BRANCH" ] && git checkout $BRANCH
 	mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
 	rm ${PROJECT_NAME}-build-deps_*.deb
 	gbp buildpackage -us -uc --git-ignore-branch
@@ -181,7 +181,7 @@ fi
 build_install_libsodium() {
 if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 	if [ $BUILD_LIB -eq 1 ]; then
-		dsc_build http://httpredir.debian.org/debian/pool/main/libs/libsodium/libsodium_1.0.11-1~bpo8+1.dsc
+		dsc_build http://httpredir.debian.org/debian/pool/main/libs/libsodium/libsodium_1.0.11-2.dsc
 	else
 		ls libsodium*.deb 2>&1 > /dev/null ||
 			help_lib libsodium
@@ -195,7 +195,7 @@ build_install_libbloom() {
 if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 	BRANCH=$1
 	if [ $BUILD_LIB -eq 1 ]; then
-		gbp_build https://github.com/rogers0/libbloom $BRANCH
+		gbp_build https://anonscm.debian.org/git/collab-maint/libbloom.git $BRANCH
 	else
 		ls libbloom-dev_*.deb libbloom1_*.deb 2>&1 > /dev/null ||
 			help_lib "libbloom-dev libbloom1"
@@ -210,7 +210,7 @@ if [ $BUILD_BIN -eq 1 ]; then
 	BRANCH=$1
 	gbp clone --pristine-tar https://anonscm.debian.org/git/collab-maint/shadowsocks-libev.git
 	cd shadowsocks-libev
-	git checkout $BRANCH
+	[ -n "$BRANCH" ] && git checkout $BRANCH
 	sed -i 's/dh $@/dh $@ --with systemd,autoreconf/' debian/rules
 	sed -i 's/debhelper (>= 10)/debhelper (>= 9), dh-systemd, dh-autoreconf/' debian/control
 	echo 9 > debian/compat
@@ -276,7 +276,7 @@ if [ $BUILD_KCP -eq 1 ]; then
 	BRANCH=$1
 	gbp clone --pristine-tar https://anonscm.debian.org/git/pkg-go/packages/golang-github-urfave-cli.git
 	cd golang-github-urfave-cli
-	git checkout $BRANCH
+	[ -n "$BRANCH" ] && git checkout $BRANCH
 	sed -i 's/golang-github-burntsushi-toml-dev/golang-toml-dev/; s/golang-gopkg-yaml.v2-dev/golang-yaml.v2-dev/' debian/control
 	git add -u
 	git commit -m "Patch to work with ubuntu xenial (16.04)"
@@ -412,8 +412,8 @@ wheezy|precise)
 	echo Sorry, your system $OSID/$OSVER is not supported.
 	;;
 jessie|stretch|unstable|sid|zesty)
-	build_install_libbloom exp1
-	build_install_sslibev exp1
+	build_install_libbloom
+	build_install_sslibev
 	build_install_simpleobfs exp1
 	;;
 trusty)
@@ -421,16 +421,16 @@ trusty)
 	build_install_libcorkipset trusty
 	build_install_libmbedtls debian/jessie-backports
 	build_install_libsodium
-	build_install_libbloom exp1_trusty
-	patch_sslibev_dh9 exp1
-	build_install_sslibev exp1
+	build_install_libbloom trusty
+	patch_sslibev_dh9
+	build_install_sslibev
 	build_install_simpleobfs exp1_trusty
 	;;
 xenial|yakkety)
 	build_install_libcork debian
 	build_install_libcorkipset debian
-	build_install_libbloom exp1
-	build_install_sslibev exp1
+	build_install_libbloom
+	build_install_sslibev
 	build_install_simpleobfs exp1
 	;;
 *)
