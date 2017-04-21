@@ -38,6 +38,9 @@ Set the server's hostname or IP.
 -p <server_port>::
 Set the server's port number.
 
+-l <local_port>::
+Set the local port number.
+
 -k <password>::
 --password <password>::
 Set the password. The server and the client should use the same password.
