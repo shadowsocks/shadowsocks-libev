@@ -29,6 +29,8 @@ endif ()
 
 message(STATUS "Running cmake version ${CMAKE_VERSION}")
 
+option(WITH_STATIC "build with static libraries." ON)
+
 # Will set GIT_EXECUTABLE and GIT_FOUND
 # find_package(Git)
 
@@ -83,8 +85,10 @@ set(LIBCORK_SOURCE
         libcork/src/libcork/pthreads/thread.c
         )
 
+if (WITH_STATIC)
 add_library(cork STATIC ${LIBCORK_SOURCE})
 target_compile_definitions(cork PUBLIC -DCORK_API=CORK_LOCAL)
+endif ()
 
 add_library(cork-shared SHARED ${LIBCORK_SOURCE})
 target_compile_definitions(cork-shared PUBLIC -DCORK_API=CORK_EXPORT)
@@ -112,7 +116,9 @@ set(LIBIPSET_SOURCE
         libipset/src/libipset/set/storage.c
         )
 
+if (WITH_STATIC)
 add_library(ipset STATIC ${LIBIPSET_SOURCE})
+endif ()
 
 add_library(ipset-shared SHARED ${LIBIPSET_SOURCE})
 set_target_properties(ipset-shared PROPERTIES OUTPUT_NAME ipset)
@@ -122,8 +128,10 @@ set(LIBBLOOM_SOURCE
         libbloom/murmur2/MurmurHash2.c
         )
 
+if (WITH_STATIC)
 add_library(bloom STATIC ${LIBBLOOM_SOURCE})
 target_link_libraries(ipset cork bloom)
+endif ()
 
 add_library(bloom-shared SHARED ${LIBBLOOM_SOURCE})
 target_link_libraries(ipset-shared cork-shared bloom-shared)
