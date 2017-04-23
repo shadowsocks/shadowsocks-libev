@@ -601,6 +601,26 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     memcpy(host, buf->data + 4 + 1, name_len);
                     host[name_len] = '\0';
                     sprintf(port, "%d", p);
+
+                    struct sockaddr_storage storage;
+                    memset(&storage, 0, sizeof(struct sockaddr_storage));
+                    // resolve domain so we can bypass domain with geoip
+                    if (get_sockaddr(host, port, &storage, 0, ipv6first) != -1) {
+                        switch(((struct sockaddr*)&storage)->sa_family) {
+                            case AF_INET: {
+                                struct sockaddr_in *addr_in = (struct sockaddr_in *)&storage;
+                                dns_ntop(AF_INET, &(addr_in->sin_addr), ip, INET_ADDRSTRLEN);
+                                break;
+                            }
+                            case AF_INET6: {
+                                struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)&storage;
+                                dns_ntop(AF_INET6, &(addr_in6->sin6_addr), ip, INET6_ADDRSTRLEN);
+                                break;
+                            }
+                            default:
+                                break;
+                        }
+                    }
                 }
             } else if (atyp == 4) {
                 // IP V6
