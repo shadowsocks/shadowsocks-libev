@@ -686,16 +686,21 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     ) {
                 int host_match = acl_match_host(host);
                 int bypass = 0;
+                int resolved = 0;
+                struct sockaddr_storage storage;
+                memset(&storage, 0, sizeof(struct sockaddr_storage));
+                int err;
+
                 if (host_match > 0)
                     bypass = 1;                 // bypass hostnames in black list
                 else if (host_match < 0)
                     bypass = 0;                 // proxy hostnames in white list
                 else {
+#ifndef ANDROID
                     if (atyp == 3) {            // resolve domain so we can bypass domain with geoip
-                        struct sockaddr_storage storage;
-                        memset(&storage, 0, sizeof(struct sockaddr_storage));
-
-                        if (get_sockaddr(host, port, &storage, 0, ipv6first) != -1) {
+                        err = get_sockaddr(host, port, &storage, 0, ipv6first);
+                        if ( err != -1) {
+                            resolved = 1;
                             switch(((struct sockaddr*)&storage)->sa_family) {
                                 case AF_INET: {
                                     struct sockaddr_in *addr_in = (struct sockaddr_in *)&storage;
@@ -712,6 +717,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                             }
                         }
                     }
+#endif
                     int ip_match = acl_match_host(ip);
                     switch (get_acl_mode()) {
                         case BLACK_LIST:
@@ -735,15 +741,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                         else if (atyp == 4)
                             LOGI("bypass [%s]:%s", ip, port);
                     }
-                    int err;
-                    struct sockaddr_storage storage;
-                    memset(&storage, 0, sizeof(struct sockaddr_storage));
 #ifndef ANDROID
-                    if (atyp == 3)
-                       err = get_sockaddr(host, port, &storage, 0, ipv6first);
+                    if (atyp == 3 && resolved != 1)
+                        err = get_sockaddr(host, port, &storage, 0, ipv6first);
                     else
 #endif
-                       err = get_sockaddr(ip, port, &storage, 0, ipv6first);
+                        err = get_sockaddr(ip, port, &storage, 0, ipv6first);
                     if (err != -1) {
                         remote = create_remote(server->listener, (struct sockaddr *)&storage);
                         if (remote != NULL)
