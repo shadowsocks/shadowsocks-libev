@@ -465,10 +465,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             // all processed
             return;
         } else if (server->stage == STAGE_INIT) {
-            if (buf->len < 3) {
+            if (buf->len < sizeof(struct method_select_request) + 1) {
                 return;
             }
-            int method_len = (buf->data[1] & 0xff) + 2;
+            struct method_select_request *method = (struct method_select_request *)buf->data;
+            int method_len = method->nmethods + sizeof(struct method_select_request);
             if (buf->len < method_len) {
                 return;
             }
@@ -479,7 +480,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             send(server->fd, send_buf, sizeof(response), 0);
             server->stage = STAGE_HANDSHAKE;
 
-            if (buf->data[0] == 0x05 && method_len < (int)(buf->len)) {
+            if (method->ver == SVERSION && method_len < (int)(buf->len)) {
                 memmove(buf->data, buf->data + method_len , buf->len - method_len);
                 buf->len -= method_len;
                 continue;
