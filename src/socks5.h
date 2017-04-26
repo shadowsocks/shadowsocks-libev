@@ -31,28 +31,28 @@
 #define CMD_NOT_SUPPORTED 0x07
 
 struct method_select_request {
-    char ver;
-    char nmethods;
-    char methods[255];
+    unsigned char ver;
+    unsigned char nmethods;
+    unsigned char methods[0];
 } __attribute__((packed, aligned(1)));
 
 struct method_select_response {
-    char ver;
-    char method;
+    unsigned char ver;
+    unsigned char method;
 } __attribute__((packed, aligned(1)));
 
 struct socks5_request {
-    char ver;
-    char cmd;
-    char rsv;
-    char atyp;
+    unsigned char ver;
+    unsigned char cmd;
+    unsigned char rsv;
+    unsigned char atyp;
 } __attribute__((packed, aligned(1)));
 
 struct socks5_response {
-    char ver;
-    char rep;
-    char rsv;
-    char atyp;
+    unsigned char ver;
+    unsigned char rep;
+    unsigned char rsv;
+    unsigned char atyp;
 } __attribute__((packed, aligned(1)));
 
 #endif // _SOCKS5_H
