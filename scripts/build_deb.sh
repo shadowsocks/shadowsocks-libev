@@ -234,7 +234,7 @@ fi
 build_install_simpleobfs() {
 if [ $BUILD_BIN -eq 1 ]; then
 	BRANCH=$1
-	git_build https://github.com/rogers0/simple-obfs $BRANCH
+	git_build https://anonscm.debian.org/git/collab-maint/simple-obfs.git $BRANCH
 	sudo dpkg -i simple-obfs_*.deb
 	sudo apt-get install -fy
 fi
@@ -414,7 +414,7 @@ wheezy|precise)
 jessie|stretch|unstable|sid|zesty)
 	build_install_libbloom
 	build_install_sslibev
-	build_install_simpleobfs exp1
+	build_install_simpleobfs
 	;;
 trusty)
 	build_install_libcork trusty
@@ -424,14 +424,14 @@ trusty)
 	build_install_libbloom trusty
 	patch_sslibev_dh9
 	build_install_sslibev
-	build_install_simpleobfs exp1_trusty
+	build_install_simpleobfs trusty
 	;;
 xenial|yakkety)
 	build_install_libcork debian
 	build_install_libcorkipset debian
 	build_install_libbloom
 	build_install_sslibev
-	build_install_simpleobfs exp1
+	build_install_simpleobfs
 	;;
 *)
 	echo Your system $OSID/$OSVER is not supported yet.
