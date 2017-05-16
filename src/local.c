@@ -89,7 +89,7 @@ int verbose        = 0;
 int reuse_port     = 0;
 int keep_resolving = 1;
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 int vpn        = 0;
 uint64_t tx    = 0;
 uint64_t rx    = 0;
@@ -312,7 +312,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
             // insert shadowsocks header
             if (!remote->direct) {
-#ifdef ANDROID
+#ifdef __ANDROID__
                 tx += remote->buf->len;
 #endif
                 int err = crypto->encrypt(remote->buf, server->e_ctx, BUF_SIZE);
@@ -333,7 +333,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             }
 
             if (!remote->send_ctx->connected) {
-#ifdef ANDROID
+#ifdef __ANDROID__
                 if (vpn) {
                     int not_protect = 0;
                     if (remote->addr.ss_family == AF_INET) {
@@ -682,7 +682,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             }
 
             if (acl
-#ifdef ANDROID
+#ifdef __ANDROID__
                     && !(vpn && strcmp(port, "53") == 0)
 #endif
                     ) {
@@ -698,7 +698,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 else if (host_match < 0)
                     bypass = 0;                 // proxy hostnames in white list
                 else {
-#ifndef ANDROID
+#ifndef __ANDROID__
                     if (atyp == 3) {            // resolve domain so we can bypass domain with geoip
                         err = get_sockaddr(host, port, &storage, 0, ipv6first);
                         if (err != -1) {
@@ -743,7 +743,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                         else if (atyp == 4)
                             LOGI("bypass [%s]:%s", ip, port);
                     }
-#ifndef ANDROID
+#ifndef __ANDROID__
                     if (atyp == 3 && resolved != 1)
                         err = get_sockaddr(host, port, &storage, 0, ipv6first);
                     else
@@ -831,7 +831,7 @@ server_send_cb(EV_P_ ev_io *w, int revents)
     }
 }
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 void
 stat_update_cb()
 {
@@ -893,7 +893,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     server->buf->len = r;
 
     if (!remote->direct) {
-#ifdef ANDROID
+#ifdef __ANDROID__
         rx += server->buf->len;
         stat_update_cb();
 #endif
@@ -1295,7 +1295,7 @@ main(int argc, char **argv)
 
     USE_TTY();
 
-#ifdef ANDROID
+#ifdef __ANDROID__
     while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUvV6A",
                             long_options, NULL)) != -1) {
 #else
@@ -1389,7 +1389,7 @@ main(int argc, char **argv)
         case '6':
             ipv6first = 1;
             break;
-#ifdef ANDROID
+#ifdef __ANDROID__
         case 'V':
             vpn = 1;
             break;

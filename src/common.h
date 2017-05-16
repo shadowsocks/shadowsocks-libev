@@ -45,7 +45,7 @@ int init_udprelay(const char *server_host, const char *server_port,
 
 void free_udprelay(void);
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 int protect_socket(int fd);
 int send_traffic_stat(uint64_t tx, uint64_t rx);
 #endif

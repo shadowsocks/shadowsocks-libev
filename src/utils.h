@@ -46,7 +46,7 @@
 #define PORTSTRLEN 16
 #define SS_ADDRSTRLEN (INET6_ADDRSTRLEN + PORTSTRLEN + 1)
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 
 #include <android/log.h>
 #define USE_TTY()
@@ -58,7 +58,7 @@
     ((void)__android_log_print(ANDROID_LOG_ERROR, "shadowsocks", \
                                __VA_ARGS__))
 
-#else // not ANDROID
+#else // not __ANDROID__
 
 #define STR(x) # x
 #define TOSTR(x) STR(x)
@@ -159,7 +159,7 @@ extern int use_syslog;
 
 #endif // if LIB_ONLY
 
-#endif // if ANDROID
+#endif // if __ANDROID__
 
 void ERROR(const char *s);
 

@@ -80,7 +80,7 @@ static void close_and_free_remote(EV_P_ remote_t *remote);
 static void free_server(server_t *server);
 static void close_and_free_server(EV_P_ server_t *server);
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 int vpn = 0;
 #endif
 
@@ -662,7 +662,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-#ifdef ANDROID
+#ifdef __ANDROID__
     if (vpn) {
         int not_protect = 0;
         if (remote_addr->sa_family == AF_INET) {
@@ -803,7 +803,7 @@ main(int argc, char **argv)
 
     USE_TTY();
 
-#ifdef ANDROID
+#ifdef __ANDROID__
     while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:huUvV6A",
                             long_options, NULL)) != -1) {
 #else
@@ -893,7 +893,7 @@ main(int argc, char **argv)
         case '6':
             ipv6first = 1;
             break;
-#ifdef ANDROID
+#ifdef __ANDROID__
         case 'V':
             vpn = 1;
             break;

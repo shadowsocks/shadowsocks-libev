@@ -85,7 +85,7 @@ static void query_resolve_cb(struct sockaddr *addr, void *data);
 static void close_and_free_remote(EV_P_ remote_ctx_t *ctx);
 static remote_ctx_t *new_remote(int fd, server_ctx_t *server_ctx);
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 extern uint64_t tx;
 extern uint64_t rx;
 extern int vpn;
@@ -736,7 +736,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     buf->len -= len;
     memmove(buf->data, buf->data + len, buf->len);
 #else
-#ifdef ANDROID
+#ifdef __ANDROID__
     rx += buf->len;
     stat_update_cb();
 #endif
@@ -924,7 +924,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
 #ifdef MODULE_LOCAL
 #if !defined(MODULE_TUNNEL) && !defined(MODULE_REDIR)
-#ifdef ANDROID
+#ifdef __ANDROID__
     tx += buf->len;
 #endif
     uint8_t frag = *(uint8_t *)(buf->data + 2);
@@ -1150,7 +1150,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
 #endif
 
-#ifdef ANDROID
+#ifdef __ANDROID__
         if (vpn) {
             if (protect_socket(remotefd) == -1) {
                 ERROR("protect_socket");
