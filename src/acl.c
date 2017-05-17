@@ -371,20 +371,17 @@ acl_remove_ip(const char *ip)
 /*
  * Return 0,  if not match.
  * Return 1,  if match black list.
+ *
+ * Only IP is allowed, *NOT* domain name.
  */
 int
-outbound_block_match_host(const char *host)
+outbound_block_match_host(const char *ipstr)
 {
     struct cork_ip addr;
     int ret = 0;
-    int err = cork_ip_init(&addr, host);
+    int err = cork_ip_init(&addr, ipstr);
 
-    if (err) {
-        int host_len = strlen(host);
-        if (lookup_rule(&outbound_block_list_rules, host, host_len) != NULL)
-            ret = 1;
-        return ret;
-    }
+    if (err) return 0;
 
     if (addr.version == 4) {
         if (ipset_contains_ipv4(&outbound_block_list_ipv4, &(addr.ip.v4)))
