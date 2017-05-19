@@ -49,4 +49,11 @@ void stream_ctx_release(cipher_ctx_t *);
 
 cipher_t *stream_init(const char *pass, const char *key, const char *method);
 
+/* plain stream methods */
+int plain_stream_do_all(buffer_t *, cipher_t *, size_t);
+int plain_stream_do(buffer_t *, cipher_ctx_t *, size_t);
+
+void plain_stream_ctx_init(cipher_t *, cipher_ctx_t *, int);
+void plain_stream_ctx_release(cipher_ctx_t *);
+
 #endif // _STREAM_H

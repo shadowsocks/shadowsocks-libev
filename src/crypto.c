@@ -144,6 +144,21 @@ crypto_init(const char *password, const char *key, const char *method)
 #endif
 
     if (method != NULL) {
+        if (strcmp(method, "plain") == 0) {
+            crypto_t *crypto = (crypto_t *)malloc(sizeof(crypto_t));
+                crypto_t tmp     = {
+                    .cipher      = NULL,
+                    .encrypt_all = &plain_stream_do_all,
+                    .decrypt_all = &plain_stream_do_all,
+                    .encrypt     = &plain_stream_do,
+                    .decrypt     = &plain_stream_do,
+                    .ctx_init    = &plain_stream_ctx_init,
+                    .ctx_release = &plain_stream_ctx_release,
+                };
+            memcpy(crypto, &tmp, sizeof(crypto_t));
+            return crypto;
+        }
+
         for (i = 0; i < STREAM_CIPHER_NUM; i++)
             if (strcmp(method, supported_stream_ciphers[i]) == 0) {
                 m = i;
