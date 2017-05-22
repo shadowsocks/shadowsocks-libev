@@ -257,6 +257,10 @@ read_jconf(const char *file)
                 check_json_value_type(value, json_boolean,
                         "invalid config file: option 'reuse_port' must be a boolean");
                 conf.reuse_port = value->u.boolean;
+            } else if (strcmp(name, "disable_sni") == 0) {
+                check_json_value_type(value, json_boolean,
+                        "invalid config file: option 'disable_sni' must be a boolean");
+                conf.disable_sni = value->u.boolean;
             } else if (strcmp(name, "auth") == 0) {
                 FATAL("One time auth has been deprecated. Try AEAD ciphers instead.");
             } else if (strcmp(name, "nofile") == 0) {

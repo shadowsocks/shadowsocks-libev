@@ -89,6 +89,7 @@ static void close_and_free_server(EV_P_ server_t *server);
 int verbose        = 0;
 int reuse_port     = 0;
 int keep_resolving = 1;
+int disable_sni    = 0;
 
 static crypto_t *crypto;
 
@@ -239,23 +240,24 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     if (!remote->send_ctx->connected) {
-        // SNI
-        int ret       = 0;
-        uint16_t port = 0;
-
-        if (AF_INET6 == server->destaddr.ss_family) { // IPv6
-            port = ntohs(((struct sockaddr_in6 *)&(server->destaddr))->sin6_port);
-        } else {                             // IPv4
-            port = ntohs(((struct sockaddr_in *)&(server->destaddr))->sin_port);
-        }
-        if (port == http_protocol->default_port)
-            ret = http_protocol->parse_packet(remote->buf->data,
-                                              remote->buf->len, &server->hostname);
-        else if (port == tls_protocol->default_port)
-            ret = tls_protocol->parse_packet(remote->buf->data,
-                                             remote->buf->len, &server->hostname);
-        if (ret > 0) {
-            server->hostname_len = ret;
+        if (!disable_sni) {
+            // SNI
+            int ret       = 0;
+            uint16_t port = 0;
+            if (AF_INET6 == server->destaddr.ss_family) { // IPv6
+                port = ntohs(((struct sockaddr_in6 *)&(server->destaddr))->sin6_port);
+            } else {                             // IPv4
+                port = ntohs(((struct sockaddr_in *)&(server->destaddr))->sin_port);
+            }
+            if (port == http_protocol->default_port)
+                ret = http_protocol->parse_packet(remote->buf->data,
+                                                  remote->buf->len, &server->hostname);
+            else if (port == tls_protocol->default_port)
+                ret = tls_protocol->parse_packet(remote->buf->data,
+                                                 remote->buf->len, &server->hostname);
+            if (ret > 0) {
+                server->hostname_len = ret;
+            }
         }
 
         ev_io_stop(EV_A_ & server_recv_ctx->io);
@@ -1064,6 +1066,9 @@ main(int argc, char **argv)
         }
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
+        }
+        if (disable_sni == 0) {
+            disable_sni = conf->disable_sni;
         }
         if (fast_open == 0) {
             fast_open = conf->fast_open;
