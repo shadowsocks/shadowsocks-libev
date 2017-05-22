@@ -39,6 +39,7 @@
 #include "crypto.h"
 #include "stream.h"
 #include "aead.h"
+#include "plain.h"
 #include "utils.h"
 #include "ppbloom.h"
 
