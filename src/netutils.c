@@ -29,7 +29,6 @@
 #include "config.h"
 #endif
 
-#include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <unistd.h>

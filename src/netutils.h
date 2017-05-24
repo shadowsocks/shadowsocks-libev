@@ -23,6 +23,8 @@
 #ifndef _NETUTILS_H
 #define _NETUTILS_H
 
+#include <sys/socket.h>
+
 #if defined(__linux__)
 #include <netdb.h>
 #else
