@@ -515,6 +515,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             int err = crypto->encrypt(abuf, server->e_ctx, BUF_SIZE);
             if (err) {
                 LOGE("invalid password or cipher");
+                bfree(abuf);
                 close_and_free_remote(EV_A_ remote);
                 close_and_free_server(EV_A_ server);
                 return;
@@ -523,6 +524,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             err = crypto->encrypt(remote->buf, server->e_ctx, BUF_SIZE);
             if (err) {
                 LOGE("invalid password or cipher");
+                bfree(abuf);
                 close_and_free_remote(EV_A_ remote);
                 close_and_free_server(EV_A_ server);
                 return;
