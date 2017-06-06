@@ -109,7 +109,7 @@ build_config(char *prefix, struct server *server)
         return;
     }
     fprintf(f, "{\n");
-    fprintf(f, "\"server_port\":\"%s\",\n", server->port);
+    fprintf(f, "\"server_port\":%d,\n", atoi(server->port));
     fprintf(f, "\"password\":\"%s\"", server->password);
     if (server->fast_open[0]) fprintf(f, ",\n\"fast_open\": %s", server->fast_open);
     if (server->mode)   fprintf(f, ",\n\"mode\":\"%s\"", server->mode);
