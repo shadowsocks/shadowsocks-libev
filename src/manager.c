@@ -110,13 +110,13 @@ build_config(char *prefix, struct server *server)
     }
     fprintf(f, "{\n");
     fprintf(f, "\"server_port\":\"%s\",\n", server->port);
-    fprintf(f, "\"password\":\"%s\",\n", server->password);
-    if (server->fast_open[0]) fprintf(f, "\"fast_open\": %s,\n", server->fast_open);
-    if (server->mode)   fprintf(f, "\"mode\":\"%s\",\n", server->mode);
-    if (server->method) fprintf(f, "\"method\":\"%s\",\n", server->method);
-    if (server->plugin) fprintf(f, "\"plugin\":\"%s\",\n", server->plugin);
-    if (server->plugin_opts) fprintf(f, "\"plugin_opts\":\"%s\",\n", server->plugin_opts);
-    fprintf(f, "}\n");
+    fprintf(f, "\"password\":\"%s\"", server->password);
+    if (server->fast_open[0]) fprintf(f, ",\n\"fast_open\": %s", server->fast_open);
+    if (server->mode)   fprintf(f, ",\n\"mode\":\"%s\"", server->mode);
+    if (server->method) fprintf(f, ",\n\"method\":\"%s\"", server->method);
+    if (server->plugin) fprintf(f, ",\n\"plugin\":\"%s\"", server->plugin);
+    if (server->plugin_opts) fprintf(f, ",\n\"plugin_opts\":\"%s\"", server->plugin_opts);
+    fprintf(f, ",\n}\n");
     fclose(f);
     ss_free(path);
 }
