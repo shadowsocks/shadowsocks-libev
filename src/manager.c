@@ -116,7 +116,7 @@ build_config(char *prefix, struct server *server)
     if (server->method) fprintf(f, ",\n\"method\":\"%s\"", server->method);
     if (server->plugin) fprintf(f, ",\n\"plugin\":\"%s\"", server->plugin);
     if (server->plugin_opts) fprintf(f, ",\n\"plugin_opts\":\"%s\"", server->plugin_opts);
-    fprintf(f, ",\n}\n");
+    fprintf(f, "\n}\n");
     fclose(f);
     ss_free(path);
 }
