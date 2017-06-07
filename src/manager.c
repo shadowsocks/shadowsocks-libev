@@ -736,6 +736,34 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         if (sendto(manager->fd, msg, msg_len, 0, (struct sockaddr *)&claddr, len) != 2) {
             ERROR("add_sendto");
         }
+    } else if (strcmp(action, "list") == 0) {
+        struct cork_hash_table_iterator  iter;
+        struct cork_hash_table_entry  *entry;
+        char buf[BUF_SIZE];
+        memset(buf, 0, BUF_SIZE);
+
+        cork_hash_table_iterator_init(server_table, &iter);
+        while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
+            struct server *server = (struct server *)entry->value;
+            size_t pos = strlen(buf);
+
+            if (pos > BUF_SIZE-10) {
+                if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
+                    != pos) {
+                    ERROR("list_sendto");
+                }
+                memset(buf, 0, BUF_SIZE);
+            } else {
+                sprintf(buf + pos, "%s\n", server->port);
+            }
+        }
+
+        size_t pos = strlen(buf);
+
+        if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
+            != pos) {
+            ERROR("list_sendto");
+        }
     } else if (strcmp(action, "remove") == 0) {
         struct server *server = get_server(buf, r);
 
