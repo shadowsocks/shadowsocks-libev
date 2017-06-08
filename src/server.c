@@ -1688,7 +1688,7 @@ main(int argc, char **argv)
     }
 
     if (server_num == 0 || server_port == NULL
-            || (password == NULL && key == NULL)) {
+            || (strcmp(method, "plain") && password == NULL && key == NULL)) {
         usage();
         exit(EXIT_FAILURE);
     }
