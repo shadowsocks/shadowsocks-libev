@@ -741,25 +741,27 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         struct cork_hash_table_entry  *entry;
         char buf[BUF_SIZE];
         memset(buf, 0, BUF_SIZE);
+        sprintf(buf, "[");
 
         cork_hash_table_iterator_init(server_table, &iter);
         while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
             struct server *server = (struct server *)entry->value;
             size_t pos = strlen(buf);
-
-            if (pos > BUF_SIZE-10) {
+            size_t entry_len = strlen(server->port)+strlen(server->password);
+            if (pos > BUF_SIZE-entry_len-30) {
                 if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
                     != pos) {
                     ERROR("list_sendto");
                 }
                 memset(buf, 0, BUF_SIZE);
-            } else {
-                sprintf(buf + pos, "%s\n", server->port);
+                pos = 0;
             }
+            sprintf(buf + pos, "\n\t{\"server_port\":\"%s\",\"password\":\"%s\"},", server->port,server->password);
         }
 
         size_t pos = strlen(buf);
-
+        strcpy(buf + pos - 1, "\n]"); //Remove trailing ","
+        pos = strlen(buf);
         if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
             != pos) {
             ERROR("list_sendto");
