@@ -657,7 +657,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     buffer_t *buf = server->buf;
 
-    if (server->stage == STAGE_STREAM) {
+    if (server->remote != NULL) {
+        //use remote if remote has been created
         remote = server->remote;
         buf    = remote->buf;
 
@@ -729,7 +730,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             ev_io_start(EV_A_ & remote->send_ctx->io);
         }
         return;
-    } else if (server->stage == STAGE_INIT) {
+    } else if (server->stage == STAGE_INIT && remote == NULL) {
         /*
          * Shadowsocks TCP Relay Header:
          *
@@ -889,11 +890,14 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     remote->buf->idx = 0;
                     server->buf->len = 0;
                     server->buf->idx = 0;
+                    ev_io_stop(EV_A_ & server_recv_ctx->io);
+                    ev_io_start(EV_A_ & remote->send_ctx->io);
                 }
 
                 // waiting on remote connected event
-                ev_io_stop(EV_A_ & server_recv_ctx->io);
-                ev_io_start(EV_A_ & remote->send_ctx->io);
+                // no data come so we don't need to stop server_recv_ctx
+                // remote has been created, it is ready to start remote_recv_ctx
+                ev_io_start(EV_A_ & remote->recv_ctx->io);
             }
         } else {
             query_t *query = ss_malloc(sizeof(query_t));
@@ -908,6 +912,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             ev_io_stop(EV_A_ & server_recv_ctx->io);
         }
 
+        return;
+    } else if (server->stage != STAGE_STREAM) {
+        //stage is INIT/RESOLVE and remote has been created
+        ev_io_start(EV_A_ & remote->send_ctx->io);
+        ev_io_stop(EV_A_ & server_recv_ctx->io);
         return;
     }
     // should not reach here
@@ -1047,10 +1056,12 @@ server_resolve_cb(struct sockaddr *addr, void *data)
                 remote->buf->idx = 0;
                 server->buf->len = 0;
                 server->buf->idx = 0;
+                ev_io_stop(EV_A_ & server->recv_ctx->io);
+                ev_io_start(EV_A_ & remote->send_ctx->io);
             }
 
             // listen to remote connected event
-            ev_io_start(EV_A_ & remote->send_ctx->io);
+            ev_io_start(EV_A_ & remote->recv_ctx->io);
         }
     }
 }
@@ -1135,6 +1146,9 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         setsockopt(server->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
         setsockopt(remote->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
         remote->recv_ctx->connected = 1;
+        if (server->stage != STAGE_STREAM) {
+            server->stage = STAGE_STREAM;
+        }
     }
 }
 
@@ -1161,15 +1175,16 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 LOGI("remote connected");
             }
             remote_send_ctx->connected = 1;
+            if (server->stage != STAGE_STREAM) {
+                server->stage = STAGE_STREAM;
+            }
 
             // Clear the state of this address in the block list
             reset_addr(server->fd);
 
             if (remote->buf->len == 0) {
-                server->stage = STAGE_STREAM;
                 ev_io_stop(EV_A_ & remote_send_ctx->io);
                 ev_io_start(EV_A_ & server->recv_ctx->io);
-                ev_io_start(EV_A_ & remote->recv_ctx->io);
                 return;
             }
         } else {
