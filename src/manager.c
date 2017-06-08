@@ -748,7 +748,7 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
             struct server *server = (struct server *)entry->value;
             size_t pos = strlen(buf);
             size_t entry_len = strlen(server->port)+strlen(server->password);
-            if (pos > BUF_SIZE-entry_len-30) {
+            if (pos > BUF_SIZE-entry_len-50) {
                 if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
                     != pos) {
                     ERROR("list_sendto");
