@@ -746,8 +746,9 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         cork_hash_table_iterator_init(server_table, &iter);
         while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
             struct server *server = (struct server *)entry->value;
+            char *method = server->method?server->method:manager->method;
             size_t pos = strlen(buf);
-            size_t entry_len = strlen(server->port)+strlen(server->password);
+            size_t entry_len = strlen(server->port) + strlen(server->password) + strlen(method);
             if (pos > BUF_SIZE-entry_len-50) {
                 if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
                     != pos) {
@@ -756,7 +757,8 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
                 memset(buf, 0, BUF_SIZE);
                 pos = 0;
             }
-            sprintf(buf + pos, "\n\t{\"server_port\":\"%s\",\"password\":\"%s\"},", server->port,server->password);
+            sprintf(buf + pos, "\n\t{\"server_port\":\"%s\",\"password\":\"%s\",\"method\":\"%s\"},", 
+                    server->port,server->password,method);
         }
 
         size_t pos = strlen(buf);
