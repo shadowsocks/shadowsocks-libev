@@ -759,6 +759,7 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
             }
             sprintf(buf + pos, "\n\t{\"server_port\":\"%s\",\"password\":\"%s\",\"method\":\"%s\"},", 
                     server->port,server->password,method);
+
         }
 
         size_t pos = strlen(buf);

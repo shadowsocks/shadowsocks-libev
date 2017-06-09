@@ -702,6 +702,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             report_addr(server->fd, MALICIOUS, "malicious fragmentation");
             close_and_free_remote(EV_A_ remote);
             close_and_free_server(EV_A_ server);
+            return;
         }
         server->frag++;
         return;
