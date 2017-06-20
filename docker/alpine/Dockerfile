@@ -15,6 +15,7 @@ ENV METHOD      aes-256-cfb
 ENV TIMEOUT     300
 ENV DNS_ADDR    8.8.8.8
 ENV DNS_ADDR_2  8.8.4.4
+ENV ARGS=
 
 RUN set -ex && \
     apk add --no-cache --virtual .build-deps \
@@ -58,4 +59,5 @@ CMD ss-server -s $SERVER_ADDR \
               --fast-open \
               -d $DNS_ADDR \
               -d $DNS_ADDR_2 \
-              -u
+              -u \
+              $ARGS

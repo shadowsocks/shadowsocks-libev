@@ -32,6 +32,7 @@ $ docker ps
 ```
 
 > :warning: Click [here][6] to generate a strong password to protect your server.
+> You can use `ARGS` environment variable to pass additional arguments
 
 ## Use docker-compose to manage (optional)
 
