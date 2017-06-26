@@ -313,6 +313,12 @@ read_jconf(const char *file)
                 check_json_value_type(value, json_boolean,
                     "invalid config file: option 'ipv6_first' must be a boolean");
                 conf.ipv6_first = value->u.boolean;
+#ifdef HAS_SYSLOG
+            } else if (strcmp(name, "use_syslog") == 0) {
+                check_json_value_type(value, json_boolean,
+                    "invalid config file: option 'use_syslog' must be a boolean");
+                use_syslog = value->u.boolean;
+#endif
             }
         }
     } else {

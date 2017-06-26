@@ -35,7 +35,7 @@
 
 #include <android/log.h>
 #define USE_TTY()
-#define USE_SYSLOG(ident)
+#define USE_SYSLOG(ident, _cond)
 #define LOGI(...)                                                \
     ((void)__android_log_print(ANDROID_LOG_DEBUG, "shadowsocks", \
                                __VA_ARGS__))
@@ -53,7 +53,7 @@
 extern FILE *logfile;
 #define TIME_FORMAT "%Y-%m-%d %H:%M:%S"
 #define USE_TTY()
-#define USE_SYSLOG(ident)
+#define USE_SYSLOG(ident, _cond)
 #define USE_LOGFILE(ident)                                     \
     do {                                                       \
         if (ident != NULL) { logfile = fopen(ident, "w+"); } } \
@@ -99,11 +99,15 @@ extern int use_syslog;
         use_tty = isatty(STDERR_FILENO); \
     } while (0)
 
-#define USE_SYSLOG(ident)                          \
-    do {                                           \
-        use_syslog = 1;                            \
-        openlog((ident), LOG_CONS | LOG_PID, 0); } \
-    while (0)
+#define USE_SYSLOG(_ident, _cond)                       \
+    do {                                                \
+        if (!use_syslog && (_cond)) {                   \
+            use_syslog = 1;                             \
+        }                                               \
+        if (use_syslog) {                               \
+            openlog((_ident), LOG_CONS | LOG_PID, 0);   \
+        }                                               \
+    } while (0)
 
 #define LOGI(format, ...)                                                        \
     do {                                                                         \
