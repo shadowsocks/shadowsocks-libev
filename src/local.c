@@ -589,8 +589,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
             } else if (atyp == 3) {
                 // Domain name
-                uint8_t name_len = *(uint8_t *)(buf->data + 4);
-                if (buf->len < request_len + name_len + 2) {
+                uint8_t name_len = *(uint8_t *)(buf->data + request_len);
+                if (buf->len < request_len + 1 + name_len + 2) {
                     return;
                 }
                 abuf->data[abuf->len++] = name_len;
