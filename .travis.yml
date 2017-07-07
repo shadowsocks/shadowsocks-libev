@@ -2,7 +2,6 @@ sudo: required
 language: c
 dist : trusty
 compiler: clang
-os: arm-linux
 env:
     global:
         - LIBSODIUM_VER=1.0.12
