@@ -359,6 +359,8 @@ usage()
         "       [--fast-open]              Enable TCP fast open.\n");
     printf(
         "                                  with Linux kernel > 3.7.0.\n");
+#endif
+#if defined(MODULE_REMOTE) || defined(MODULE_LOCAL)
     printf(
         "       [--acl <acl_file>]         Path to ACL (Access Control List).\n");
 #endif

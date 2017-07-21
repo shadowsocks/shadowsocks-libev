@@ -7,6 +7,7 @@ Group:		Applications/Internet
 License:	GPLv3+
 URL:		https://github.com/shadowsocks/%{name}
 Source0:	%{url}/archive/v%{version}.tar.gz
+Patch0:     0001-systemd-services.patch
 
 AutoReq:        no
 Conflicts:	    python-shadowsocks python3-shadowsocks
@@ -45,7 +46,7 @@ shadowsocks-libev is a lightweight secured scoks5 proxy for embedded devices and
 
 %prep
 %setup -q
-
+%patch0 -p1
 
 %build
 ./autogen.sh
@@ -65,9 +66,9 @@ mkdir -p %{buildroot}/etc/shadowsocks-libev
 mkdir -p %{buildroot}%{_initddir}
 install -m 755 %{_builddir}/%{buildsubdir}/rpm/SOURCES/etc/init.d/shadowsocks-libev %{buildroot}%{_initddir}/shadowsocks-libev
 %else
-mkdir -p %{buildroot}%{_sysconfdir}/default
+mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 mkdir -p %{buildroot}%{_unitdir}
-install -m 644 %{_builddir}/%{buildsubdir}/debian/shadowsocks-libev.default %{buildroot}%{_sysconfdir}/default/shadowsocks-libev
+install -m 644 %{_builddir}/%{buildsubdir}/debian/shadowsocks-libev.default %{buildroot}%{_sysconfdir}/sysconfig/shadowsocks-libev
 install -m 644 %{_builddir}/%{buildsubdir}/debian/shadowsocks-libev.service %{buildroot}%{_unitdir}/shadowsocks-libev.service
 install -m 644 %{_builddir}/%{buildsubdir}/debian/shadowsocks-libev-*.service %{buildroot}%{_unitdir}/
 %endif
@@ -135,7 +136,7 @@ fi
 %else
 %{_unitdir}/shadowsocks-libev.service
 %{_unitdir}/shadowsocks-libev-*.service
-%config(noreplace) %{_sysconfdir}/default/shadowsocks-libev
+%config(noreplace) %{_sysconfdir}/sysconfig/shadowsocks-libev
 %endif
 
 %package devel

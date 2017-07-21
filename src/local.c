@@ -577,29 +577,29 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (buf->len < request_len + in_addr_len + 2) {
                     return;
                 }
-                memcpy(abuf->data + abuf->len, buf->data + 4, in_addr_len + 2);
+                memcpy(abuf->data + abuf->len, buf->data + request_len, in_addr_len + 2);
                 abuf->len += in_addr_len + 2;
 
                 if (acl || verbose) {
-                    uint16_t p = ntohs(*(uint16_t *)(buf->data + 4 + in_addr_len));
-                    dns_ntop(AF_INET, (const void *)(buf->data + 4),
+                    uint16_t p = ntohs(*(uint16_t *)(buf->data + request_len + in_addr_len));
+                    dns_ntop(AF_INET, (const void *)(buf->data + request_len),
                              ip, INET_ADDRSTRLEN);
                     sprintf(port, "%d", p);
                 }
             } else if (atyp == 3) {
                 // Domain name
-                uint8_t name_len = *(uint8_t *)(buf->data + 4);
-                if (buf->len < request_len + name_len + 2) {
+                uint8_t name_len = *(uint8_t *)(buf->data + request_len);
+                if (buf->len < request_len + 1 + name_len + 2) {
                     return;
                 }
                 abuf->data[abuf->len++] = name_len;
-                memcpy(abuf->data + abuf->len, buf->data + 4 + 1, name_len + 2);
+                memcpy(abuf->data + abuf->len, buf->data + request_len + 1, name_len + 2);
                 abuf->len += name_len + 2;
 
                 if (acl || verbose) {
                     uint16_t p =
-                        ntohs(*(uint16_t *)(buf->data + 4 + 1 + name_len));
-                    memcpy(host, buf->data + 4 + 1, name_len);
+                        ntohs(*(uint16_t *)(buf->data + request_len + 1 + name_len));
+                    memcpy(host, buf->data + request_len + 1, name_len);
                     host[name_len] = '\0';
                     sprintf(port, "%d", p);
 
@@ -610,12 +610,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (buf->len < request_len + in6_addr_len + 2) {
                     return;
                 }
-                memcpy(abuf->data + abuf->len, buf->data + 4, in6_addr_len + 2);
+                memcpy(abuf->data + abuf->len, buf->data + request_len, in6_addr_len + 2);
                 abuf->len += in6_addr_len + 2;
 
                 if (acl || verbose) {
-                    uint16_t p = ntohs(*(uint16_t *)(buf->data + 4 + in6_addr_len));
-                    dns_ntop(AF_INET6, (const void *)(buf->data + 4),
+                    uint16_t p = ntohs(*(uint16_t *)(buf->data + request_len + in6_addr_len));
+                    dns_ntop(AF_INET6, (const void *)(buf->data + request_len),
                              ip, INET6_ADDRSTRLEN);
                     sprintf(port, "%d", p);
                 }
@@ -1471,6 +1471,9 @@ main(int argc, char **argv)
             nofile = conf->nofile;
         }
 #endif
+        if (ipv6first == 0) {
+            ipv6first = conf->ipv6_first;
+        }
     }
 
     if (remote_num == 0 || remote_port == NULL ||

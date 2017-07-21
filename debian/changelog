@@ -1,3 +1,10 @@
+shadowsocks-libev (3.0.7-1) unstable; urgency=medium
+
+  * Refine manager mode by @mengxd.
+  * Fix a potential memory leak by @vlolteanu.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 27 Jun 2017 14:08:27 +0800
+
 shadowsocks-libev (3.0.6-1) unstable; urgency=medium
 
   * Fix a bug with AEAD ciphers.
