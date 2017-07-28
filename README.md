@@ -221,6 +221,8 @@ In general, you need the following build dependencies:
 * asciidoc (for documentation only)
 * xmlto (for documentation only)
 
+Notes: Fedora 26  libsodium version >= 1.0.12, so you can install via dnf install libsodium instead build from source.
+
 If your system is too old to provide libmbedtls and libsodium (later than **v1.0.8**), you will need to either install those libraries manually or upgrade your system.
 
 If your system provides with those libraries, you **should not** install them from source. You should jump this section and install them from distribution repository instead.
