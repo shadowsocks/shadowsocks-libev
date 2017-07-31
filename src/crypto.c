@@ -148,7 +148,7 @@ crypto_init(const char *password, const char *key, const char *method)
         if (strncmp(method, "none", 4) == 0) {
             crypto_t *crypto = (crypto_t *) malloc(sizeof(crypto_t));
             crypto_t temp    = {
-                .chiper      = NULL,
+                .cipher      = NULL,
                 .encrypt_all = &none_stream_all,
                 .decrypt_all = &none_stream_all,
                 .encrypt     = &none_stream,
