@@ -52,4 +52,4 @@ script:
     - cd build && cmake ../ && make
 branches:
     only:
-        - noencrypt
+        - nocrypto
