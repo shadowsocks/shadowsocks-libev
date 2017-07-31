@@ -32,7 +32,7 @@ crypto_src = crypto.c \
              stream.c \
 			 ppbloom.c \
              base64.c \
-             nocrypto.c
+             noencrypt.c
 
 plugin_src = plugin.c
 
