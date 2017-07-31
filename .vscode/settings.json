@@ -1,6 +1,0 @@
-{
-    "files.associations": {
-        "acl.c": "cpp",
-        "crypto.h": "c"
-    }
-}
