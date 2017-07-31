@@ -1,7 +1,7 @@
 #ifndef _NOENCRYPT_H
 #define _NOENCRYPT_H
 
-#include "noencrypt.h"
+#include "crypto.h"
 
 int none_stream_all(buffer_t *, cipher_t *, size_t);
 int none_stream(buffer_t *, cipher_ctx_t *, size_t);
