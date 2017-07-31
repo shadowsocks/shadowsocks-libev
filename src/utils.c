@@ -289,7 +289,7 @@ usage()
     printf(
         "       -k <password>              Password of your remote server.\n");
     printf(
-        "       -m <encrypt_method>        Encrypt method: rc4-md5, \n");
+        "       -m <encrypt_method>        Encrypt method: none, rc4-md5, \n");
     printf(
         "                                  aes-128-gcm, aes-192-gcm, aes-256-gcm,\n");
     printf(

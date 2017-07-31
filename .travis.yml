@@ -52,10 +52,4 @@ script:
     - cd build && cmake ../ && make
 branches:
     only:
-        - master
-notifications:
-    recipients:
-        - max.c.lv@gmail.com
-    email:
-        on_success: change
-        on_failure: always
+        - noencrypt

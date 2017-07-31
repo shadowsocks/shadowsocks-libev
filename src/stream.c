@@ -72,8 +72,7 @@
  *
  */
 
-#define NONE                -1
-#define TABLE               0
+#define NONE               0
 #define RC4                 1
 #define RC4_MD5             2
 #define AES_128_CFB         3
@@ -96,7 +95,7 @@
 #define CHACHA20IETF        20
 
 const char *supported_stream_ciphers[STREAM_CIPHER_NUM] = {
-    "table",
+    "none",
     "rc4",
     "rc4-md5",
     "aes-128-cfb",
@@ -198,7 +197,7 @@ cipher_key_size(const cipher_t *cipher)
 const cipher_kt_t *
 stream_get_cipher_type(int method)
 {
-    if (method <= TABLE || method >= STREAM_CIPHER_NUM) {
+    if (method <= NONE || method >= STREAM_CIPHER_NUM) {
         LOGE("stream_get_cipher_type(): Illegal method");
         return NULL;
     }
@@ -224,7 +223,7 @@ stream_get_cipher_type(int method)
 void
 stream_cipher_ctx_init(cipher_ctx_t *ctx, int method, int enc)
 {
-    if (method <= TABLE || method >= STREAM_CIPHER_NUM) {
+    if (method <= NONE || method >= STREAM_CIPHER_NUM) {
         LOGE("stream_ctx_init(): Illegal method");
         return;
     }
@@ -622,7 +621,7 @@ stream_ctx_init(cipher_t *cipher, cipher_ctx_t *cipher_ctx, int enc)
 cipher_t *
 stream_key_init(int method, const char *pass, const char *key)
 {
-    if (method <= TABLE || method >= STREAM_CIPHER_NUM) {
+    if (method <= NONE || method >= STREAM_CIPHER_NUM) {
         LOGE("cipher->key_init(): Illegal method");
         return NULL;
     }
@@ -666,9 +665,9 @@ stream_key_init(int method, const char *pass, const char *key)
 cipher_t *
 stream_init(const char *pass, const char *key, const char *method)
 {
-    int m = TABLE;
+    int m = NONE;
     if (method != NULL) {
-        for (m = TABLE; m < STREAM_CIPHER_NUM; m++)
+        for (m = NONE; m < STREAM_CIPHER_NUM; m++)
             if (strcmp(method, supported_stream_ciphers[m]) == 0) {
                 break;
             }
@@ -677,7 +676,7 @@ stream_init(const char *pass, const char *key, const char *method)
             m = RC4_MD5;
         }
     }
-    if (m == TABLE) {
+    if (m == NONE) {
         LOGE("Table is deprecated");
         return NULL;
     }

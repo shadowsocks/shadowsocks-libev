@@ -41,6 +41,7 @@
 #include "aead.h"
 #include "utils.h"
 #include "ppbloom.h"
+#include "noencrypt.h"
 
 int
 balloc(buffer_t *ptr, size_t capacity)
@@ -144,6 +145,20 @@ crypto_init(const char *password, const char *key, const char *method)
 #endif
 
     if (method != NULL) {
+        if (strncmp(method, "none", 4) == 0) {
+            crypto_t *crypto = (crypto_t *) malloc(sizeof(crypto_t));
+            crypto_t temp    = {
+                .chiper      = NULL,
+                .encrypt_all = &none_stream_all,
+                .decrypt_all = &none_stream_all,
+                .encrypt     = &none_stream,
+                .decrypt     = &none_stream,
+                .ctx_init    = &none_stream_ctx_init,
+                .ctx_release = &none_stream_ctx_release,
+            };
+            memcpy(crypto, &temp, sizeof(crypto_t));
+            return crypto;
+        }
         for (i = 0; i < STREAM_CIPHER_NUM; i++)
             if (strcmp(method, supported_stream_ciphers[i]) == 0) {
                 m = i;

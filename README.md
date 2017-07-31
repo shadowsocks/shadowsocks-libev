@@ -351,7 +351,7 @@ you may refer to the man pages of the applications, respectively.
 
        -k <password>              password of your remote server
 
-       -m <encrypt_method>        Encrypt method: rc4-md5,
+       -m <encrypt_method>        Encrypt method: none, rc4-md5,
                                   aes-128-gcm, aes-192-gcm, aes-256-gcm,
                                   aes-128-cfb, aes-192-cfb, aes-256-cfb,
                                   aes-128-ctr, aes-192-ctr, aes-256-ctr,
