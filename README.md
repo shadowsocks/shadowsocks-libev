@@ -1,9 +1,11 @@
 # shadowsocks-libev-nocrypto
 
-This is a fork of the popular [Shadowsocks-libev](https://shadowsocks.org) proxy application, which enable to the user to disable the encryption. 
+[![Build Status](https://travis-ci.org/spyff/shadowsocks-libev-nocrypto.svg?branch=nocrypto)](https://travis-ci.org/spyff/shadowsocks-libev-nocrypto)
+
+This is a fork of the popular [Shadowsocks-libev](https://shadowsocks.org) proxy application, which enable the user to disable the encryption. 
 The motivation behind this: on router boards with limited CPU resources, the encryption is drop down the network throughput.
 
-On my Raspberry Pi 2 device, I measured **15 Mbps** on loopback with **aes-128-gcm** and **285 Mbps** with no encryption.
+On my Raspberry Pi 2 device, I measured **15 Mbps** on loopback with `aes-128-gcm` and **285 Mbps** with `none` (no encryption).
 Obviously, turning off the encryption is optional (set encryption method to `none` for that), and only use if you can sure in the security considerations.
 
 # shadowsocks-libev
@@ -19,7 +21,6 @@ created by [@clowwindy](https://github.com/clowwindy), and maintained by
 
 Current version: 3.1.3 | [Changelog](debian/changelog)
 
-Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.svg?branch=master)](https://travis-ci.org/shadowsocks/shadowsocks-libev)
 
 ## Features
 
