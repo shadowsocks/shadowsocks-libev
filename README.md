@@ -8,6 +8,7 @@ The motivation behind this: on router boards with limited CPU resources, the enc
 On my Raspberry Pi 2 device, I measured **15 Mbps** on loopback with `aes-128-gcm` and **285 Mbps** with `none` (no encryption).
 Obviously, turning off the encryption is optional (set encryption method to `none` for that), and only use if you can sure in the security considerations.
 
+
 # shadowsocks-libev
 
 ## Intro
