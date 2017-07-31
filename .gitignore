@@ -60,6 +60,9 @@ rpm/BUILDROOT/
 # Ignore vim cache
 *.swp
 
+# Ignore VS Code
+.vscode
+
 # Documentation files
 doc/*.1
 doc/*.8
