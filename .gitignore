@@ -61,7 +61,7 @@ rpm/BUILDROOT/
 *.swp
 
 # Ignore VS Code
-.vscode
+.vscode/
 
 # Documentation files
 doc/*.1
