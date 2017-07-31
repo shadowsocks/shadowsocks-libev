@@ -1,0 +1,36 @@
+diff -ru shadowsocks-libev-orig/debian/shadowsocks-libev.default shadowsocks-libev/debian/shadowsocks-libev.default
+--- shadowsocks-libev-orig/debian/shadowsocks-libev.default	2017-06-02 08:45:07.000000000 +0800
++++ shadowsocks-libev/debian/shadowsocks-libev.default	2017-06-28 16:39:37.236474413 +0800
+@@ -19,7 +19,7 @@
+ 
+ # User and group to run the server as
+ USER=nobody
+-GROUP=nogroup
++GROUP=nobody
+ 
+ # Number of maximum file descriptors
+ MAXFD=32768
+diff -ru shadowsocks-libev-orig/debian/shadowsocks-libev.service shadowsocks-libev/debian/shadowsocks-libev.service
+--- shadowsocks-libev-orig/debian/shadowsocks-libev.service	2017-06-02 08:45:07.000000000 +0800
++++ shadowsocks-libev/debian/shadowsocks-libev.service	2017-06-28 17:23:55.131822730 +0800
+@@ -6,7 +6,7 @@
+ #  (at your option) any later version.
+ #
+ #  This file is default for Debian packaging. See also
+-#  /etc/default/shadowsocks-libev for environment variables.
++#  /etc/sysconfig/shadowsocks-libev for environment variables.
+ 
+ [Unit]
+ Description=Shadowsocks-libev Default Server Service
+@@ -15,9 +15,9 @@
+ 
+ [Service]
+ Type=simple
+-EnvironmentFile=/etc/default/shadowsocks-libev
++EnvironmentFile=/etc/sysconfig/shadowsocks-libev
+ User=nobody
+-Group=nogroup
++Group=nobody
+ LimitNOFILE=32768
+ ExecStart=/usr/bin/ss-server -c $CONFFILE $DAEMON_ARGS
+ 
