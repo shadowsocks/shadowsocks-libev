@@ -53,15 +53,13 @@ rpm/BUILDROOT/
 
 # Ignore per-project vim config
 .vimrc
+.vscode/
 
 # Ignore garbage of OS X
 *.DS_Store
 
 # Ignore vim cache
 *.swp
-
-# Ignore VS Code
-.vscode/
 
 # Documentation files
 doc/*.1
