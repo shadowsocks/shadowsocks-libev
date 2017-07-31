@@ -22,6 +22,6 @@ none_stream_ctx_init (cipher_t *chiper, cipher_ctx_t *chiper_ctx, int enc) {
 }
 
 void
-plain_stream_ctx_release (cipher_ctx_t *chiper_ctx) {
+none_stream_ctx_release (cipher_ctx_t *chiper_ctx) {
     (void) chiper_ctx;
 }
