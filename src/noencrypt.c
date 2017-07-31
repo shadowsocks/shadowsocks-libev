@@ -15,7 +15,7 @@ none_stream_all (buffer_t *plaintext, cipher_t *chiper, size_t capacity) {
 }
 
 void
-none_stream_ctx_init (chiper_t *chiper, cipher_ctx_t *chiper_ctx, int enc) {
+none_stream_ctx_init (cipher_t *chiper, cipher_ctx_t *chiper_ctx, int enc) {
     ;
 }
 
