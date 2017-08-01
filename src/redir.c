@@ -1251,7 +1251,7 @@ main(int argc, char **argv)
         }
 
         if(listen_ctx_current->tos) {
-            LOGI("listening at %s:%s (TOS/DSCP 0x%x)", local_addr, local_port, listen_ctx_current->tos);
+            LOGI("listening at %s:%s (TOS 0x%x)", local_addr, local_port, listen_ctx_current->tos);
         } else {
             LOGI("listening at %s:%s", local_addr, local_port);
         }
@@ -1261,7 +1261,7 @@ main(int argc, char **argv)
             listen_ctx_current = (listen_ctx_t*) malloc(sizeof(listen_ctx_t));
             listen_ctx_current = memcpy(listen_ctx_current, &listen_ctx, sizeof(listen_ctx_t));
             local_port = dscp[dscp_num-1].port;
-            listen_ctx_current->tos = dscp[dscp_num-1].dscp;
+            listen_ctx_current->tos = dscp[dscp_num-1].dscp << 2;
         }
     } while (dscp_num-- > 0);
 
