@@ -99,14 +99,14 @@ extern int use_syslog;
         use_tty = isatty(STDERR_FILENO); \
     } while (0)
 
-#define USE_SYSLOG(_ident, _cond)                       \
-    do {                                                \
-        if (!use_syslog && (_cond)) {                   \
-            use_syslog = 1;                             \
-        }                                               \
-        if (use_syslog) {                               \
-            openlog((_ident), LOG_CONS | LOG_PID, 0);   \
-        }                                               \
+#define USE_SYSLOG(_ident, _cond)                               \
+    do {                                                        \
+        if (!use_syslog && (_cond)) {                           \
+            use_syslog = 1;                                     \
+        }                                                       \
+        if (use_syslog) {                                       \
+            openlog((_ident), LOG_CONS | LOG_PID, LOG_DAEMON);  \
+        }                                                       \
     } while (0)
 
 #define LOGI(format, ...)                                                        \
