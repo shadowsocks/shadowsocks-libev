@@ -194,7 +194,7 @@ hash_key(const int af, const struct sockaddr_storage *addr)
 
 #if defined(MODULE_REDIR) || defined(MODULE_REMOTE)
 static int
-construct_udprealy_header(const struct sockaddr_storage *in_addr,
+construct_udprelay_header(const struct sockaddr_storage *in_addr,
                           char *addr_header)
 {
     int addr_header_len = 0;
@@ -223,7 +223,7 @@ construct_udprealy_header(const struct sockaddr_storage *in_addr,
 #endif
 
 static int
-parse_udprealy_header(const char *buf, const size_t buf_len,
+parse_udprelay_header(const char *buf, const size_t buf_len,
                       char *host, char *port, struct sockaddr_storage *storage)
 {
     const uint8_t atyp = *(uint8_t *)buf;
@@ -714,14 +714,14 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef MODULE_REDIR
     struct sockaddr_storage dst_addr;
     memset(&dst_addr, 0, sizeof(struct sockaddr_storage));
-    int len = parse_udprealy_header(buf->data, buf->len, NULL, NULL, &dst_addr);
+    int len = parse_udprelay_header(buf->data, buf->len, NULL, NULL, &dst_addr);
 
     if (dst_addr.ss_family != AF_INET && dst_addr.ss_family != AF_INET6) {
         LOGI("[udp] ss-redir does not support domain name");
         goto CLEAN_UP;
     }
 #else
-    int len = parse_udprealy_header(buf->data, buf->len, NULL, NULL, NULL);
+    int len = parse_udprelay_header(buf->data, buf->len, NULL, NULL, NULL);
 #endif
 
     if (len == 0) {
@@ -759,7 +759,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     int addr_header_len = remote_ctx->addr_header_len;
 
     if (remote_ctx->af == AF_INET || remote_ctx->af == AF_INET6) {
-        addr_header_len = construct_udprealy_header(&src_addr, addr_header_buf);
+        addr_header_len = construct_udprelay_header(&src_addr, addr_header_buf);
         addr_header     = addr_header_buf;
     }
 
@@ -977,7 +977,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
 #ifdef MODULE_REDIR
     char addr_header[512] = { 0 };
-    int addr_header_len   = construct_udprealy_header(&dst_addr, addr_header);
+    int addr_header_len   = construct_udprelay_header(&dst_addr, addr_header);
 
     if (addr_header_len == 0) {
         LOGE("[udp] failed to parse tproxy addr");
@@ -1053,7 +1053,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     struct sockaddr_storage dst_addr;
     memset(&dst_addr, 0, sizeof(struct sockaddr_storage));
 
-    int addr_header_len = parse_udprealy_header(buf->data + offset, buf->len - offset,
+    int addr_header_len = parse_udprelay_header(buf->data + offset, buf->len - offset,
                                                 host, port, &dst_addr);
     if (addr_header_len == 0) {
         // error in parse header
