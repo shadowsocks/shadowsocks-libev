@@ -120,12 +120,11 @@ update_block_list(char *addr, int err_level)
 static void
 parse_addr_cidr(const char *str, char *host, int *cidr)
 {
-    int ret = -1, n = 0;
+    int ret = -1;
     char *pch;
 
     pch = strchr(str, '/');
     while (pch != NULL) {
-        n++;
         ret = pch - str;
         pch = strchr(pch + 1, '/');
     }
