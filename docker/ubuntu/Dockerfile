@@ -1,7 +1,9 @@
 FROM ubuntu:latest
 MAINTAINER Sah Lee <contact@leesah.name>
 
-ENV DEPENDENCIES git-core gettext build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto zlib1g-dev libev-dev libudns-dev libsodium-dev
+ENV DEPENDENCIES git-core gettext build-essential autoconf libtool libssl-dev libpcre3-dev \
+                 asciidoc xmlto zlib1g-dev libev-dev libudns-dev libsodium-dev \
+                 ca-certificates automake libmbedtls-dev
 ENV BASEDIR /tmp/shadowsocks-libev
 ENV SERVER_PORT 8338
 
