@@ -91,3 +91,11 @@ doc/*.html
 *.tar.gz
 *.tgz
 #
+
+# Visual Studio Files
+*.opendb
+*.suo
+*.VC.db
+*.sqlite
+VSWorkspace*
+ProjectSettings*
