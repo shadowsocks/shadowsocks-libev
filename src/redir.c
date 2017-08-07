@@ -1258,7 +1258,7 @@ main(int argc, char **argv)
 
         // Handle additionals TOS/DSCP listening ports
         if (dscp_num > 0) {
-            listen_ctx_current = (listen_ctx_t*) malloc(sizeof(listen_ctx_t));
+            listen_ctx_current = (listen_ctx_t*) ss_malloc(sizeof(listen_ctx_t));
             listen_ctx_current = memcpy(listen_ctx_current, &listen_ctx, sizeof(listen_ctx_t));
             local_port = dscp[dscp_num-1].port;
             listen_ctx_current->tos = dscp[dscp_num-1].dscp << 2;
