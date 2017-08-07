@@ -60,7 +60,7 @@ You have to install libsodium 1.0.8 or later before building. See [Directly buil
 
 ### Pre-build configure guide
 
-For a complete list of avaliable configure-time option,
+For a complete list of available configure-time option,
 try `configure --help`.
 
 ### Debian & Ubuntu
