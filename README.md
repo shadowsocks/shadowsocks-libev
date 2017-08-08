@@ -35,7 +35,7 @@ git submodule update --init --recursive
 
 ### Build and install with recent libsodium
 
-You have to install libsodium 1.0.8 or later before building. See [Directly build and install on UNIX-like system](#linux).
+You have to install libsodium at least 1.0.8, but recommended 1.0.12 or later version before building. See [Directly build and install on UNIX-like system](#linux).
 
 ## Installation
 
@@ -67,11 +67,9 @@ try `configure --help`.
 
 #### Install from repository
 
-**Note: The repositories doesn't always contain the latest version. Please build from source if you want the latest version. (see below)**
-
 Shadowsocks-libev is available in the official repository for following distributions:
 
-* Debian 9 or higher (including testing and unstable/sid)
+* Debian 8 or higher (including oldstable, stable, testing and unstable/sid)
 * Ubuntu 16.10 or higher
 
 ```bash
@@ -79,14 +77,24 @@ sudo apt update
 sudo apt install shadowsocks-libev
 ```
 
-For **Debian 8 (Jessie)** users, please install it from `jessie-backports`:
-We strongly encourage you to install shadowsocks-libev from `jessie-backports`.
-Please follow instructions on [Debian Backports](https://backports.debian.org).
+For **Debian 8 (Jessie)** users, please install it from `jessie-backports-sloppy`:
+We strongly encourage you to install shadowsocks-libev from `jessie-backports-sloppy`.
+For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
 
 ```bash
-sudo sh -c 'printf "deb http://httpredir.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
+sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports-sloppy main" > /etc/apt/sources.list.d/jessie-backports.list'
 sudo apt update
-sudo apt -t jessie-backports install shadowsocks-libev
+sudo apt -t jessie-backports-sloppy install shadowsocks-libev
+```
+
+For **Debian 9 (Stretch)** users, please install it from `stretch-backports`:
+We strongly encourage you to install shadowsocks-libev from `stretch-backports`.
+For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
+
+```bash
+sudo sh -c 'printf "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/stretch-backports.list'
+sudo apt update
+sudo apt -t stretch-backports install shadowsocks-libev
 ```
 
 For **Ubuntu 14.04 and 16.04** users, please install from PPA:
@@ -104,8 +112,6 @@ Supported distributions:
 * Debian 8, 9 or higher
 * Ubuntu 14.04 LTS, 16.04 LTS, 16.10 or higher
 
-For older systems, building `.deb` packages is not supported. Please directly install it from source.
-
 You can build shadowsocks-libev and all its dependencies by script:
 
 ```bash
@@ -115,16 +121,35 @@ cd ~/build-area
 ./build_deb.sh
 ```
 
-Otherwise, try to build and install directly from source. See the [Linux](#linux) section below.
+For older systems, building `.deb` packages is not supported.
+Please try to build and install directly from source. See the [Linux](#linux) section below.
 
-**Note for Debian 8 (Jessie) users**:
+**Note for Debian 8 (Jessie) users to build their own deb packages**:
 
-We strongly encourage you to install shadowsocks-libev from `jessie-backports`. If you insist on building from source, you will need to manually install libsodium from `jessie-backports`, **NOT** libsodium in main repository.
+We strongly encourage you to install shadowsocks-libev from `jessie-backports-sloppy`. If you insist on building from source, you will need to manually install libsodium from `jessie-backports`, **NOT** libsodium in main repository.
 
-Please follow the instructions on [Debian Backports Website](https://backports.debian.org).
+For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
 
 ``` bash
 cd shadowsocks-libev
+sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
+sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports-sloppy main" >> /etc/apt/sources.list.d/jessie-backports.list'
+sudo apt-get install --no-install-recommends devscripts equivs
+mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
+./autogen.sh && dpkg-buildpackage -b -us -uc
+cd ..
+sudo dpkg -i shadowsocks-libev*.deb
+```
+
+**Note for Debian 9 (Stretch) users to build their own deb packages**:
+
+We strongly encourage you to install shadowsocks-libev from `stretch-backports`. If you insist on building from source, you will need to manually install libsodium from `stretch-backports`, **NOT** libsodium in main repository.
+
+For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
+
+``` bash
+cd shadowsocks-libev
+sudo sh -c 'printf "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/stretch-backports.list'
 sudo apt-get install --no-install-recommends devscripts equivs
 mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
 ./autogen.sh && dpkg-buildpackage -b -us -uc
