@@ -199,8 +199,9 @@ if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 		if dpkg --compare-versions $DHVER lt 10; then
 			sed -i 's/debhelper ( >= 10)/debhelper (>= 9), dh-autoreconf/' debian/control;
 			echo 9 > debian/compat;
+			dch -D unstable -l~bpo~ "Rebuild as backports"
 			git add -u;
-			git commit -m "Patch to work with ubuntu trusty (14.04)"
+			git commit -m "Patch to work with ubuntu"
 		fi
 		mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
 		rm libsodium-build-deps_*.deb
@@ -238,6 +239,7 @@ if [ $BUILD_BIN -eq 1 ]; then
 	sed -i 's/dh $@/dh $@ --with systemd,autoreconf/' debian/rules
 	sed -i 's/debhelper (>= 10)/debhelper (>= 9), dh-systemd, dh-autoreconf/' debian/control
 	echo 9 > debian/compat
+	dch -D unstable -l~bpo~ "Rebuild as backports"
 	git add -u
 	git commit -m "Patch to work with ubuntu trusty (14.04)"
 	cd -
@@ -302,6 +304,7 @@ if [ $BUILD_KCP -eq 1 ]; then
 	cd golang-github-urfave-cli
 	[ -n "$BRANCH" ] && git checkout $BRANCH
 	sed -i 's/golang-github-burntsushi-toml-dev/golang-toml-dev/; s/golang-gopkg-yaml.v2-dev/golang-yaml.v2-dev/' debian/control
+	dch -D unstable -l~bpo~ "Rebuild as backports"
 	git add -u
 	git commit -m "Patch to work with ubuntu xenial (16.04)"
 	cd -
@@ -439,11 +442,7 @@ esac
 wheezy|precise)
 	echo Sorry, your system $OSID/$OSVER is not supported.
 	;;
-buster|testing|unstable|sid)
-	build_install_sslibev
-	;;
-jessie|stretch)
-	build_install_libsodium
+jessie|stretch|buster|testing|unstable|sid)
 	build_install_sslibev
 	;;
 zesty)

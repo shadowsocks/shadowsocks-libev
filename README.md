@@ -69,7 +69,7 @@ try `configure --help`.
 
 Shadowsocks-libev is available in the official repository for following distributions:
 
-* Debian 8 or higher (including oldstable, stable, testing and unstable/sid)
+* Debian 8 or higher, including oldstable (jessie), stable (stretch), testing (buster) and unstable (sid)
 * Ubuntu 16.10 or higher
 
 ```bash
@@ -82,7 +82,8 @@ We strongly encourage you to install shadowsocks-libev from `jessie-backports-sl
 For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
 
 ```bash
-sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports-sloppy main" > /etc/apt/sources.list.d/jessie-backports.list'
+sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
+sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports-sloppy main" >> /etc/apt/sources.list.d/jessie-backports.list'
 sudo apt update
 sudo apt -t jessie-backports-sloppy install shadowsocks-libev
 ```
@@ -126,7 +127,7 @@ Please try to build and install directly from source. See the [Linux](#linux) se
 
 **Note for Debian 8 (Jessie) users to build their own deb packages**:
 
-We strongly encourage you to install shadowsocks-libev from `jessie-backports-sloppy`. If you insist on building from source, you will need to manually install libsodium from `jessie-backports`, **NOT** libsodium in main repository.
+We strongly encourage you to install shadowsocks-libev from `jessie-backports-sloppy`. If you insist on building from source, you will need to manually install libsodium from `jessie-backports-sloppy`, **NOT** libsodium in main repository.
 
 For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
 
