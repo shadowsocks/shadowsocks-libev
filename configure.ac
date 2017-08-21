@@ -218,12 +218,9 @@ AC_CHECK_LIB(socket, connect)
 dnl Checks for library functions.
 AC_CHECK_FUNCS([malloc memset posix_memalign socket])
 
-dnl Add define for libudns to enable IPv6 support
-dnl This is an option defined in the origin configure script
-AC_DEFINE([HAVE_IPv6], [1], [Enable IPv6 support in libudns])
+AC_CHECK_HEADERS([ares.h], [], [AC_MSG_ERROR([Couldn't find libcares. Try installing libc-ares-dev or c-ares-devel.])])
 
-AC_CHECK_HEADERS([udns.h], [], [AC_MSG_ERROR([Couldn't find libudns. Try installing libudns-dev or udns-devel.])])
-AC_CHECK_LIB([udns], [dns_dnlen], [LIBS="-ludns $LIBS"], [AC_MSG_ERROR([Couldn't find libudns. Try installing libudns-dev or udns-devel.])])
+AC_CHECK_LIB([cares], [ares_library_init], [LIBS="-lcares $LIBS"], [AC_MSG_ERROR([Couldn't find libc-ares. Try installing libc-ares-dev or c-ares-devel.])])
 
 AC_CHECK_HEADERS([ev.h libev/ev.h], [], [])
 AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])

@@ -44,7 +44,7 @@
 #include <sys/un.h>
 
 #include <libcork/core.h>
-#include <udns.h>
+#include <ares.h>
 
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
 #include <net/if.h>
@@ -902,8 +902,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             snprintf(query->hostname, 256, "%s", host);
 
             server->stage = STAGE_RESOLVE;
-            server->query = resolv_query(host, server_resolve_cb,
-                                         query_free_cb, query, port);
+            server->query = resolv_start(host, port,
+                    server_resolve_cb, query);
 
             ev_io_stop(EV_A_ & server_recv_ctx->io);
         }

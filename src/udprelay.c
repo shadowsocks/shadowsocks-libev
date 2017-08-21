@@ -1295,13 +1295,15 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             query_ctx->remote_ctx = remote_ctx;
         }
 
-        struct ResolvQuery *query = resolv_query(host, query_resolve_cb,
-                                                 NULL, query_ctx, htons(atoi(port)));
+        struct resolv_query *query = resolv_start(host, htons(atoi(port)),
+                query_resolve_cb, query_ctx);
+
         if (query == NULL) {
             ERROR("[udp] unable to create DNS query");
             close_and_free_query(EV_A_ query_ctx);
             goto CLEAN_UP;
         }
+
         query_ctx->query = query;
     }
 #endif
