@@ -1475,8 +1475,7 @@ main(int argc, char **argv)
     int server_num = 0;
     const char *server_host[MAX_REMOTE_NUM];
 
-    char *nameservers[MAX_DNS_NUM + 1];
-    int nameserver_num = 0;
+    char *nameservers = NULL;
 
     static struct option long_options[] = {
         { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
@@ -1565,9 +1564,7 @@ main(int argc, char **argv)
             iface = optarg;
             break;
         case 'd':
-            if (nameserver_num < MAX_DNS_NUM) {
-                nameservers[nameserver_num++] = optarg;
-            }
+            nameservers = optarg;
             break;
         case 'a':
             user = optarg;
@@ -1666,8 +1663,8 @@ main(int argc, char **argv)
             nofile = conf->nofile;
         }
 #endif
-        if (conf->nameserver != NULL) {
-            nameservers[nameserver_num++] = conf->nameserver;
+        if (nameservers == NULL) {
+            nameservers = conf->nameserver;
         }
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
@@ -1768,14 +1765,10 @@ main(int argc, char **argv)
     struct ev_loop *loop = EV_DEFAULT;
 
     // setup udns
-    if (nameserver_num == 0) {
-        resolv_init(loop, NULL, 0, ipv6first);
-    } else {
-        resolv_init(loop, nameservers, nameserver_num, ipv6first);
-    }
+    resolv_init(loop, nameservers, ipv6first);
 
-    for (int i = 0; i < nameserver_num; i++)
-        LOGI("using nameserver: %s", nameservers[i]);
+    if (nameservers != NULL)
+        LOGI("using nameserver: %s", nameservers);
 
     // Start plugin server
     if (plugin != NULL) {

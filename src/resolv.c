@@ -78,7 +78,8 @@ struct resolv_query {
 extern int verbose;
 
 static struct ev_loop* resolv_loop;
-static struct ares_addr_node *servers = NULL;
+static struct ares_options default_options;
+static int                 default_optmask;
 
 static const int MODE_IPV4_ONLY  = 0;
 static const int MODE_IPV6_ONLY  = 1;
@@ -99,36 +100,6 @@ static struct sockaddr *choose_ipv4_first(struct resolv_query *);
 static struct sockaddr *choose_ipv6_first(struct resolv_query *);
 static struct sockaddr *choose_any(struct resolv_query *);
 
-static void destroy_addr_list(struct ares_addr_node *head);
-static void append_addr_list(struct ares_addr_node **head,
-                                     struct ares_addr_node *node);
-
-static void destroy_addr_list(struct ares_addr_node *head)
-{
-    while(head)
-    {
-        struct ares_addr_node *detached = head;
-        head = head->next;
-        ss_free(detached);
-    }
-}
-
-static void append_addr_list(struct ares_addr_node **head,
-        struct ares_addr_node *node)
-{
-    struct ares_addr_node *last;
-    node->next = NULL;
-    if(*head)
-    {
-        last = *head;
-        while(last->next)
-            last = last->next;
-        last->next = node;
-    }
-    else
-        *head = node;
-}
-
 /*
  * DNS UDP socket activity callback
  */
@@ -147,9 +118,9 @@ resolv_sock_cb(EV_P_ ev_io *w, int revents) {
 }
 
 int
-resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, int ipv6first)
+resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
 {
-    int status, i;
+    int status;
 
     if (ipv6first)
         resolv_mode = MODE_IPV6_FIRST;
@@ -158,19 +129,17 @@ resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, int ip
 
     resolv_loop = loop;
 
-    for (i = 0; i < nameserver_num; i++) {
-        struct ares_addr_node *srvr =
-            (struct ares_addr_node *)ss_malloc(sizeof(struct ares_addr_node));
-        append_addr_list(&servers, srvr);
-        if (ares_inet_pton(AF_INET, nameservers[i], &srvr->addr.addr4) > 0)
-            srvr->family = AF_INET;
-        else if (ares_inet_pton(AF_INET6, nameservers[i], &srvr->addr.addr6) > 0)
-            srvr->family = AF_INET6;
-        else {
-            LOGE("invalid name server: %s", nameservers[i]);
-            FATAL("failed to initialize c-ares");
-        }
+    ares_channel channel;
+    status = ares_init(&channel);
+
+    if (status != ARES_SUCCESS) {
+        FATAL("failed to initialize c-ares");
     }
+
+    if (nameservers != NULL)
+        ares_set_servers_ports_csv(channel, nameservers);
+
+    ares_save_options(channel, &default_options, &default_optmask);
 
     if ((status = ares_library_init(ARES_LIB_INIT_ALL) )!= ARES_SUCCESS) {
         LOGE("c-ares error: %s", ares_strerror(status));
@@ -183,7 +152,7 @@ resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, int ip
 void
 resolv_shutdown(struct ev_loop *loop)
 {
-    destroy_addr_list(servers);
+    ares_destroy_options(&default_options);
     ares_library_cleanup();
 }
 
@@ -215,6 +184,7 @@ resolv_start(const char *hostname, uint16_t port,
     ev_init(&query->io, resolv_sock_cb);
     ev_timer_init(&query->tw, resolv_timeout_cb, 0.0, 0.0);
 
+    memcpy(&query->options, &default_options, sizeof(struct ares_options));
     query->options.sock_state_cb_data = query;
     query->options.sock_state_cb = resolv_sock_state_cb;
 
@@ -224,8 +194,6 @@ resolv_start(const char *hostname, uint16_t port,
         LOGE("failed to initialize ares channel.");
         return NULL;
     }
-
-    if (servers != NULL) ares_set_servers(query->channel, servers);
 
     /* Submit A and AAAA requests */
     if (resolv_mode != MODE_IPV6_ONLY) {
