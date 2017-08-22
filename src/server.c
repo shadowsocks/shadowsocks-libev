@@ -109,7 +109,6 @@ static void close_and_free_remote(EV_P_ remote_t *remote);
 static void free_server(server_t *server);
 static void close_and_free_server(EV_P_ server_t *server);
 static void server_resolve_cb(struct sockaddr *addr, void *data);
-static void query_free_cb(void *data);
 
 int verbose     = 0;
 int reuse_port = 0;
@@ -242,10 +241,10 @@ get_peer_name(int fd)
     if (err == 0) {
         if (addr.ss_family == AF_INET) {
             struct sockaddr_in *s = (struct sockaddr_in *)&addr;
-            dns_ntop(AF_INET, &s->sin_addr, peer_name, INET_ADDRSTRLEN);
+            ares_inet_ntop(AF_INET, &s->sin_addr, peer_name, INET_ADDRSTRLEN);
         } else if (addr.ss_family == AF_INET6) {
             struct sockaddr_in6 *s = (struct sockaddr_in6 *)&addr;
-            dns_ntop(AF_INET6, &s->sin6_addr, peer_name, INET6_ADDRSTRLEN);
+            ares_inet_ntop(AF_INET6, &s->sin6_addr, peer_name, INET6_ADDRSTRLEN);
         }
     } else {
         return NULL;
@@ -454,10 +453,10 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 
         if (res->ai_addr->sa_family == AF_INET) {
             struct sockaddr_in *s = (struct sockaddr_in *)res->ai_addr;
-            dns_ntop(AF_INET, &s->sin_addr, ipstr, INET_ADDRSTRLEN);
+            ares_inet_ntop(AF_INET, &s->sin_addr, ipstr, INET_ADDRSTRLEN);
         } else if (res->ai_addr->sa_family == AF_INET6) {
             struct sockaddr_in6 *s = (struct sockaddr_in6 *)res->ai_addr;
-            dns_ntop(AF_INET6, &s->sin6_addr, ipstr, INET6_ADDRSTRLEN);
+            ares_inet_ntop(AF_INET6, &s->sin6_addr, ipstr, INET6_ADDRSTRLEN);
         }
 
         if (outbound_block_match_host(ipstr) == 1) {
@@ -759,7 +758,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             addr->sin_family = AF_INET;
             if (server->buf->len >= in_addr_len + 3) {
                 addr->sin_addr = *(struct in_addr *)(server->buf->data + offset);
-                dns_ntop(AF_INET, (const void *)(server->buf->data + offset),
+                ares_inet_ntop(AF_INET, (const void *)(server->buf->data + offset),
                          host, INET_ADDRSTRLEN);
                 offset += in_addr_len;
             } else {
@@ -796,7 +795,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 info.ai_protocol = IPPROTO_TCP;
                 if (ip.version == 4) {
                     struct sockaddr_in *addr = (struct sockaddr_in *)&storage;
-                    dns_pton(AF_INET, host, &(addr->sin_addr));
+                    ares_inet_pton(AF_INET, host, &(addr->sin_addr));
                     addr->sin_port   = *(uint16_t *)(server->buf->data + offset);
                     addr->sin_family = AF_INET;
                     info.ai_family   = AF_INET;
@@ -804,7 +803,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     info.ai_addr     = (struct sockaddr *)addr;
                 } else if (ip.version == 6) {
                     struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&storage;
-                    dns_pton(AF_INET6, host, &(addr->sin6_addr));
+                    ares_inet_pton(AF_INET6, host, &(addr->sin6_addr));
                     addr->sin6_port   = *(uint16_t *)(server->buf->data + offset);
                     addr->sin6_family = AF_INET6;
                     info.ai_family    = AF_INET6;
@@ -826,7 +825,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             addr->sin6_family = AF_INET6;
             if (server->buf->len >= in6_addr_len + 3) {
                 addr->sin6_addr = *(struct in6_addr *)(server->buf->data + offset);
-                dns_ntop(AF_INET6, (const void *)(server->buf->data + offset),
+                ares_inet_ntop(AF_INET6, (const void *)(server->buf->data + offset),
                          host, INET6_ADDRSTRLEN);
                 offset += in6_addr_len;
             } else {
@@ -989,14 +988,6 @@ server_timeout_cb(EV_P_ ev_timer *watcher, int revents)
 
     close_and_free_remote(EV_A_ remote);
     close_and_free_server(EV_A_ server);
-}
-
-static void
-query_free_cb(void *data)
-{
-    if (data != NULL) {
-        ss_free(data);
-    }
 }
 
 static void

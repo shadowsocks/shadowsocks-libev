@@ -143,6 +143,8 @@ resolv_sock_cb(EV_P_ ev_io *w, int revents) {
     if (revents & EV_WRITE)
         wfd = w->fd;
 
+    LOGI("io_cb: %d, %d", rfd, wfd);
+
     ares_process_fd(query->channel, rfd, wfd);
 }
 
@@ -173,7 +175,8 @@ resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, int ip
     }
 
     if ((status = ares_library_init(ARES_LIB_INIT_ALL) )!= ARES_SUCCESS) {
-        FATAL("Ares error: %s", ares_strerror(status));
+        LOGE("Ares error: %s", ares_strerror(status));
+        FATAL("Failed to initialize c-ares");
     }
 
     return 0;
@@ -216,7 +219,6 @@ resolv_start(const char *hostname, uint16_t port,
 
     query->options.sock_state_cb_data = query;
     query->options.sock_state_cb = resolv_sock_state_cb;
-    query->options.servers = servers;
 
     status = ares_init_options(&query->channel, &query->options, ARES_OPT_SOCK_STATE_CB);
 
@@ -224,6 +226,8 @@ resolv_start(const char *hostname, uint16_t port,
         LOGE("Failed to initialize ares channel.");
         return NULL;
     }
+
+    ares_set_servers(query->channel, servers);
 
     /* Submit A and AAAA requests */
     if (resolv_mode != MODE_IPV6_ONLY) {
@@ -249,18 +253,7 @@ resolv_cancel(struct resolv_query *query)
         ss_free(query->responses[i]);
 
     ss_free(query->responses);
-
-    ss_free(query);
-}
-
-static void
-resolv_sock_cb(struct ev_loop *loop, struct ev_io *w, int revents)
-{
-    struct dns_ctx *ctx = (struct dns_ctx *)w->data;
-
-    if (revents & EV_READ) {
-        dns_ioevent(ctx, ev_now(loop));
-    }
+    ss_free(query->data);
 }
 
 /*
@@ -272,15 +265,20 @@ dns_query_v4_cb(void *arg, int status, int timeouts, struct hostent *he)
     int i, n;
     struct resolv_query *query = (struct resolv_query *)arg;
 
-    if(!he || status != ARES_SUCCESS){
-        if (verbose) {
-            LOGI("Failed to lookup %s\n", ares_strerror(status));
-        }
+    if (status == ARES_EDESTRUCTION) {
+        LOGI("Destroying");
         return;
     }
 
+    if(!he || status != ARES_SUCCESS){
+        if (verbose) {
+            LOGI("Failed to lookup v4 address %s", ares_strerror(status));
+        }
+        goto CLEANUP;
+    }
+
     if (verbose) {
-        LOGI("Found address name %s\n", he->h_name);
+        LOGI("Found address name v4 address %s", he->h_name);
     }
 
     n = 0;
@@ -315,6 +313,8 @@ dns_query_v4_cb(void *arg, int status, int timeouts, struct hostent *he)
         }
     }
 
+CLEANUP:
+
     query->requests[0] = 0; /* mark A query as being completed */
 
     /* Once all requests have completed, call client callback */
@@ -329,15 +329,20 @@ dns_query_v6_cb(void *arg, int status, int timeouts, struct hostent *he)
     int i, n;
     struct resolv_query *query = (struct resolv_query *)arg;
 
-    if(!he || status != ARES_SUCCESS){
-        if (verbose) {
-            LOGI("Failed to lookup %s\n", ares_strerror(status));
-        }
+    if (status == ARES_EDESTRUCTION) {
+        LOGI("Destroying");
         return;
     }
 
+    if(!he || status != ARES_SUCCESS){
+        if (verbose) {
+            LOGI("Failed to lookup v6 address %s", ares_strerror(status));
+        }
+        goto CLEANUP;
+    }
+
     if (verbose) {
-        LOGI("Found address name %s\n", he->h_name);
+        LOGI("Found address name v6 address %s", he->h_name);
     }
 
     n = 0;
@@ -356,7 +361,7 @@ dns_query_v6_cb(void *arg, int status, int timeouts, struct hostent *he)
             query->responses = new_responses;
 
             for (i = 0; i < n; i++) {
-                struct sockaddr_in *sa = ss_malloc(sizeof(struct sockaddr_in6));
+                struct sockaddr_in6 *sa = ss_malloc(sizeof(struct sockaddr_in6));
                 memset(sa, 0, sizeof(struct sockaddr_in6));
                 sa->sin6_family = AF_INET6;
                 sa->sin6_port   = query->port;
@@ -371,6 +376,8 @@ dns_query_v6_cb(void *arg, int status, int timeouts, struct hostent *he)
             }
         }
     }
+
+CLEANUP:
 
     query->requests[1] = 0; /* mark A query as being completed */
 
@@ -396,7 +403,7 @@ process_client_callback(struct resolv_query *query)
         best_address = choose_any(query);
     }
 
-    query->client_cb(best_address, query->client_query);
+    query->client_cb(best_address, query->data);
 
     ares_destroy(query->channel);
 
@@ -404,8 +411,7 @@ process_client_callback(struct resolv_query *query)
         ss_free(query->responses[i]);
 
     ss_free(query->responses);
-
-    ss_free(query);
+    ss_free(query->data);
 }
 
 static struct sockaddr *
@@ -458,6 +464,8 @@ all_requests_are_null(struct resolv_query *query)
 static void
 resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
+    LOGI("timeout_cb");
+
     struct resolv_query *query = cork_container_of(w, struct resolv_query, tw);
 
     if (revents & EV_TIMER) {
@@ -477,10 +485,14 @@ resolv_sock_state_cb(void *data, int s, int read, int write) {
     int iactive = ev_is_active(&query->io);
     int tactive = ev_is_active(&query->tw);
 
+    LOGI("activie: %d, %d", iactive, tactive);
+    LOGI("read, write: %d, %d", read, write);
+
     tvp = ares_timeout(query->channel, NULL, &tv);
 
     if (!tactive && tvp) {
         double timeout = (double)tvp->tv_sec + (double)tvp->tv_usec / 1.0e6;
+        LOGI("timeout: %f", timeout);
         if (timeout > 0) {
             ev_timer_set(&query->tw, timeout, 0.);
             ev_timer_start(resolv_loop, &query->tw);
@@ -493,6 +505,7 @@ resolv_sock_state_cb(void *data, int s, int read, int write) {
         ev_io_set(&query->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
         ev_io_start(resolv_loop, &query->io);
     } else {
+        ev_timer_stop(resolv_loop, &query->tw);
         ev_io_stop(resolv_loop, &query->io);
         ev_io_set(&query->io, -1, 0);
     }

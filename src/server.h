@@ -81,7 +81,7 @@ typedef struct server {
     struct listen_ctx *listen_ctx;
     struct remote *remote;
 
-    struct ResolvQuery *query;
+    struct resolv_query *query;
 
     struct cork_dllist_item entries;
 #ifdef USE_NFCONNTRACK_TOS
