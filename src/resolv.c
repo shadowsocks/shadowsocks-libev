@@ -136,8 +136,9 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
         FATAL("failed to initialize c-ares");
     }
 
-    if (nameservers != NULL)
+    if (nameservers != NULL) {
         ares_set_servers_ports_csv(channel, nameservers);
+    }
 
     ares_save_options(channel, &default_options, &default_optmask);
 
@@ -188,7 +189,7 @@ resolv_start(const char *hostname, uint16_t port,
     query->options.sock_state_cb_data = query;
     query->options.sock_state_cb = resolv_sock_state_cb;
 
-    status = ares_init_options(&query->channel, &query->options, ARES_OPT_SOCK_STATE_CB);
+    status = ares_init_options(&query->channel, &query->options, ARES_OPT_SOCK_STATE_CB | ARES_OPT_SERVERS);
 
     if (status != ARES_SUCCESS) {
         LOGE("failed to initialize ares channel.");
