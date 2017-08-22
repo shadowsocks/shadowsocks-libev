@@ -33,6 +33,7 @@
 #include <string.h>
 #include <fcntl.h>
 
+#include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
@@ -420,7 +421,6 @@ resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 
     if (revents & EV_TIMER) {
         ares_cancel(query->channel);
-        ares_process_fd(query->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
     }
 }
 
