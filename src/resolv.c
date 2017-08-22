@@ -74,6 +74,8 @@ struct resolv_query {
     uint16_t port;
 
     void *data;
+
+    int is_closed;
 };
 
 extern int verbose;
@@ -415,11 +417,23 @@ all_requests_are_null(struct resolv_query *query)
 static void
 resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    if (verbose) LOGI("name resolv timeout");
-
     struct resolv_query *query = cork_container_of(w, struct resolv_query, tw);
 
-    if (revents & EV_TIMER) {
+    if (query->is_closed) {
+        if (verbose) LOGI("name resolv clean up");
+
+        ares_destroy(query->channel);
+
+        for (int i = 0; i < query->response_count; i++)
+            ss_free(query->responses[i]);
+
+        ss_free(query->responses);
+        ss_free(query->data);
+
+        ss_free(query);
+    } else {
+        if (verbose) LOGI("name resolv timeout");
+
         ares_cancel(query->channel);
     }
 }
@@ -439,22 +453,22 @@ resolv_sock_state_cb(void *data, int s, int read, int write) {
         ev_timer_start(resolv_loop, &query->tw);
     }
 
+    if (iactive && query->io.fd != s) return;
+
     if (read || write) {
         ev_io_set(&query->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
         ev_io_start(resolv_loop, &query->io);
     } else if (iactive) {
-        if (verbose) LOGI("name resolv clean up");
+        query->is_closed = 1;
 
-        ev_timer_stop(resolv_loop, &query->tw);
+        if (tactive) {
+            ev_timer_stop(resolv_loop, &query->tw);
+        }
+
+        ev_timer_set(&query->tw, 0., 0.);
+        ev_timer_start(resolv_loop, &query->tw);
+
         ev_io_stop(resolv_loop, &query->io);
         ev_io_set(&query->io, -1, 0);
-
-        for (int i = 0; i < query->response_count; i++)
-            ss_free(query->responses[i]);
-
-        ss_free(query->responses);
-        ss_free(query->data);
-
-        ss_free(query);
     }
 }

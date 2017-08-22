@@ -1367,7 +1367,6 @@ close_and_free_server(EV_P_ server_t *server)
     if (server != NULL) {
         if (server->query != NULL) {
             resolv_cancel(server->query);
-            server->query = NULL;
             return;
         }
         ev_io_stop(EV_A_ & server->send_ctx->io);

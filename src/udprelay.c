@@ -537,7 +537,6 @@ close_and_free_query(EV_P_ struct query_ctx *ctx)
     if (ctx != NULL) {
         if (ctx->query != NULL) {
             resolv_cancel(ctx->query);
-            ctx->query = NULL;
             return;
         }
         if (ctx->buf != NULL) {
