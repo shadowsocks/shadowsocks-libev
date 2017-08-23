@@ -78,10 +78,10 @@ ss_local_LDADD = $(SS_COMMON_LIBS)
 ss_tunnel_LDADD = $(SS_COMMON_LIBS)
 ss_server_LDADD = $(SS_COMMON_LIBS)
 ss_manager_LDADD = $(SS_COMMON_LIBS)
-ss_local_LDADD += -ludns
-ss_tunnel_LDADD += -ludns
-ss_server_LDADD += -ludns
-ss_manager_LDADD += -ludns
+ss_local_LDADD += -lcares
+ss_tunnel_LDADD += -lcares
+ss_server_LDADD += -lcares
+ss_manager_LDADD += -lcares
 
 ss_local_CFLAGS = $(AM_CFLAGS) -DMODULE_LOCAL
 ss_tunnel_CFLAGS = $(AM_CFLAGS) -DMODULE_TUNNEL
@@ -104,7 +104,7 @@ ss_redir_SOURCES = utils.c \
 
 ss_redir_CFLAGS = $(AM_CFLAGS) -DMODULE_REDIR
 ss_redir_LDADD = $(SS_COMMON_LIBS)
-ss_redir_LDADD += -ludns
+ss_redir_LDADD += -lcares
 endif
 
 lib_LTLIBRARIES = libshadowsocks-libev.la

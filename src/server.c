@@ -1764,7 +1764,7 @@ main(int argc, char **argv)
     // initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
 
-    // setup udns
+    // setup dns
     resolv_init(loop, nameservers, ipv6first);
 
     if (nameservers != NULL)

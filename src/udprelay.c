@@ -581,14 +581,10 @@ query_resolve_cb(struct sockaddr *addr, void *data)
     struct query_ctx *query_ctx = (struct query_ctx *)data;
     struct ev_loop *loop        = query_ctx->server_ctx->loop;
 
-    if (verbose) {
-        LOGI("[udp] udns resolved");
-    }
-
     query_ctx->query = NULL;
 
     if (addr == NULL) {
-        LOGE("[udp] udns returned an error");
+        LOGE("[udp] unable to resolve");
     } else {
         remote_ctx_t *remote_ctx = query_ctx->remote_ctx;
         int cache_hit            = 0;

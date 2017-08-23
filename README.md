@@ -185,7 +185,7 @@ If you are using CentOS 7, you need to install these prequirement to build from 
 
 ```bash 
 yum install epel-release -y
-yum install gcc gettext autoconf libtool automake make pcre-devel asciidoc xmlto udns-devel libev-devel libsodium-devel mbedtls-devel -y
+yum install gcc gettext autoconf libtool automake make pcre-devel asciidoc xmlto c-ares-devel libev-devel libsodium-devel mbedtls-devel -y
 ```
 
 #### Install from repository
@@ -245,7 +245,7 @@ In general, you need the following build dependencies:
 * libsodium
 * libpcre3 (old pcre library)
 * libev
-* libudns
+* libc-ares
 * asciidoc (for documentation only)
 * xmlto (for documentation only)
 
@@ -260,11 +260,11 @@ For some of the distributions, you might install build dependencies like this:
 ```bash
 # Installation of basic build dependencies
 ## Debian / Ubuntu
-sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libudns-dev automake libmbedtls-dev libsodium-dev
+sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libc-ares-dev automake libmbedtls-dev libsodium-dev
 ## CentOS / Fedora / RHEL
-sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto udns-devel libev-devel
+sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto c-ares-devel libev-devel
 ## Arch
-sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto udns libev
+sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto c-ares libev
 
 # Installation of Libsodium
 export LIBSODIUM_VER=1.0.13
