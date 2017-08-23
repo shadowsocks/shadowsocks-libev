@@ -41,7 +41,7 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 
-#include <udns.h>
+#include <ares.h>
 #include <libcork/core.h>
 
 #ifdef HAVE_CONFIG_H
@@ -228,11 +228,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (AF_INET == server->destaddr.ss_family) {
             struct sockaddr_in *sa = (struct sockaddr_in *)&(server->destaddr);
-            dns_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
+            ares_inet_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
             port = ntohs(sa->sin_port);
         } else {
             struct sockaddr_in6 *sa = (struct sockaddr_in6 *)&(server->destaddr);
-            dns_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
+            ares_inet_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
             port = ntohs(sa->sin6_port);
         }
 
