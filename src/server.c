@@ -44,7 +44,6 @@
 #include <sys/un.h>
 
 #include <libcork/core.h>
-#include <ares.h>
 
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
 #include <net/if.h>
@@ -241,10 +240,10 @@ get_peer_name(int fd)
     if (err == 0) {
         if (addr.ss_family == AF_INET) {
             struct sockaddr_in *s = (struct sockaddr_in *)&addr;
-            ares_inet_ntop(AF_INET, &s->sin_addr, peer_name, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &s->sin_addr, peer_name, INET_ADDRSTRLEN);
         } else if (addr.ss_family == AF_INET6) {
             struct sockaddr_in6 *s = (struct sockaddr_in6 *)&addr;
-            ares_inet_ntop(AF_INET6, &s->sin6_addr, peer_name, INET6_ADDRSTRLEN);
+            inet_ntop(AF_INET6, &s->sin6_addr, peer_name, INET6_ADDRSTRLEN);
         }
     } else {
         return NULL;
@@ -453,10 +452,10 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 
         if (res->ai_addr->sa_family == AF_INET) {
             struct sockaddr_in *s = (struct sockaddr_in *)res->ai_addr;
-            ares_inet_ntop(AF_INET, &s->sin_addr, ipstr, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &s->sin_addr, ipstr, INET_ADDRSTRLEN);
         } else if (res->ai_addr->sa_family == AF_INET6) {
             struct sockaddr_in6 *s = (struct sockaddr_in6 *)res->ai_addr;
-            ares_inet_ntop(AF_INET6, &s->sin6_addr, ipstr, INET6_ADDRSTRLEN);
+            inet_ntop(AF_INET6, &s->sin6_addr, ipstr, INET6_ADDRSTRLEN);
         }
 
         if (outbound_block_match_host(ipstr) == 1) {
@@ -758,7 +757,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             addr->sin_family = AF_INET;
             if (server->buf->len >= in_addr_len + 3) {
                 addr->sin_addr = *(struct in_addr *)(server->buf->data + offset);
-                ares_inet_ntop(AF_INET, (const void *)(server->buf->data + offset),
+                inet_ntop(AF_INET, (const void *)(server->buf->data + offset),
                          host, INET_ADDRSTRLEN);
                 offset += in_addr_len;
             } else {
@@ -795,7 +794,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 info.ai_protocol = IPPROTO_TCP;
                 if (ip.version == 4) {
                     struct sockaddr_in *addr = (struct sockaddr_in *)&storage;
-                    ares_inet_pton(AF_INET, host, &(addr->sin_addr));
+                    inet_pton(AF_INET, host, &(addr->sin_addr));
                     addr->sin_port   = *(uint16_t *)(server->buf->data + offset);
                     addr->sin_family = AF_INET;
                     info.ai_family   = AF_INET;
@@ -803,7 +802,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     info.ai_addr     = (struct sockaddr *)addr;
                 } else if (ip.version == 6) {
                     struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&storage;
-                    ares_inet_pton(AF_INET6, host, &(addr->sin6_addr));
+                    inet_pton(AF_INET6, host, &(addr->sin6_addr));
                     addr->sin6_port   = *(uint16_t *)(server->buf->data + offset);
                     addr->sin6_family = AF_INET6;
                     info.ai_family    = AF_INET6;
@@ -825,7 +824,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             addr->sin6_family = AF_INET6;
             if (server->buf->len >= in6_addr_len + 3) {
                 addr->sin6_addr = *(struct in6_addr *)(server->buf->data + offset);
-                ares_inet_ntop(AF_INET6, (const void *)(server->buf->data + offset),
+                inet_ntop(AF_INET6, (const void *)(server->buf->data + offset),
                          host, INET6_ADDRSTRLEN);
                 offset += in6_addr_len;
             } else {

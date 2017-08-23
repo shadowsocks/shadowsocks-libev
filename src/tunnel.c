@@ -47,7 +47,6 @@
 #endif
 
 #include <libcork/core.h>
-#include <ares.h>
 
 #include "netutils.h"
 #include "utils.h"
@@ -416,7 +415,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                     memset(&host, 0, sizeof(struct in_addr));
                     int host_len = sizeof(struct in_addr);
 
-                    if (ares_inet_pton(AF_INET, sa->host, &host) == -1) {
+                    if (inet_pton(AF_INET, sa->host, &host) == -1) {
                         FATAL("IP parser error");
                     }
                     abuf->data[abuf->len++] = 1;
@@ -428,7 +427,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                     memset(&host, 0, sizeof(struct in6_addr));
                     int host_len = sizeof(struct in6_addr);
 
-                    if (ares_inet_pton(AF_INET6, sa->host, &host) == -1) {
+                    if (inet_pton(AF_INET6, sa->host, &host) == -1) {
                         FATAL("IP parser error");
                     }
                     abuf->data[abuf->len++] = 4;
