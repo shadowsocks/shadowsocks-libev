@@ -148,6 +148,8 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
     }
 
     ares_save_options(channel, &default_options, &default_optmask);
+    default_options.timeout = 3000;
+    default_options.tries = 2;
 
     if ((status = ares_library_init(ARES_LIB_INIT_ALL) )!= ARES_SUCCESS) {
         LOGE("c-ares error: %s", ares_strerror(status));
@@ -196,7 +198,8 @@ resolv_start(const char *hostname, uint16_t port,
     query->options.sock_state_cb_data = query;
     query->options.sock_state_cb = resolv_sock_state_cb;
 
-    status = ares_init_options(&query->channel, &query->options, ARES_OPT_SOCK_STATE_CB | ARES_OPT_SERVERS);
+    status = ares_init_options(&query->channel, &query->options,
+            ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SOCK_STATE_CB | ARES_OPT_SERVERS);
 
     if (status != ARES_SUCCESS) {
         LOGE("failed to initialize ares channel.");
@@ -426,6 +429,8 @@ resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
     if (query->is_closed) {
         if (verbose) LOGI("name resolv clean up");
 
+        ev_timer_stop(resolv_loop, &query->tw);
+
         ares_destroy(query->channel);
 
         for (int i = 0; i < query->response_count; i++)
@@ -436,9 +441,7 @@ resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 
         ss_free(query);
     } else {
-        if (verbose) LOGI("name resolv timeout");
-
-        ares_cancel(query->channel);
+        ares_process_fd(query->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
     }
 }
 
@@ -453,26 +456,38 @@ resolv_sock_state_cb(void *data, int s, int read, int write) {
     int tactive = ev_is_active(&query->tw);
 
     if (!tactive) {
-        ev_timer_set(&query->tw, 5., 0.);
+        ev_timer_set(&query->tw, 1., 1.);
         ev_timer_start(resolv_loop, &query->tw);
+    } else {
+        ev_timer_again(resolv_loop, &query->tw);
     }
 
-    if (iactive && query->io.fd != s) return;
-
     if (read || write) {
-        ev_io_set(&query->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
-        ev_io_start(resolv_loop, &query->io);
-    } else if (iactive) {
-        query->is_closed = 1;
 
-        if (tactive) {
-            ev_timer_stop(resolv_loop, &query->tw);
+        if (iactive && query->io.fd != s) {
+            ev_io_stop(resolv_loop, &query->io);
+            ev_io_set(&query->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
+            ev_io_start(resolv_loop, &query->io);
+            return;
         }
 
-        ev_timer_set(&query->tw, 0., 0.);
-        ev_timer_start(resolv_loop, &query->tw);
+        ev_io_set(&query->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
+        ev_io_start(resolv_loop, &query->io);
 
-        ev_io_stop(resolv_loop, &query->io);
-        ev_io_set(&query->io, -1, 0);
+    } else {
+
+        query->is_closed = 1;
+
+        if (!tactive) {
+            ev_timer_set(&query->tw, 0., 0.);
+            ev_timer_start(resolv_loop, &query->tw);
+        } else {
+            ev_timer_again(resolv_loop, &query->tw);
+        }
+
+        if (iactive) {
+            ev_io_stop(resolv_loop, &query->io);
+            ev_io_set(&query->io, -1, 0);
+        }
     }
 }
