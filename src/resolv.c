@@ -81,8 +81,11 @@ struct resolv_query {
 extern int verbose;
 
 static struct ev_loop* resolv_loop;
-static struct ares_options default_options;
-static int                 default_optmask;
+static struct ares_addr_node *default_servers;
+
+#if ARES_VERSION_MINOR >= 11
+static struct ares_addr_port_node *default_servers_ports;
+#endif
 
 static const int MODE_IPV4_ONLY  = 0;
 static const int MODE_IPV6_ONLY  = 1;
@@ -132,6 +135,11 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
 
     resolv_loop = loop;
 
+    if ((status = ares_library_init(ARES_LIB_INIT_ALL) )!= ARES_SUCCESS) {
+        LOGE("c-ares error: %s", ares_strerror(status));
+        FATAL("failed to initialize c-ares");
+    }
+
     ares_channel channel;
     status = ares_init(&channel);
 
@@ -147,14 +155,11 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
 #endif
     }
 
-    ares_save_options(channel, &default_options, &default_optmask);
-    default_options.timeout = 3000;
-    default_options.tries = 2;
+    ares_get_servers(channel, &default_servers);
 
-    if ((status = ares_library_init(ARES_LIB_INIT_ALL) )!= ARES_SUCCESS) {
-        LOGE("c-ares error: %s", ares_strerror(status));
-        FATAL("failed to initialize c-ares");
-    }
+#if ARES_VERSION_MINOR >= 11
+    ares_get_servers_ports(channel, &default_servers_ports);
+#endif
 
     return 0;
 }
@@ -162,7 +167,10 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
 void
 resolv_shutdown(struct ev_loop *loop)
 {
-    ares_destroy_options(&default_options);
+    ares_free_data(default_servers);
+#if ARES_VERSION_MINOR >= 11
+    ares_free_data(default_servers_ports);
+#endif
     ares_library_cleanup();
 }
 
@@ -194,12 +202,19 @@ resolv_start(const char *hostname, uint16_t port,
     ev_init(&query->io, resolv_sock_cb);
     ev_timer_init(&query->tw, resolv_timeout_cb, 0.0, 0.0);
 
-    memcpy(&query->options, &default_options, sizeof(struct ares_options));
     query->options.sock_state_cb_data = query;
     query->options.sock_state_cb = resolv_sock_state_cb;
+    query->options.timeout = 3000;
+    query->options.tries = 2;
 
     status = ares_init_options(&query->channel, &query->options,
-            ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SOCK_STATE_CB | ARES_OPT_SERVERS);
+            ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SOCK_STATE_CB);
+
+    ares_set_servers(query->channel, default_servers);
+
+#if ARES_VERSION_MINOR >= 11
+    ares_set_servers_ports(query->channel, default_servers_ports);
+#endif
 
     if (status != ARES_SUCCESS) {
         LOGE("failed to initialize ares channel.");
