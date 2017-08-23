@@ -140,7 +140,11 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
     }
 
     if (nameservers != NULL) {
+#if ARES_VERSION_MINOR >= 11
         ares_set_servers_ports_csv(channel, nameservers);
+#else
+        ares_set_servers_csv(channel, nameservers);
+#endif
     }
 
     ares_save_options(channel, &default_options, &default_optmask);
