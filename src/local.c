@@ -52,7 +52,7 @@
 #endif
 
 #include <libcork/core.h>
-#include <udns.h>
+#include <ares.h>
 
 #include "netutils.h"
 #include "utils.h"
@@ -582,7 +582,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
                 if (acl || verbose) {
                     uint16_t p = ntohs(*(uint16_t *)(buf->data + request_len + in_addr_len));
-                    dns_ntop(AF_INET, (const void *)(buf->data + request_len),
+                    ares_inet_ntop(AF_INET, (const void *)(buf->data + request_len),
                              ip, INET_ADDRSTRLEN);
                     sprintf(port, "%d", p);
                 }
@@ -615,7 +615,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
                 if (acl || verbose) {
                     uint16_t p = ntohs(*(uint16_t *)(buf->data + request_len + in6_addr_len));
-                    dns_ntop(AF_INET6, (const void *)(buf->data + request_len),
+                    ares_inet_ntop(AF_INET6, (const void *)(buf->data + request_len),
                              ip, INET6_ADDRSTRLEN);
                     sprintf(port, "%d", p);
                 }
@@ -705,12 +705,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                             switch(((struct sockaddr*)&storage)->sa_family) {
                                 case AF_INET: {
                                     struct sockaddr_in *addr_in = (struct sockaddr_in *)&storage;
-                                    dns_ntop(AF_INET, &(addr_in->sin_addr), ip, INET_ADDRSTRLEN);
+                                    ares_inet_ntop(AF_INET, &(addr_in->sin_addr), ip, INET_ADDRSTRLEN);
                                     break;
                                 }
                                 case AF_INET6: {
                                     struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)&storage;
-                                    dns_ntop(AF_INET6, &(addr_in6->sin6_addr), ip, INET6_ADDRSTRLEN);
+                                    ares_inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip, INET6_ADDRSTRLEN);
                                     break;
                                 }
                                 default:

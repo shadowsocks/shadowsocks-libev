@@ -47,7 +47,7 @@
 #endif
 
 #include <libcork/core.h>
-#include <udns.h>
+#include <ares.h>
 
 #include "utils.h"
 #include "netutils.h"
@@ -241,7 +241,7 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
                 addr->sin_port   = *(uint16_t *)(buf + offset + in_addr_len);
             }
             if (host != NULL) {
-                dns_ntop(AF_INET, (const void *)(buf + offset),
+                ares_inet_ntop(AF_INET, (const void *)(buf + offset),
                          host, INET_ADDRSTRLEN);
             }
             offset += in_addr_len;
@@ -257,12 +257,12 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
                 if (cork_ip_init(&ip, tmp) != -1) {
                     if (ip.version == 4) {
                         struct sockaddr_in *addr = (struct sockaddr_in *)storage;
-                        dns_pton(AF_INET, tmp, &(addr->sin_addr));
+                        ares_inet_pton(AF_INET, tmp, &(addr->sin_addr));
                         addr->sin_port   = *(uint16_t *)(buf + offset + 1 + name_len);
                         addr->sin_family = AF_INET;
                     } else if (ip.version == 6) {
                         struct sockaddr_in6 *addr = (struct sockaddr_in6 *)storage;
-                        dns_pton(AF_INET, tmp, &(addr->sin6_addr));
+                        ares_inet_pton(AF_INET, tmp, &(addr->sin6_addr));
                         addr->sin6_port   = *(uint16_t *)(buf + offset + 1 + name_len);
                         addr->sin6_family = AF_INET6;
                     }
@@ -284,7 +284,7 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
                 addr->sin6_port   = *(uint16_t *)(buf + offset + in6_addr_len);
             }
             if (host != NULL) {
-                dns_ntop(AF_INET6, (const void *)(buf + offset),
+                ares_inet_ntop(AF_INET6, (const void *)(buf + offset),
                          host, INET6_ADDRSTRLEN);
             }
             offset += in6_addr_len;
@@ -315,14 +315,14 @@ get_addr_str(const struct sockaddr *sa)
 
     switch (sa->sa_family) {
     case AF_INET:
-        dns_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
+        ares_inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
                  addr, INET_ADDRSTRLEN);
         p = ntohs(((struct sockaddr_in *)sa)->sin_port);
         sprintf(port, "%d", p);
         break;
 
     case AF_INET6:
-        dns_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
+        ares_inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
                  addr, INET6_ADDRSTRLEN);
         p = ntohs(((struct sockaddr_in *)sa)->sin_port);
         sprintf(port, "%d", p);
@@ -1007,7 +1007,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             memset(&host_addr, 0, sizeof(struct in_addr));
             int host_len = sizeof(struct in_addr);
 
-            if (dns_pton(AF_INET, host, &host_addr) == -1) {
+            if (ares_inet_pton(AF_INET, host, &host_addr) == -1) {
                 FATAL("IP parser error");
             }
             addr_header[addr_header_len++] = 1;
@@ -1019,7 +1019,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             memset(&host_addr, 0, sizeof(struct in6_addr));
             int host_len = sizeof(struct in6_addr);
 
-            if (dns_pton(AF_INET6, host, &host_addr) == -1) {
+            if (ares_inet_pton(AF_INET6, host, &host_addr) == -1) {
                 FATAL("IP parser error");
             }
             addr_header[addr_header_len++] = 4;
