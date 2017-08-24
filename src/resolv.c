@@ -81,10 +81,11 @@ struct resolv_query {
 extern int verbose;
 
 static struct ev_loop* resolv_loop;
-static struct ares_addr_node *default_servers;
 
 #if ARES_VERSION_MINOR >= 11
 static struct ares_addr_port_node *default_servers_ports;
+#else
+static struct ares_addr_node *default_servers;
 #endif
 
 static const int MODE_IPV4_ONLY  = 0;
@@ -149,16 +150,20 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
 
     if (nameservers != NULL) {
 #if ARES_VERSION_MINOR >= 11
-        ares_set_servers_ports_csv(channel, nameservers);
+        status = ares_set_servers_ports_csv(channel, nameservers);
 #else
-        ares_set_servers_csv(channel, nameservers);
+        status = ares_set_servers_csv(channel, nameservers);
 #endif
     }
 
-    ares_get_servers(channel, &default_servers);
+    if (status != ARES_SUCCESS) {
+        FATAL("failed to set nameservers");
+    }
 
 #if ARES_VERSION_MINOR >= 11
     ares_get_servers_ports(channel, &default_servers_ports);
+#else
+    ares_get_servers(channel, &default_servers);
 #endif
 
     ares_destroy(channel);
@@ -169,9 +174,10 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
 void
 resolv_shutdown(struct ev_loop *loop)
 {
-    ares_free_data(default_servers);
 #if ARES_VERSION_MINOR >= 11
     ares_free_data(default_servers_ports);
+#else
+    ares_free_data(default_servers);
 #endif
     ares_library_cleanup();
 }
@@ -212,16 +218,21 @@ resolv_start(const char *hostname, uint16_t port,
     query->options.tries = 2;
 
     status = ares_init_options(&query->channel, &query->options,
-            ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SOCK_STATE_CB);
-
-    ares_set_servers(query->channel, default_servers);
-
-#if ARES_VERSION_MINOR >= 11
-    ares_set_servers_ports(query->channel, default_servers_ports);
-#endif
+            ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SERVERS | ARES_OPT_SOCK_STATE_CB);
 
     if (status != ARES_SUCCESS) {
         LOGE("failed to initialize ares channel.");
+        return NULL;
+    }
+
+#if ARES_VERSION_MINOR >= 11
+    status = ares_set_servers_ports(query->channel, default_servers_ports);
+#else
+    status = ares_set_servers(query->channel, default_servers);
+#endif
+
+    if (status != ARES_SUCCESS) {
+        LOGE("failed to set nameservers.");
         return NULL;
     }
 
