@@ -530,12 +530,24 @@ new_query_ctx(char *buf, size_t len)
     return ctx;
 }
 
+static void
+query_free_cb(void *data)
+{
+    struct query_ctx *ctx = (struct query_ctx *)data;
+    if (ctx->buf != NULL) {
+        bfree(ctx->buf);
+        ss_free(ctx->buf);
+    }
+    ss_free(ctx);
+}
+
 void
 close_and_free_query(EV_P_ struct query_ctx *ctx)
 {
     if (ctx != NULL) {
         if (ctx->query != NULL) {
             resolv_cancel(ctx->query);
+            ctx->query = NULL;
             return;
         }
         if (ctx->buf != NULL) {
@@ -579,8 +591,6 @@ query_resolve_cb(struct sockaddr *addr, void *data)
 {
     struct query_ctx *query_ctx = (struct query_ctx *)data;
     struct ev_loop *loop        = query_ctx->server_ctx->loop;
-
-    query_ctx->query = NULL;
 
     if (addr == NULL) {
         LOGE("[udp] unable to resolve");
@@ -629,7 +639,10 @@ query_resolve_cb(struct sockaddr *addr, void *data)
         }
 
         if (remote_ctx != NULL) {
-            memcpy(&remote_ctx->dst_addr, addr, sizeof(struct sockaddr_storage));
+            if (addr->sa_family == AF_INET)
+                memcpy(&remote_ctx->dst_addr, addr, sizeof(struct sockaddr_in));
+            else
+                memcpy(&remote_ctx->dst_addr, addr, sizeof(struct sockaddr_in6));
 
             size_t addr_len = get_sockaddr_len(addr);
             int s           = sendto(remote_ctx->fd, query_ctx->buf->data, query_ctx->buf->len,
@@ -651,9 +664,6 @@ query_resolve_cb(struct sockaddr *addr, void *data)
             }
         }
     }
-
-    // clean up
-    close_and_free_query(EV_A_ query_ctx);
 }
 
 #endif
@@ -1291,7 +1301,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         struct resolv_query *query = resolv_start(host, htons(atoi(port)),
-                query_resolve_cb, query_ctx);
+                query_resolve_cb, query_free_cb, query_ctx);
 
         if (query == NULL) {
             ERROR("[udp] unable to create DNS query");

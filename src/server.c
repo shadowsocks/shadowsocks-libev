@@ -901,7 +901,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
             server->stage = STAGE_RESOLVE;
             server->query = resolv_start(host, port,
-                    server_resolve_cb, query);
+                    server_resolve_cb, NULL, query);
 
             ev_io_stop(EV_A_ & server_recv_ctx->io);
         }

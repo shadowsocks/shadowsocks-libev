@@ -57,8 +57,6 @@
  * Implement DNS resolution interface using libc-ares
  */
 
-#define EVARES_MAXIO 8
-
 struct resolv_query {
     struct ev_io    io;
     struct ev_timer tw;
@@ -71,6 +69,8 @@ struct resolv_query {
     struct sockaddr **responses;
 
     void (*client_cb)(struct sockaddr *, void *);
+    void (*free_cb)(void*);
+
     uint16_t port;
 
     void *data;
@@ -161,6 +161,8 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
     ares_get_servers_ports(channel, &default_servers_ports);
 #endif
 
+    ares_destroy(channel);
+
     return 0;
 }
 
@@ -176,7 +178,8 @@ resolv_shutdown(struct ev_loop *loop)
 
 struct resolv_query *
 resolv_start(const char *hostname, uint16_t port,
-        void (*client_cb)(struct sockaddr *, void *), void *data)
+        void (*client_cb)(struct sockaddr *, void *),
+        void (*free_cb)(void*), void *data)
 {
     int status;
 
@@ -198,6 +201,7 @@ resolv_start(const char *hostname, uint16_t port,
     query->response_count = 0;
     query->responses      = NULL;
     query->data           = data;
+    query->free_cb        = free_cb;
 
     ev_init(&query->io, resolv_sock_cb);
     ev_timer_init(&query->tw, resolv_timeout_cb, 0.0, 0.0);
@@ -287,7 +291,7 @@ dns_query_v4_cb(void *arg, int status, int timeouts, struct hostent *he)
                 sa->sin_port   = query->port;
                 memcpy(&sa->sin_addr, he->h_addr_list[i], he->h_length);
 
-                query->responses[query->response_count] = (struct sockaddr *)sa;
+                query->responses[query->response_count] = (struct sockaddr*)sa;
                 if (query->responses[query->response_count] == NULL) {
                     LOGE("failed to allocate memory for DNS query result address");
                 } else {
@@ -350,7 +354,7 @@ dns_query_v6_cb(void *arg, int status, int timeouts, struct hostent *he)
                 sa->sin6_port   = query->port;
                 memcpy(&sa->sin6_addr, he->h_addr_list[i], he->h_length);
 
-                query->responses[query->response_count] = (struct sockaddr *)sa;
+                query->responses[query->response_count] = (struct sockaddr*)sa;
                 if (query->responses[query->response_count] == NULL) {
                     LOGE("failed to allocate memory for DNS query result address");
                 } else {
@@ -452,7 +456,11 @@ resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
             ss_free(query->responses[i]);
 
         ss_free(query->responses);
-        ss_free(query->data);
+
+        if (query->free_cb != NULL)
+            query->free_cb(query->data);
+        else
+            ss_free(query->data);
 
         ss_free(query);
     } else {
