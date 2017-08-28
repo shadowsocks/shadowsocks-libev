@@ -107,11 +107,14 @@ static struct sockaddr *choose_ipv4_first(struct resolv_query *);
 static struct sockaddr *choose_ipv6_first(struct resolv_query *);
 static struct sockaddr *choose_any(struct resolv_query *);
 
+static void reset_timer(ares_channel, struct ev_timer *);
+
 /*
  * DNS UDP socket activity callback
  */
 static void
-resolv_sock_cb(EV_P_ ev_io *w, int revents) {
+resolv_sock_cb(EV_P_ ev_io *w, int revents)
+{
     struct resolv_query *query = (struct resolv_query *) w;
 
     ares_socket_t rfd = ARES_SOCKET_BAD, wfd = ARES_SOCKET_BAD;
@@ -122,6 +125,8 @@ resolv_sock_cb(EV_P_ ev_io *w, int revents) {
         wfd = w->fd;
 
     ares_process_fd(query->channel, rfd, wfd);
+
+    reset_timer(query->channel, &query->tw);
 }
 
 int
@@ -246,6 +251,8 @@ resolv_start(const char *hostname, uint16_t port,
         ares_gethostbyname(query->channel, hostname, AF_INET6, dns_query_v6_cb, query);
         query->requests[1] = AF_INET6;
     }
+
+    reset_timer(query->channel, &query->tw);
 
     return query;
 }
@@ -476,7 +483,22 @@ resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
         ss_free(query);
     } else {
         ares_process_fd(query->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
+
+        reset_timer(query->channel, &query->tw);
     }
+}
+
+static void
+reset_timer(ares_channel channel, struct ev_timer *watcher)
+{
+    struct timeval tvout;
+    struct timeval *tv = ares_timeout(channel, NULL, &tvout);
+    if (tv == NULL) {
+        return;
+    }
+    float repeat = tv->tv_sec + tv->tv_usec / 1000000. + 1e-9;
+    ev_timer_set(watcher, repeat, repeat);
+    ev_timer_again(resolv_loop, watcher);
 }
 
 /*
@@ -487,14 +509,6 @@ resolv_sock_state_cb(void *data, int s, int read, int write) {
 
     struct resolv_query *query = (struct resolv_query *) data;
     int iactive = ev_is_active(&query->io);
-    int tactive = ev_is_active(&query->tw);
-
-    if (!tactive) {
-        ev_timer_set(&query->tw, 1., 1.);
-        ev_timer_start(resolv_loop, &query->tw);
-    } else {
-        ev_timer_again(resolv_loop, &query->tw);
-    }
 
     if (read || write) {
 
@@ -512,16 +526,13 @@ resolv_sock_state_cb(void *data, int s, int read, int write) {
 
         query->is_closed = 1;
 
-        if (!tactive) {
-            ev_timer_set(&query->tw, 0., 0.);
-            ev_timer_start(resolv_loop, &query->tw);
-        } else {
-            ev_timer_again(resolv_loop, &query->tw);
-        }
-
         if (iactive) {
             ev_io_stop(resolv_loop, &query->io);
             ev_io_set(&query->io, -1, 0);
         }
+
+        // inovke the timer again to clean up the memory
+        ev_timer_set(&query->tw, 1e-9, 1e-9);
+        ev_timer_again(resolv_loop, &query->tw);
     }
 }
