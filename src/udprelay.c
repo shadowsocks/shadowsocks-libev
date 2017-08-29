@@ -79,7 +79,8 @@ static void remote_timeout_cb(EV_P_ ev_timer *watcher, int revents);
 
 static char *hash_key(const int af, const struct sockaddr_storage *addr);
 #ifdef MODULE_REMOTE
-static void query_resolve_cb(struct sockaddr *addr, void *data);
+static void resolv_free_cb(void *data);
+static void resolv_cb(struct sockaddr *addr, void *data);
 #endif
 static void close_and_free_remote(EV_P_ remote_ctx_t *ctx);
 static remote_ctx_t *new_remote(int fd, server_ctx_t *server_ctx);
@@ -530,17 +531,6 @@ new_query_ctx(char *buf, size_t len)
     return ctx;
 }
 
-static void
-query_free_cb(void *data)
-{
-    struct query_ctx *ctx = (struct query_ctx *)data;
-    if (ctx->buf != NULL) {
-        bfree(ctx->buf);
-        ss_free(ctx->buf);
-    }
-    ss_free(ctx);
-}
-
 void
 close_and_free_query(EV_P_ struct query_ctx *ctx)
 {
@@ -582,7 +572,18 @@ remote_timeout_cb(EV_P_ ev_timer *watcher, int revents)
 
 #ifdef MODULE_REMOTE
 static void
-query_resolve_cb(struct sockaddr *addr, void *data)
+resolv_free_cb(void *data)
+{
+    struct query_ctx *ctx = (struct query_ctx *)data;
+    if (ctx->buf != NULL) {
+        bfree(ctx->buf);
+        ss_free(ctx->buf);
+    }
+    ss_free(ctx);
+}
+
+static void
+resolv_cb(struct sockaddr *addr, void *data)
 {
     struct query_ctx *query_ctx = (struct query_ctx *)data;
     struct ev_loop *loop        = query_ctx->server_ctx->loop;
@@ -1296,7 +1297,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         struct resolv_query *query = resolv_start(host, htons(atoi(port)),
-                query_resolve_cb, query_free_cb, query_ctx);
+                resolv_cb, resolv_free_cb, query_ctx);
 
         if (query == NULL) {
             ERROR("[udp] unable to create DNS query");

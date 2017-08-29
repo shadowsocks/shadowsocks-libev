@@ -107,7 +107,8 @@ static void free_remote(remote_t *remote);
 static void close_and_free_remote(EV_P_ remote_t *remote);
 static void free_server(server_t *server);
 static void close_and_free_server(EV_P_ server_t *server);
-static void server_resolve_cb(struct sockaddr *addr, void *data);
+static void resolv_cb(struct sockaddr *addr, void *data);
+static void resolv_free_cb(void *data);
 
 int verbose     = 0;
 int reuse_port = 0;
@@ -902,7 +903,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
             server->stage = STAGE_RESOLVE;
             struct resolv_query *q = resolv_start(host, port,
-                    server_resolve_cb, NULL, query);
+                    resolv_cb, resolv_free_cb, query);
 
             if (q == NULL) {
                 if (query != NULL) ss_free(query);
@@ -998,7 +999,18 @@ server_timeout_cb(EV_P_ ev_timer *watcher, int revents)
 }
 
 static void
-server_resolve_cb(struct sockaddr *addr, void *data)
+resolv_free_cb(void *data)
+{
+    query_t *query = (query_t *)data;
+
+    if (query != NULL) {
+        query->server->query = NULL;
+        ss_free(query);
+    }
+}
+
+static void
+resolv_cb(struct sockaddr *addr, void *data)
 {
     query_t *query       = (query_t *)data;
     server_t *server     = query->server;
