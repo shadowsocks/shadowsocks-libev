@@ -897,11 +897,19 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             query_t *query = ss_malloc(sizeof(query_t));
             memset(query, 0, sizeof(query_t));
             query->server = server;
+            server->query = query;
             snprintf(query->hostname, 256, "%s", host);
 
             server->stage = STAGE_RESOLVE;
-            server->query = resolv_start(host, port,
+            struct resolv_query *q = resolv_start(host, port,
                     server_resolve_cb, NULL, query);
+
+            if (q == NULL) {
+                if (query != NULL) ss_free(query);
+                server->query = NULL;
+                close_and_free_server(EV_A_ server);
+                return;
+            }
 
             ev_io_stop(EV_A_ & server_recv_ctx->io);
         }
@@ -994,9 +1002,10 @@ server_resolve_cb(struct sockaddr *addr, void *data)
 {
     query_t *query       = (query_t *)data;
     server_t *server     = query->server;
-    struct ev_loop *loop = server->listen_ctx->loop;
 
-    server->query = NULL;
+    if (server == NULL) return;
+
+    struct ev_loop *loop = server->listen_ctx->loop;
 
     if (addr == NULL) {
         LOGE("unable to resolve %s", query->hostname);
@@ -1365,8 +1374,8 @@ close_and_free_server(EV_P_ server_t *server)
 {
     if (server != NULL) {
         if (server->query != NULL) {
-            resolv_cancel(server->query);
-            return;
+            server->query->server = NULL;
+            server->query = NULL;
         }
         ev_io_stop(EV_A_ & server->send_ctx->io);
         ev_io_stop(EV_A_ & server->recv_ctx->io);

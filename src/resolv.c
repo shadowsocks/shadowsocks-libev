@@ -57,13 +57,15 @@
  * Implement DNS resolution interface using libc-ares
  */
 
-struct resolv_query {
+struct resolv_ctx {
     struct ev_io    io;
     struct ev_timer tw;
 
     ares_channel channel;
     struct ares_options options;
+};
 
+struct resolv_query {
     int requests[2];
     size_t response_count;
     struct sockaddr **responses;
@@ -80,13 +82,8 @@ struct resolv_query {
 
 extern int verbose;
 
-static struct ev_loop* resolv_loop;
-
-#if ARES_VERSION_MINOR >= 11
-static struct ares_addr_port_node *default_servers_ports;
-#else
-static struct ares_addr_node *default_servers;
-#endif
+struct resolv_ctx default_ctx;
+static struct ev_loop* default_loop;
 
 static const int MODE_IPV4_ONLY  = 0;
 static const int MODE_IPV6_ONLY  = 1;
@@ -107,7 +104,7 @@ static struct sockaddr *choose_ipv4_first(struct resolv_query *);
 static struct sockaddr *choose_ipv6_first(struct resolv_query *);
 static struct sockaddr *choose_any(struct resolv_query *);
 
-static void reset_timer(ares_channel, struct ev_timer *);
+static void reset_timer();
 
 /*
  * DNS UDP socket activity callback
@@ -115,7 +112,7 @@ static void reset_timer(ares_channel, struct ev_timer *);
 static void
 resolv_sock_cb(EV_P_ ev_io *w, int revents)
 {
-    struct resolv_query *query = (struct resolv_query *) w;
+    struct resolv_ctx *ctx = (struct resolv_ctx *) w;
 
     ares_socket_t rfd = ARES_SOCKET_BAD, wfd = ARES_SOCKET_BAD;
 
@@ -124,9 +121,9 @@ resolv_sock_cb(EV_P_ ev_io *w, int revents)
     if (revents & EV_WRITE)
         wfd = w->fd;
 
-    ares_process_fd(query->channel, rfd, wfd);
+    ares_process_fd(ctx->channel, rfd, wfd);
 
-    reset_timer(query->channel, &query->tw);
+    reset_timer();
 }
 
 int
@@ -139,15 +136,22 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
     else
         resolv_mode = MODE_IPV4_FIRST;
 
-    resolv_loop = loop;
+    default_loop = loop;
 
     if ((status = ares_library_init(ARES_LIB_INIT_ALL) )!= ARES_SUCCESS) {
         LOGE("c-ares error: %s", ares_strerror(status));
         FATAL("failed to initialize c-ares");
     }
 
-    ares_channel channel;
-    status = ares_init(&channel);
+    memset(&default_ctx, 0, sizeof(struct resolv_ctx));
+
+    default_ctx.options.sock_state_cb_data = &default_ctx;
+    default_ctx.options.sock_state_cb = resolv_sock_state_cb;
+    default_ctx.options.timeout = 3000;
+    default_ctx.options.tries = 2;
+
+    status = ares_init_options(&default_ctx.channel, &default_ctx.options,
+            ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SOCK_STATE_CB);
 
     if (status != ARES_SUCCESS) {
         FATAL("failed to initialize c-ares");
@@ -155,9 +159,9 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
 
     if (nameservers != NULL) {
 #if ARES_VERSION_MINOR >= 11
-        status = ares_set_servers_ports_csv(channel, nameservers);
+        status = ares_set_servers_ports_csv(default_ctx.channel, nameservers);
 #else
-        status = ares_set_servers_csv(channel, nameservers);
+        status = ares_set_servers_csv(default_ctx.channel, nameservers);
 #endif
     }
 
@@ -165,13 +169,9 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
         FATAL("failed to set nameservers");
     }
 
-#if ARES_VERSION_MINOR >= 11
-    ares_get_servers_ports(channel, &default_servers_ports);
-#else
-    ares_get_servers(channel, &default_servers);
-#endif
+    ev_init(&default_ctx.io, resolv_sock_cb);
+    ev_timer_init(&default_ctx.tw, resolv_timeout_cb, 0.0, 0.0);
 
-    ares_destroy(channel);
 
     return 0;
 }
@@ -179,11 +179,9 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
 void
 resolv_shutdown(struct ev_loop *loop)
 {
-#if ARES_VERSION_MINOR >= 11
-    ares_free_data(default_servers_ports);
-#else
-    ares_free_data(default_servers);
-#endif
+    ares_cancel(default_ctx.channel);
+    ares_destroy(default_ctx.channel);
+
     ares_library_cleanup();
 }
 
@@ -192,8 +190,6 @@ resolv_start(const char *hostname, uint16_t port,
         void (*client_cb)(struct sockaddr *, void *),
         void (*free_cb)(void*), void *data)
 {
-    int status;
-
     /*
      * Wrap c-ares's call back in our own
      */
@@ -214,53 +210,20 @@ resolv_start(const char *hostname, uint16_t port,
     query->data           = data;
     query->free_cb        = free_cb;
 
-    ev_init(&query->io, resolv_sock_cb);
-    ev_timer_init(&query->tw, resolv_timeout_cb, 0.0, 0.0);
-
-    query->options.sock_state_cb_data = query;
-    query->options.sock_state_cb = resolv_sock_state_cb;
-    query->options.timeout = 3000;
-    query->options.tries = 2;
-
-    status = ares_init_options(&query->channel, &query->options,
-            ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SERVERS | ARES_OPT_SOCK_STATE_CB);
-
-    if (status != ARES_SUCCESS) {
-        LOGE("failed to initialize ares channel.");
-        return NULL;
-    }
-
-#if ARES_VERSION_MINOR >= 11
-    status = ares_set_servers_ports(query->channel, default_servers_ports);
-#else
-    status = ares_set_servers(query->channel, default_servers);
-#endif
-
-    if (status != ARES_SUCCESS) {
-        LOGE("failed to set nameservers.");
-        return NULL;
-    }
-
     /* Submit A and AAAA requests */
     if (resolv_mode != MODE_IPV6_ONLY) {
-        ares_gethostbyname(query->channel, hostname, AF_INET,  dns_query_v4_cb, query);
+        ares_gethostbyname(default_ctx.channel, hostname, AF_INET,  dns_query_v4_cb, query);
         query->requests[0] = AF_INET;
     }
 
     if (resolv_mode != MODE_IPV4_ONLY) {
-        ares_gethostbyname(query->channel, hostname, AF_INET6, dns_query_v6_cb, query);
+        ares_gethostbyname(default_ctx.channel, hostname, AF_INET6, dns_query_v6_cb, query);
         query->requests[1] = AF_INET6;
     }
 
-    reset_timer(query->channel, &query->tw);
+    reset_timer();
 
     return query;
-}
-
-void
-resolv_cancel(struct resolv_query *query)
-{
-    ares_cancel(query->channel);
 }
 
 /*
@@ -409,6 +372,18 @@ process_client_callback(struct resolv_query *query)
     }
 
     query->client_cb(best_address, query->data);
+
+    for (int i = 0; i < query->response_count; i++)
+        ss_free(query->responses[i]);
+
+    ss_free(query->responses);
+
+    if (query->free_cb != NULL)
+        query->free_cb(query->data);
+    else
+        ss_free(query->data);
+
+    ss_free(query);
 }
 
 static struct sockaddr *
@@ -461,44 +436,24 @@ all_requests_are_null(struct resolv_query *query)
 static void
 resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    struct resolv_query *query = cork_container_of(w, struct resolv_query, tw);
+    struct resolv_ctx *ctx= cork_container_of(w, struct resolv_ctx, tw);
 
-    if (query->is_closed) {
-        if (verbose) LOGI("name resolv clean up");
+    ares_process_fd(ctx->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
 
-        ev_timer_stop(resolv_loop, &query->tw);
-
-        ares_destroy(query->channel);
-
-        for (int i = 0; i < query->response_count; i++)
-            ss_free(query->responses[i]);
-
-        ss_free(query->responses);
-
-        if (query->free_cb != NULL)
-            query->free_cb(query->data);
-        else
-            ss_free(query->data);
-
-        ss_free(query);
-    } else {
-        ares_process_fd(query->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
-
-        reset_timer(query->channel, &query->tw);
-    }
+    reset_timer();
 }
 
 static void
-reset_timer(ares_channel channel, struct ev_timer *watcher)
+reset_timer()
 {
     struct timeval tvout;
-    struct timeval *tv = ares_timeout(channel, NULL, &tvout);
+    struct timeval *tv = ares_timeout(default_ctx.channel, NULL, &tvout);
     if (tv == NULL) {
         return;
     }
     float repeat = tv->tv_sec + tv->tv_usec / 1000000. + 1e-9;
-    ev_timer_set(watcher, repeat, repeat);
-    ev_timer_again(resolv_loop, watcher);
+    ev_timer_set(&default_ctx.tw, repeat, repeat);
+    ev_timer_again(default_loop, &default_ctx.tw);
 }
 
 /*
@@ -507,32 +462,12 @@ reset_timer(ares_channel channel, struct ev_timer *watcher)
 static void
 resolv_sock_state_cb(void *data, int s, int read, int write) {
 
-    struct resolv_query *query = (struct resolv_query *) data;
-    int iactive = ev_is_active(&query->io);
+    struct resolv_ctx *ctx = (struct resolv_ctx *) data;
 
     if (read || write) {
-
-        if (iactive && query->io.fd != s) {
-            ev_io_stop(resolv_loop, &query->io);
-            ev_io_set(&query->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
-            ev_io_start(resolv_loop, &query->io);
-            return;
-        }
-
-        ev_io_set(&query->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
-        ev_io_start(resolv_loop, &query->io);
-
+        ev_io_set(&ctx->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
+        ev_io_start(default_loop, &ctx->io);
     } else {
-
-        query->is_closed = 1;
-
-        if (iactive) {
-            ev_io_stop(resolv_loop, &query->io);
-            ev_io_set(&query->io, -1, 0);
-        }
-
-        // inovke the timer again to clean up the memory
-        ev_timer_set(&query->tw, 1e-9, 1e-9);
-        ev_timer_again(resolv_loop, &query->tw);
+        ev_io_stop(default_loop, &ctx->io);
     }
 }
