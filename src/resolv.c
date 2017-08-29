@@ -463,11 +463,16 @@ static void
 resolv_sock_state_cb(void *data, int s, int read, int write) {
 
     struct resolv_ctx *ctx = (struct resolv_ctx *) data;
+    int io_active = ev_is_active(&ctx->io);
 
     if (read || write) {
+        if (io_active && ctx->io.fd != s) {
+            ev_io_stop(default_loop, &ctx->io);
+        }
         ev_io_set(&ctx->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
         ev_io_start(default_loop, &ctx->io);
     } else {
         ev_io_stop(default_loop, &ctx->io);
+        ev_io_set(&ctx->io, -1, 0);
     }
 }
