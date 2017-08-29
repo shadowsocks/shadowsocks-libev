@@ -1004,7 +1004,8 @@ resolv_free_cb(void *data)
     query_t *query = (query_t *)data;
 
     if (query != NULL) {
-        query->server->query = NULL;
+        if (query->server != NULL)
+            query->server->query = NULL;
         ss_free(query);
     }
 }
