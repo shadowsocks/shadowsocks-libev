@@ -1914,6 +1914,9 @@ main(int argc, char **argv)
     }
 
     // Clean up
+
+    resolv_shutdown(loop);
+
     for (int i = 0; i < server_num; i++) {
         listen_ctx_t *listen_ctx = &listen_ctx_list[i];
         if (mode != UDP_ONLY) {
@@ -1930,8 +1933,6 @@ main(int argc, char **argv)
     if (mode != TCP_ONLY) {
         free_udprelay();
     }
-
-    resolv_shutdown(loop);
 
     return 0;
 }
