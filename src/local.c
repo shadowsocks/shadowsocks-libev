@@ -465,7 +465,14 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             // all processed
             return;
         } else if (server->stage == STAGE_INIT) {
-            if (buf->len < sizeof(struct method_select_request) + 1) {
+            if (buf->len < 1)
+                return;
+            if (buf->data[0] != SVERSION) {
+                close_and_free_remote(EV_A_ remote);
+                close_and_free_server(EV_A_ server);
+                return;
+            }
+            if (buf->len < sizeof(struct method_select_request)) {
                 return;
             }
             struct method_select_request *method = (struct method_select_request *)buf->data;
@@ -473,14 +480,27 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             if (buf->len < method_len) {
                 return;
             }
+            
             struct method_select_response response;
             response.ver    = SVERSION;
-            response.method = 0;
+            response.method = METHOD_UNACCEPTABLE;
+            for (int i = 0; i < method->nmethods; i++) {
+                if (method->methods[i] == METHOD_NOAUTH) {
+                    response.method = METHOD_NOAUTH;
+                    break;
+                }
+            }
             char *send_buf = (char *)&response;
             send(server->fd, send_buf, sizeof(response), 0);
+            if (response.method == METHOD_UNACCEPTABLE) {
+                close_and_free_remote(EV_A_ remote);
+                close_and_free_server(EV_A_ server);
+                return;
+            }
+            
             server->stage = STAGE_HANDSHAKE;
 
-            if (method->ver == SVERSION && method_len < (int)(buf->len)) {
+            if (method_len < (int)(buf->len)) {
                 memmove(buf->data, buf->data + method_len , buf->len - method_len);
                 buf->len -= method_len;
                 continue;
