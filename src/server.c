@@ -44,7 +44,6 @@
 #include <sys/un.h>
 
 #include <libcork/core.h>
-#include <udns.h>
 
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
 #include <net/if.h>
@@ -108,8 +107,8 @@ static void free_remote(remote_t *remote);
 static void close_and_free_remote(EV_P_ remote_t *remote);
 static void free_server(server_t *server);
 static void close_and_free_server(EV_P_ server_t *server);
-static void server_resolve_cb(struct sockaddr *addr, void *data);
-static void query_free_cb(void *data);
+static void resolv_cb(struct sockaddr *addr, void *data);
+static void resolv_free_cb(void *data);
 
 int verbose     = 0;
 int reuse_port = 0;
@@ -242,10 +241,10 @@ get_peer_name(int fd)
     if (err == 0) {
         if (addr.ss_family == AF_INET) {
             struct sockaddr_in *s = (struct sockaddr_in *)&addr;
-            dns_ntop(AF_INET, &s->sin_addr, peer_name, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &s->sin_addr, peer_name, INET_ADDRSTRLEN);
         } else if (addr.ss_family == AF_INET6) {
             struct sockaddr_in6 *s = (struct sockaddr_in6 *)&addr;
-            dns_ntop(AF_INET6, &s->sin6_addr, peer_name, INET6_ADDRSTRLEN);
+            inet_ntop(AF_INET6, &s->sin6_addr, peer_name, INET6_ADDRSTRLEN);
         }
     } else {
         return NULL;
@@ -454,10 +453,10 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 
         if (res->ai_addr->sa_family == AF_INET) {
             struct sockaddr_in *s = (struct sockaddr_in *)res->ai_addr;
-            dns_ntop(AF_INET, &s->sin_addr, ipstr, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &s->sin_addr, ipstr, INET_ADDRSTRLEN);
         } else if (res->ai_addr->sa_family == AF_INET6) {
             struct sockaddr_in6 *s = (struct sockaddr_in6 *)res->ai_addr;
-            dns_ntop(AF_INET6, &s->sin6_addr, ipstr, INET6_ADDRSTRLEN);
+            inet_ntop(AF_INET6, &s->sin6_addr, ipstr, INET6_ADDRSTRLEN);
         }
 
         if (outbound_block_match_host(ipstr) == 1) {
@@ -612,7 +611,7 @@ void setTosFromConnmark(remote_t* remote, server_t* server)
 			struct sockaddr_storage from_addr;
 			len = sizeof from_addr;
 			if(getpeername(remote->fd, (struct sockaddr*)&from_addr, &len) == 0) {
-				if((server->tracker = (struct dscptracker*) malloc(sizeof(struct dscptracker))))
+				if((server->tracker = (struct dscptracker*) ss_malloc(sizeof(struct dscptracker))))
 				{
 					if ((server->tracker->ct = nfct_new())) {
 						// Build conntrack query SELECT
@@ -759,7 +758,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             addr->sin_family = AF_INET;
             if (server->buf->len >= in_addr_len + 3) {
                 addr->sin_addr = *(struct in_addr *)(server->buf->data + offset);
-                dns_ntop(AF_INET, (const void *)(server->buf->data + offset),
+                inet_ntop(AF_INET, (const void *)(server->buf->data + offset),
                          host, INET_ADDRSTRLEN);
                 offset += in_addr_len;
             } else {
@@ -796,7 +795,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 info.ai_protocol = IPPROTO_TCP;
                 if (ip.version == 4) {
                     struct sockaddr_in *addr = (struct sockaddr_in *)&storage;
-                    dns_pton(AF_INET, host, &(addr->sin_addr));
+                    inet_pton(AF_INET, host, &(addr->sin_addr));
                     addr->sin_port   = *(uint16_t *)(server->buf->data + offset);
                     addr->sin_family = AF_INET;
                     info.ai_family   = AF_INET;
@@ -804,7 +803,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     info.ai_addr     = (struct sockaddr *)addr;
                 } else if (ip.version == 6) {
                     struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&storage;
-                    dns_pton(AF_INET6, host, &(addr->sin6_addr));
+                    inet_pton(AF_INET6, host, &(addr->sin6_addr));
                     addr->sin6_port   = *(uint16_t *)(server->buf->data + offset);
                     addr->sin6_family = AF_INET6;
                     info.ai_family    = AF_INET6;
@@ -826,7 +825,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             addr->sin6_family = AF_INET6;
             if (server->buf->len >= in6_addr_len + 3) {
                 addr->sin6_addr = *(struct in6_addr *)(server->buf->data + offset);
-                dns_ntop(AF_INET6, (const void *)(server->buf->data + offset),
+                inet_ntop(AF_INET6, (const void *)(server->buf->data + offset),
                          host, INET6_ADDRSTRLEN);
                 offset += in6_addr_len;
             } else {
@@ -899,11 +898,19 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             query_t *query = ss_malloc(sizeof(query_t));
             memset(query, 0, sizeof(query_t));
             query->server = server;
+            server->query = query;
             snprintf(query->hostname, 256, "%s", host);
 
             server->stage = STAGE_RESOLVE;
-            server->query = resolv_query(host, server_resolve_cb,
-                                         query_free_cb, query, port);
+            struct resolv_query *q = resolv_start(host, port,
+                    resolv_cb, resolv_free_cb, query);
+
+            if (q == NULL) {
+                if (query != NULL) ss_free(query);
+                server->query = NULL;
+                close_and_free_server(EV_A_ server);
+                return;
+            }
 
             ev_io_stop(EV_A_ & server_recv_ctx->io);
         }
@@ -992,21 +999,26 @@ server_timeout_cb(EV_P_ ev_timer *watcher, int revents)
 }
 
 static void
-query_free_cb(void *data)
+resolv_free_cb(void *data)
 {
-    if (data != NULL) {
-        ss_free(data);
+    query_t *query = (query_t *)data;
+
+    if (query != NULL) {
+        if (query->server != NULL)
+            query->server->query = NULL;
+        ss_free(query);
     }
 }
 
 static void
-server_resolve_cb(struct sockaddr *addr, void *data)
+resolv_cb(struct sockaddr *addr, void *data)
 {
     query_t *query       = (query_t *)data;
     server_t *server     = query->server;
-    struct ev_loop *loop = server->listen_ctx->loop;
 
-    server->query = NULL;
+    if (server == NULL) return;
+
+    struct ev_loop *loop = server->listen_ctx->loop;
 
     if (addr == NULL) {
         LOGE("unable to resolve %s", query->hostname);
@@ -1375,7 +1387,7 @@ close_and_free_server(EV_P_ server_t *server)
 {
     if (server != NULL) {
         if (server->query != NULL) {
-            resolv_cancel(server->query);
+            server->query->server = NULL;
             server->query = NULL;
         }
         ev_io_stop(EV_A_ & server->send_ctx->io);
@@ -1484,8 +1496,7 @@ main(int argc, char **argv)
     int server_num = 0;
     const char *server_host[MAX_REMOTE_NUM];
 
-    char *nameservers[MAX_DNS_NUM + 1];
-    int nameserver_num = 0;
+    char *nameservers = NULL;
 
     static struct option long_options[] = {
         { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
@@ -1574,9 +1585,7 @@ main(int argc, char **argv)
             iface = optarg;
             break;
         case 'd':
-            if (nameserver_num < MAX_DNS_NUM) {
-                nameservers[nameserver_num++] = optarg;
-            }
+            nameservers = optarg;
             break;
         case 'a':
             user = optarg;
@@ -1675,8 +1684,8 @@ main(int argc, char **argv)
             nofile = conf->nofile;
         }
 #endif
-        if (conf->nameserver != NULL) {
-            nameservers[nameserver_num++] = conf->nameserver;
+        if (nameservers == NULL) {
+            nameservers = conf->nameserver;
         }
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
@@ -1726,8 +1735,8 @@ main(int argc, char **argv)
     }
 #endif
 
+    USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
-        USE_SYSLOG(argv[0]);
         daemonize(pid_path);
     }
 
@@ -1776,15 +1785,11 @@ main(int argc, char **argv)
     // initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
 
-    // setup udns
-    if (nameserver_num == 0) {
-        resolv_init(loop, NULL, 0, ipv6first);
-    } else {
-        resolv_init(loop, nameservers, nameserver_num, ipv6first);
-    }
+    // setup dns
+    resolv_init(loop, nameservers, ipv6first);
 
-    for (int i = 0; i < nameserver_num; i++)
-        LOGI("using nameserver: %s", nameservers[i]);
+    if (nameservers != NULL)
+        LOGI("using nameserver: %s", nameservers);
 
     // Start plugin server
     if (plugin != NULL) {
@@ -1909,6 +1914,9 @@ main(int argc, char **argv)
     }
 
     // Clean up
+
+    resolv_shutdown(loop);
+
     for (int i = 0; i < server_num; i++) {
         listen_ctx_t *listen_ctx = &listen_ctx_list[i];
         if (mode != UDP_ONLY) {
@@ -1925,8 +1933,6 @@ main(int argc, char **argv)
     if (mode != TCP_ONLY) {
         free_udprelay();
     }
-
-    resolv_shutdown(loop);
 
     return 0;
 }

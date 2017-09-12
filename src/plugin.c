@@ -86,7 +86,6 @@ static int start_ss_plugin(const char *plugin,
                            const char *local_port,
                            enum plugin_mode mode)
 {
-    char *new_path = NULL;
     char *cmd      = NULL;
 
     size_t plugin_len = strlen(plugin);
@@ -113,9 +112,6 @@ static int start_ss_plugin(const char *plugin,
     int err = cork_subprocess_start(sub);
 
     ss_free(cmd);
-
-    if (new_path != NULL)
-        ss_free(new_path);
 
     return err;
 }

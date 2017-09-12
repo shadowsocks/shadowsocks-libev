@@ -26,6 +26,7 @@ usage() {
         -S <server_ip>          ip address of shadowsocks remote UDP server
         -L <local_port>         port number of shadowsocks local UDP server
         -i <ip_list_file>       a file content is bypassed ip list
+        -I <interface>          lan interface of nat, default: eth0
         -a <lan_ips>            lan ip of access control, need a prefix to
         define access control mode
         -b <wan_ips>            wan ip of will be bypassed
@@ -97,7 +98,7 @@ ac_rule() {
 				;;
 		esac
 	fi
-	IFNAME=eth0
+	IFNAME=${IFNAME:-eth0}
 	ipset -! -R <<-EOF || return 1
 		create ss_spec_lan_ac hash:net
 		$(for ip in ${LAN_AC_IP:1}; do echo "add ss_spec_lan_ac $ip"; done)
@@ -166,7 +167,7 @@ EOF
 	return $?
 }
 
-while getopts ":s:l:S:L:i:e:a:b:w:ouUfh" arg; do
+while getopts ":s:l:S:L:i:I:e:a:b:w:ouUfh" arg; do
 	case "$arg" in
 		s)
 			server=$OPTARG
@@ -182,6 +183,9 @@ while getopts ":s:l:S:L:i:e:a:b:w:ouUfh" arg; do
 			;;
 		i)
 			IGNORE_LIST=$OPTARG
+			;;
+		I)
+			IFNAME=$OPTARG
 			;;
 		e)
 			EXT_ARGS=$OPTARG

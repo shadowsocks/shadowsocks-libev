@@ -41,7 +41,6 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 
-#include <udns.h>
 #include <libcork/core.h>
 
 #ifdef HAVE_CONFIG_H
@@ -228,11 +227,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (AF_INET == server->destaddr.ss_family) {
             struct sockaddr_in *sa = (struct sockaddr_in *)&(server->destaddr);
-            dns_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
             port = ntohs(sa->sin_port);
         } else {
             struct sockaddr_in6 *sa = (struct sockaddr_in6 *)&(server->destaddr);
-            dns_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
+            inet_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
             port = ntohs(sa->sin6_port);
         }
 
@@ -1140,8 +1139,8 @@ main(int argc, char **argv)
 #endif
     }
 
+    USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
-        USE_SYSLOG(argv[0]);
         daemonize(pid_path);
     }
 
@@ -1251,17 +1250,17 @@ main(int argc, char **argv)
         }
 
         if(listen_ctx_current->tos) {
-            LOGI("listening at %s:%s (TOS/DSCP 0x%x)", local_addr, local_port, listen_ctx_current->tos);
+            LOGI("listening at %s:%s (TOS 0x%x)", local_addr, local_port, listen_ctx_current->tos);
         } else {
             LOGI("listening at %s:%s", local_addr, local_port);
         }
 
         // Handle additionals TOS/DSCP listening ports
         if (dscp_num > 0) {
-            listen_ctx_current = (listen_ctx_t*) malloc(sizeof(listen_ctx_t));
+            listen_ctx_current = (listen_ctx_t*) ss_malloc(sizeof(listen_ctx_t));
             listen_ctx_current = memcpy(listen_ctx_current, &listen_ctx, sizeof(listen_ctx_t));
             local_port = dscp[dscp_num-1].port;
-            listen_ctx_current->tos = dscp[dscp_num-1].dscp;
+            listen_ctx_current->tos = dscp[dscp_num-1].dscp << 2;
         }
     } while (dscp_num-- > 0);
 

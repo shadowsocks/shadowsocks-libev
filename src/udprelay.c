@@ -47,7 +47,6 @@
 #endif
 
 #include <libcork/core.h>
-#include <udns.h>
 
 #include "utils.h"
 #include "netutils.h"
@@ -80,7 +79,8 @@ static void remote_timeout_cb(EV_P_ ev_timer *watcher, int revents);
 
 static char *hash_key(const int af, const struct sockaddr_storage *addr);
 #ifdef MODULE_REMOTE
-static void query_resolve_cb(struct sockaddr *addr, void *data);
+static void resolv_free_cb(void *data);
+static void resolv_cb(struct sockaddr *addr, void *data);
 #endif
 static void close_and_free_remote(EV_P_ remote_ctx_t *ctx);
 static remote_ctx_t *new_remote(int fd, server_ctx_t *server_ctx);
@@ -192,9 +192,9 @@ hash_key(const int af, const struct sockaddr_storage *addr)
     return key;
 }
 
-#if defined(MODULE_REDIR) || defined(MODULE_REMOTE)
+#if defined(MODULE_REDIR)
 static int
-construct_udprealy_header(const struct sockaddr_storage *in_addr,
+construct_udprelay_header(const struct sockaddr_storage *in_addr,
                           char *addr_header)
 {
     int addr_header_len = 0;
@@ -223,7 +223,7 @@ construct_udprealy_header(const struct sockaddr_storage *in_addr,
 #endif
 
 static int
-parse_udprealy_header(const char *buf, const size_t buf_len,
+parse_udprelay_header(const char *buf, const size_t buf_len,
                       char *host, char *port, struct sockaddr_storage *storage)
 {
     const uint8_t atyp = *(uint8_t *)buf;
@@ -241,7 +241,7 @@ parse_udprealy_header(const char *buf, const size_t buf_len,
                 addr->sin_port   = *(uint16_t *)(buf + offset + in_addr_len);
             }
             if (host != NULL) {
-                dns_ntop(AF_INET, (const void *)(buf + offset),
+                inet_ntop(AF_INET, (const void *)(buf + offset),
                          host, INET_ADDRSTRLEN);
             }
             offset += in_addr_len;
@@ -257,12 +257,12 @@ parse_udprealy_header(const char *buf, const size_t buf_len,
                 if (cork_ip_init(&ip, tmp) != -1) {
                     if (ip.version == 4) {
                         struct sockaddr_in *addr = (struct sockaddr_in *)storage;
-                        dns_pton(AF_INET, tmp, &(addr->sin_addr));
+                        inet_pton(AF_INET, tmp, &(addr->sin_addr));
                         addr->sin_port   = *(uint16_t *)(buf + offset + 1 + name_len);
                         addr->sin_family = AF_INET;
                     } else if (ip.version == 6) {
                         struct sockaddr_in6 *addr = (struct sockaddr_in6 *)storage;
-                        dns_pton(AF_INET, tmp, &(addr->sin6_addr));
+                        inet_pton(AF_INET, tmp, &(addr->sin6_addr));
                         addr->sin6_port   = *(uint16_t *)(buf + offset + 1 + name_len);
                         addr->sin6_family = AF_INET6;
                     }
@@ -284,7 +284,7 @@ parse_udprealy_header(const char *buf, const size_t buf_len,
                 addr->sin6_port   = *(uint16_t *)(buf + offset + in6_addr_len);
             }
             if (host != NULL) {
-                dns_ntop(AF_INET6, (const void *)(buf + offset),
+                inet_ntop(AF_INET6, (const void *)(buf + offset),
                          host, INET6_ADDRSTRLEN);
             }
             offset += in6_addr_len;
@@ -315,14 +315,14 @@ get_addr_str(const struct sockaddr *sa)
 
     switch (sa->sa_family) {
     case AF_INET:
-        dns_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
+        inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
                  addr, INET_ADDRSTRLEN);
         p = ntohs(((struct sockaddr_in *)sa)->sin_port);
         sprintf(port, "%d", p);
         break;
 
     case AF_INET6:
-        dns_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
+        inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
                  addr, INET6_ADDRSTRLEN);
         p = ntohs(((struct sockaddr_in *)sa)->sin_port);
         sprintf(port, "%d", p);
@@ -497,6 +497,7 @@ new_remote(int fd, server_ctx_t *server_ctx)
 
     ctx->fd         = fd;
     ctx->server_ctx = server_ctx;
+    ctx->af         = AF_UNSPEC;
 
     ev_io_init(&ctx->io, remote_recv_cb, fd, EV_READ);
     ev_timer_init(&ctx->watcher, remote_timeout_cb, server_ctx->timeout,
@@ -535,10 +536,6 @@ void
 close_and_free_query(EV_P_ struct query_ctx *ctx)
 {
     if (ctx != NULL) {
-        if (ctx->query != NULL) {
-            resolv_cancel(ctx->query);
-            ctx->query = NULL;
-        }
         if (ctx->buf != NULL) {
             bfree(ctx->buf);
             ss_free(ctx->buf);
@@ -576,19 +573,24 @@ remote_timeout_cb(EV_P_ ev_timer *watcher, int revents)
 
 #ifdef MODULE_REMOTE
 static void
-query_resolve_cb(struct sockaddr *addr, void *data)
+resolv_free_cb(void *data)
+{
+    struct query_ctx *ctx = (struct query_ctx *)data;
+    if (ctx->buf != NULL) {
+        bfree(ctx->buf);
+        ss_free(ctx->buf);
+    }
+    ss_free(ctx);
+}
+
+static void
+resolv_cb(struct sockaddr *addr, void *data)
 {
     struct query_ctx *query_ctx = (struct query_ctx *)data;
     struct ev_loop *loop        = query_ctx->server_ctx->loop;
 
-    if (verbose) {
-        LOGI("[udp] udns resolved");
-    }
-
-    query_ctx->query = NULL;
-
     if (addr == NULL) {
-        LOGE("[udp] udns returned an error");
+        LOGE("[udp] unable to resolve");
     } else {
         remote_ctx_t *remote_ctx = query_ctx->remote_ctx;
         int cache_hit            = 0;
@@ -634,7 +636,10 @@ query_resolve_cb(struct sockaddr *addr, void *data)
         }
 
         if (remote_ctx != NULL) {
-            memcpy(&remote_ctx->dst_addr, addr, sizeof(struct sockaddr_storage));
+            if (addr->sa_family == AF_INET)
+                memcpy(&remote_ctx->dst_addr, addr, sizeof(struct sockaddr_in));
+            else
+                memcpy(&remote_ctx->dst_addr, addr, sizeof(struct sockaddr_in6));
 
             size_t addr_len = get_sockaddr_len(addr);
             int s           = sendto(remote_ctx->fd, query_ctx->buf->data, query_ctx->buf->len,
@@ -656,9 +661,6 @@ query_resolve_cb(struct sockaddr *addr, void *data)
             }
         }
     }
-
-    // clean up
-    close_and_free_query(EV_A_ query_ctx);
 }
 
 #endif
@@ -714,14 +716,14 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef MODULE_REDIR
     struct sockaddr_storage dst_addr;
     memset(&dst_addr, 0, sizeof(struct sockaddr_storage));
-    int len = parse_udprealy_header(buf->data, buf->len, NULL, NULL, &dst_addr);
+    int len = parse_udprelay_header(buf->data, buf->len, NULL, NULL, &dst_addr);
 
     if (dst_addr.ss_family != AF_INET && dst_addr.ss_family != AF_INET6) {
         LOGI("[udp] ss-redir does not support domain name");
         goto CLEAN_UP;
     }
 #else
-    int len = parse_udprealy_header(buf->data, buf->len, NULL, NULL, NULL);
+    int len = parse_udprelay_header(buf->data, buf->len, NULL, NULL, NULL);
 #endif
 
     if (len == 0) {
@@ -754,14 +756,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     rx += buf->len;
 
-    char addr_header_buf[512];
     char *addr_header   = remote_ctx->addr_header;
     int addr_header_len = remote_ctx->addr_header_len;
-
-    if (remote_ctx->af == AF_INET || remote_ctx->af == AF_INET6) {
-        addr_header_len = construct_udprealy_header(&src_addr, addr_header_buf);
-        addr_header     = addr_header_buf;
-    }
 
     // Construct packet
     brealloc(buf, buf->len + addr_header_len, buf_size);
@@ -977,7 +973,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
 #ifdef MODULE_REDIR
     char addr_header[512] = { 0 };
-    int addr_header_len   = construct_udprealy_header(&dst_addr, addr_header);
+    int addr_header_len   = construct_udprelay_header(&dst_addr, addr_header);
 
     if (addr_header_len == 0) {
         LOGE("[udp] failed to parse tproxy addr");
@@ -1007,7 +1003,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             memset(&host_addr, 0, sizeof(struct in_addr));
             int host_len = sizeof(struct in_addr);
 
-            if (dns_pton(AF_INET, host, &host_addr) == -1) {
+            if (inet_pton(AF_INET, host, &host_addr) == -1) {
                 FATAL("IP parser error");
             }
             addr_header[addr_header_len++] = 1;
@@ -1019,7 +1015,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             memset(&host_addr, 0, sizeof(struct in6_addr));
             int host_len = sizeof(struct in6_addr);
 
-            if (dns_pton(AF_INET6, host, &host_addr) == -1) {
+            if (inet_pton(AF_INET6, host, &host_addr) == -1) {
                 FATAL("IP parser error");
             }
             addr_header[addr_header_len++] = 4;
@@ -1053,7 +1049,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     struct sockaddr_storage dst_addr;
     memset(&dst_addr, 0, sizeof(struct sockaddr_storage));
 
-    int addr_header_len = parse_udprealy_header(buf->data + offset, buf->len - offset,
+    int addr_header_len = parse_udprelay_header(buf->data + offset, buf->len - offset,
                                                 host, port, &dst_addr);
     if (addr_header_len == 0) {
         // error in parse header
@@ -1214,6 +1210,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         // detect destination mismatch
         if (remote_ctx->addr_header_len != addr_header_len
             || memcmp(addr_header, remote_ctx->addr_header, addr_header_len) != 0) {
+            remote_ctx->addr_header_len = addr_header_len;
+            memcpy(remote_ctx->addr_header, addr_header, addr_header_len);
             if (dst_addr.ss_family != AF_INET && dst_addr.ss_family != AF_INET6) {
                 need_query = 1;
             }
@@ -1295,13 +1293,15 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             query_ctx->remote_ctx = remote_ctx;
         }
 
-        struct ResolvQuery *query = resolv_query(host, query_resolve_cb,
-                                                 NULL, query_ctx, htons(atoi(port)));
+        struct resolv_query *query = resolv_start(host, htons(atoi(port)),
+                resolv_cb, resolv_free_cb, query_ctx);
+
         if (query == NULL) {
             ERROR("[udp] unable to create DNS query");
             close_and_free_query(EV_A_ query_ctx);
             goto CLEAN_UP;
         }
+
         query_ctx->query = query;
     }
 #endif

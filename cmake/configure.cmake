@@ -67,7 +67,7 @@ check_include_files(sys/socket.h HAVE_SYS_SOCKET_H)
 check_include_files(sys/stat.h HAVE_SYS_STAT_H)
 check_include_files(sys/types.h HAVE_SYS_TYPES_H)
 check_include_files(sys/wait.h HAVE_SYS_WAIT_H)
-check_include_files(udns.h HAVE_UDNS_H)
+check_include_files(ares.h HAVE_ARES_H)
 check_include_files(unistd.h HAVE_UNISTD_H)
 
 check_function_exists(fork HAVE_FORK)
