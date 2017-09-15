@@ -136,6 +136,9 @@ Enable port reuse.
 +
 Only available with Linux kernel > 3.9.0.
 
+--no-delay::
+Enable TCP_NODELAY.
+
 --acl <acl_config>::
 Enable ACL (Access Control List) and specify config file.
 +

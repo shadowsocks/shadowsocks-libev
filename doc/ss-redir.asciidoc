@@ -12,7 +12,7 @@ SYNOPSIS
  [-s <server_host>] [-p <server_port>] [-l <local_port>]
  [-k <password>] [-m <encrypt_method>] [-f <pid_file>]
  [-t <timeout>] [-c <config_file>] [-b <local_address>]
- [-a <user_name>] [-n <nofile>] [--mtu <MTU>]
+ [-a <user_name>] [-n <nofile>] [--mtu <MTU>] [--no-delay]
  [--plugin <plugin_name>] [--plugin-opts <plugin_options>]
  [--password <password>] [--key <key_in_base64>]
 
@@ -108,6 +108,9 @@ Only available with MPTCP enabled Linux kernel.
 Enable port reuse.
 +
 Only available with Linux kernel > 3.9.0.
+
+--no-delay::
+Enable TCP_NODELAY.
 
 --plugin <plugin_name>::
 Enable SIP003 plugin. (Experimental)

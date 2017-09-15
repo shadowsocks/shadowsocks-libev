@@ -380,6 +380,8 @@ usage()
 #endif
 #ifndef MODULE_MANAGER
     printf(
+        "       [--no-delay]               Enable TCP_NODELAY.\n");
+    printf(
         "       [--key <key_in_base64>]    Key of your remote server.\n");
 #endif
     printf(
