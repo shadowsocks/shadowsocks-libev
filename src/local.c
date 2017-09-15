@@ -955,8 +955,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         int opt = 0;
         setsockopt(server->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
         setsockopt(remote->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
-        remote->recv_ctx->connected = 1;
     }
+    remote->recv_ctx->connected = 1;
 }
 
 static void
