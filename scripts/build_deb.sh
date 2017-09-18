@@ -65,6 +65,8 @@ apt_init() {
 			sudo sh -c "printf \"\\ndeb $REPO ${OSVER}-backports-sloppy main\" >> /etc/apt/sources.list.d/${OSVER}-backports.list"
 		sudo apt-get update
 		sudo apt-get install --no-install-recommends -y -t $BPO $DEPS_BPO
+		[ -n "$DEPS_EXTRA" -a "$DEPS_EXTRA" = "sloppy" ] &&
+			sudo apt-get install --no-install-recommends -y -t ${BPO}-sloppy $DEPS_BPO
 	else
 		sudo apt-get update
 	fi
@@ -396,7 +398,7 @@ esac
 
 case "$OSVER" in
 jessie)
-	BPO="debhelper libbloom-dev"
+	BPO="debhelper libbloom-dev libsodium-dev"
 	BPOEXTRA=sloppy
 	;;
 stretch)
