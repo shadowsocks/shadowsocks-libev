@@ -1,16 +1,14 @@
-脚本用systemd来控制shadowsocks-libev的多进程，可以使用多个配置文件，以便开放多个端口。
+This script is used to configure multi-ports using multi-configuration files. It uses systemd to manage multiple shadowsocks-libev processes, so in theory it will work on any Linux distribution that has systemd.
 
-使用方法:
+Usage:
 ---
-将写好的多个配置文件放到```/etc/shadowsocks-libev/```目录下，脚本会遍历里面的配置文件，依次使用systemd管理进程。
 
-Python脚本（需使用Python3，推荐）：
-	
-    python3 ss.py start|restart|stop|enable|disable|status        #启动|重启|停止|开机启动|禁止开机启动|状态
-    
-bash脚本：
+You need have Python3 installed on your system, you can check it out by using ```python3 --version```.
 
-	ss.sh start|restart|stop|enable|disable|status		#启动|重启|停止|开机启动|禁止开机启动|状态
+The usage is pretty simple: just like original systemctl.
 
-    
-仅在Ubuntu 16.04上测试过，其他发行版请自行根据情况修改脚本。
+1. put your configuration files in ```/etc/shadowsocks-libev/```
+2. use commands like systemctl
+
+
+    python3 ss.py start|restart|stop|enable|disable|status
