@@ -8,7 +8,4 @@ You need have Python3 installed on your system, you can check it out by using ``
 The usage is pretty simple: just like original systemctl.
 
 1. put your configuration files in ```/etc/shadowsocks-libev/```
-2. use commands like systemctl
-
-
-    python3 ss.py start|restart|stop|enable|disable|status
+2. use commands like systemctl ```ython3 ss.py start|restart|stop|enable|disable|status```
