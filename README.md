@@ -294,6 +294,8 @@ sudo make install
 
 You may need to manually install missing softwares.
 
+If you would like to install without asciidoc and/or xmlto, you have to "--disable-documentation"
+
 ### FreeBSD
 
 ```bash
