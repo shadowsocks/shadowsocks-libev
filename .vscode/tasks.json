@@ -1,0 +1,52 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "cwd": "${workspaceRoot}",
+    "env": {}
+  },
+  "presentation": {
+    "echo": true,
+    "reveal": "always",
+    "focus": true,
+    "panel": "shared"
+  },
+  "tasks": [
+    {
+      "label": "ss-clean",
+      "type": "shell",
+      "isBackground": false,
+      "command": "make clean",
+      "args": []
+    },
+    {
+      "label": "ss-gen-configure",
+      "type": "shell",
+      "isBackground": false,
+      "command": "sh autogen.sh"
+    },
+    {
+      "label": "ss-macos-configure",
+      "type": "shell",
+      "dependsOn": "ss-gen-configure",
+      "isBackground": false,
+      "command": "./configure",
+      "args": [
+        "--disable-documentation",
+        "--with-mbedtls=/usr/local/opt/mbedtls",
+        "--with-sodium=/usr/local/opt/libsodium"
+      ]
+    },
+    {
+      "label": "ss-macos-build",
+      "type": "shell",
+      "dependsOn": "ss-macos-configure",
+      "isBackground": false,
+      "command": "make",
+      "args": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}

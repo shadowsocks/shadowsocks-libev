@@ -102,7 +102,7 @@ For **Ubuntu 14.04 and 16.04** users, please install from PPA:
 
 ```bash
 sudo apt-get install software-properties-common -y
-sudo add-apt-repository ppa:max-c-lv/shadowsocks-libev
+sudo add-apt-repository ppa:max-c-lv/shadowsocks-libev -y
 sudo apt-get update
 sudo apt install shadowsocks-libev
 ```

@@ -93,3 +93,7 @@ doc/*.html
 *.tar.gz
 *.tgz
 #
+
+# Visual Studio Code
+.vscode/*
+!.vscode/*.json

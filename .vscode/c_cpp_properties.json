@@ -1,0 +1,92 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceRoot}/src",
+                "${workspaceRoot}/libcork/include",
+                "${workspaceRoot}/libipset/include",
+                "${workspaceRoot}/libbloom",
+                "/usr/local/opt/libev/include",
+                "/usr/local/opt/mbedtls/include",
+                "/usr/local/opt/libsodium/include",
+                "/usr/local/opt/pcre/include",
+                "/usr/local/opt/c-ares/include",
+                "/usr/include",
+                "/usr/local/include",
+                "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1",
+                "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include",
+                "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"
+            ],
+            "defines": [
+                "HAVE_CONFIG_H"
+            ],
+            "browse": {
+                "path": [
+                    "${workspaceRoot}/src",
+                    "${workspaceRoot}/libcork/include",
+                    "${workspaceRoot}/libipset/include",
+                    "${workspaceRoot}/libbloom",
+                    "/usr/local/opt/libev/include",
+                    "/usr/local/opt/mbedtls/include",
+                    "/usr/local/opt/libsodium/include",
+                    "/usr/local/opt/pcre/include",
+                    "/usr/local/opt/c-ares/include",
+                    "/usr/include",
+                    "/usr/local/include",
+                    "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1",
+                    "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include",
+                    "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"
+                ],
+                "limitSymbolsToIncludedHeaders": false,
+                "databaseFilename": "${workspaceRoot}/.vscode/intellisense.db"
+            },
+            "intelliSenseMode": "clang-x64",
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ]
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceRoot}/src",
+                "/usr/include",
+                "/usr/local/include"
+            ],
+            "defines": [
+                "HAVE_CONFIG_H"
+            ],
+            "browse": {
+                "path": [
+                    "/usr/include",
+                    "/usr/local/include"
+                ],
+                "limitSymbolsToIncludedHeaders": false,
+                "databaseFilename": "${workspaceRoot}/.vscode/intellisense.db"
+            },
+            "intelliSenseMode": "clang-x64"
+        },
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceRoot}/src",
+                "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "HAVE_CONFIG_H"
+            ],
+            "browse": {
+                "path": [
+                    "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include/*"
+                ],
+                "limitSymbolsToIncludedHeaders": false,
+                "databaseFilename": "${workspaceRoot}/.vscode/intellisense.db"
+            },
+            "intelliSenseMode": "msvc-x64"
+        }
+    ],
+    "version": 3
+}

@@ -1,0 +1,12 @@
+{
+  "C_Cpp.autocomplete": "Disabled",
+  "C_Cpp.clang_format_formatOnSave": false,
+  "[c]": {
+    "editor.formatOnSave": false,
+    "editor.quickSuggestions": true
+  },
+  "[cpp]": {
+    "editor.formatOnSave": false,
+    "editor.quickSuggestions": true
+  }
+}
