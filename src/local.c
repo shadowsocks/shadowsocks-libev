@@ -1493,6 +1493,9 @@ main(int argc, char **argv)
         if (mptcp == 0) {
             mptcp = conf->mptcp;
         }
+        if (no_delay == 0) {
+          no_delay = conf->no_delay;
+        }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;
@@ -1561,6 +1564,10 @@ main(int argc, char **argv)
         LOGE("tcp fast open is not supported by this environment");
         fast_open = 0;
 #endif
+    }
+
+    if (no_delay) {
+        LOGI("enable TCP no-delay");
     }
 
     if (ipv6first) {

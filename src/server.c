@@ -1679,6 +1679,9 @@ main(int argc, char **argv)
         if (mptcp == 0) {
             mptcp = conf->mptcp;
         }
+        if (no_delay == 0) {
+          no_delay = conf->no_delay;
+        }
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
@@ -1769,6 +1772,10 @@ main(int argc, char **argv)
 
     if (mode == UDP_ONLY) {
         LOGI("TCP relay disabled");
+    }
+
+    if (no_delay) {
+      LOGI("enable TCP no-delay");
     }
 
     // ignore SIGPIPE

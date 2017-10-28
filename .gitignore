@@ -96,4 +96,3 @@ doc/*.html
 
 # Visual Studio Code
 .vscode/*
-!.vscode/*.json

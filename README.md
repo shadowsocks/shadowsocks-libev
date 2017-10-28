@@ -184,7 +184,7 @@ Supported distributions:
 
 If you are using CentOS 7, you need to install these prequirement to build from source code:
 
-```bash 
+```bash
 yum install epel-release -y
 yum install gcc gettext autoconf libtool automake make pcre-devel asciidoc xmlto c-ares-devel libev-devel libsodium-devel mbedtls-devel -y
 ```
@@ -381,8 +381,12 @@ you may refer to the man pages of the applications, respectively.
                                   for local port forwarding,
                                   only available in tunnel mode
 
+       [-6]                       Resovle hostname to IPv6 address first.
+
        [-d <addr>]                setup name servers for internal DNS resolver,
                                   only available in server mode
+
+       [--reuse-port]             Enable port reuse.
 
        [--fast-open]              enable TCP fast open,
                                   only available in local and server mode,
@@ -393,6 +397,12 @@ you may refer to the man pages of the applications, respectively.
 
        [--manager-address <addr>] UNIX domain socket address
                                   only available in server and manager mode
+
+       [--mtu <MTU>]              MTU of your network interface.
+
+       [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.
+
+       [--no-delay]               Enable TCP_NODELAY.
 
        [--executable <path>]      path to the executable of ss-server
                                   only available in manager mode

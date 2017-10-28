@@ -86,6 +86,7 @@ typedef struct {
     int mtu;
     int mptcp;
     int ipv6_first;
+    int no_delay;
 } jconf_t;
 
 jconf_t *read_jconf(const char *file);

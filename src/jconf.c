@@ -326,6 +326,11 @@ read_jconf(const char *file)
                     "invalid config file: option 'use_syslog' must be a boolean");
                 use_syslog = value->u.boolean;
 #endif
+            } else if (strcmp(name, "no_delay") == 0) {
+                check_json_value_type(
+                    value, json_boolean,
+                    "invalid config file: option 'no_delay' must be a boolean");
+                conf.no_delay = value->u.boolean;
             }
         }
     } else {

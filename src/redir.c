@@ -1071,6 +1071,9 @@ main(int argc, char **argv)
         if (mptcp == 0) {
             mptcp = conf->mptcp;
         }
+        if (no_delay == 0) {
+          no_delay = conf->no_delay;
+        }
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
@@ -1148,6 +1151,10 @@ main(int argc, char **argv)
     USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
         daemonize(pid_path);
+    }
+
+    if (no_delay) {
+      LOGI("enable TCP no-delay");
     }
 
     if (ipv6first) {

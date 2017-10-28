@@ -974,6 +974,9 @@ main(int argc, char **argv)
         if (mptcp == 0) {
             mptcp = conf->mptcp;
         }
+        if (no_delay == 0) {
+            no_delay = conf->no_delay;
+        }
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
