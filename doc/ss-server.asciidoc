@@ -13,8 +13,8 @@ SYNOPSIS
  [-k <password>] [-m <encrypt_method>] [-f <pid_file>]
  [-t <timeout>] [-c <config_file>] [-i <interface>]
  [-a <user_name>] [-d <addr>] [-n <nofile>]
- [-b <local_address>] [--fast-open] [--reuse-port] [--mptcp]
- [--acl <acl_config>] [--mtu <MTU>]
+ [-b <local_address>] [--fast-open] [--reuse-port]
+ [--mptcp] [--acl <acl_config>] [--mtu <MTU>] [--no-delay]
  [--manager-address <path_to_unix_domain>]
  [--plugin <plugin_name>] [--plugin-opts <plugin_options>]
  [--password <password>] [--key <key_in_base64>]
@@ -112,6 +112,9 @@ Only available with Linux kernel > 3.7.0.
 Enable port reuse.
 +
 Only available with Linux kernel > 3.9.0.
+
+--no-delay::
+Enable TCP_NODELAY.
 
 --acl <acl_config>::
 Enable ACL (Access Control List) and specify config file.

@@ -28,6 +28,8 @@
 #define IPV4 0x01
 #define DOMAIN 0x03
 #define IPV6 0x04
+#define METHOD_NOAUTH 0x00
+#define METHOD_UNACCEPTABLE 0xff
 #define CMD_NOT_SUPPORTED 0x07
 
 struct method_select_request {

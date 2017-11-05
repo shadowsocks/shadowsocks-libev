@@ -41,7 +41,6 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_ipv6/ip6_tables.h>
 
-#include <udns.h>
 #include <libcork/core.h>
 
 #ifdef HAVE_CONFIG_H
@@ -96,9 +95,10 @@ static crypto_t *crypto;
 static int ipv6first = 0;
 static int mode      = TCP_ONLY;
 #ifdef HAVE_SETRLIMIT
-static int nofile    = 0;
+static int nofile = 0;
 #endif
 static int fast_open = 0;
+static int no_delay  = 0;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
@@ -228,11 +228,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (AF_INET == server->destaddr.ss_family) {
             struct sockaddr_in *sa = (struct sockaddr_in *)&(server->destaddr);
-            dns_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
             port = ntohs(sa->sin_port);
         } else {
             struct sockaddr_in6 *sa = (struct sockaddr_in6 *)&(server->destaddr);
-            dns_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
+            inet_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
             port = ntohs(sa->sin6_port);
         }
 
@@ -438,12 +438,12 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     // Disable TCP_NODELAY after the first response are sent
-    if (!remote->recv_ctx->connected) {
+    if (!remote->recv_ctx->connected && !no_delay) {
         int opt = 0;
         setsockopt(server->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
         setsockopt(remote->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
-        remote->recv_ctx->connected = 1;
     }
+    remote->recv_ctx->connected = 1;
 }
 
 static void
@@ -477,7 +477,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             balloc(abuf, BUF_SIZE);
 
             if (server->hostname_len > 0
-                    && validate_hostname(server->hostname, server->hostname_len)) { // HTTP/SNI
+                && validate_hostname(server->hostname, server->hostname_len)) {     // HTTP/SNI
                 uint16_t port;
                 if (AF_INET6 == server->destaddr.ss_family) { // IPv6
                     port = (((struct sockaddr_in6 *)&(server->destaddr))->sin6_port);
@@ -557,7 +557,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                        get_sockaddr_len(remote->addr));
 
             if (s == -1 && (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
-                errno == ENOPROTOOPT)) {
+                            errno == ENOPROTOOPT)) {
                 fast_open = 0;
                 LOGE("fast open is not supported on this platform");
                 close_and_free_remote(EV_A_ remote);
@@ -807,7 +807,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
         }
     } else if (listener->mptcp == 1) {
         int i = 0;
-        while((listener->mptcp = mptcp_enabled_values[i]) > 0) {
+        while ((listener->mptcp = mptcp_enabled_values[i]) > 0) {
             int err = setsockopt(remotefd, SOL_TCP, listener->mptcp, &opt, sizeof(opt));
             if (err != -1) {
                 break;
@@ -896,20 +896,21 @@ main(int argc, char **argv)
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
     char *remote_port = NULL;
 
-    int dscp_num   = 0;
-    ss_dscp_t * dscp = NULL;
+    int dscp_num    = 0;
+    ss_dscp_t *dscp = NULL;
 
     static struct option long_options[] = {
-        { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
-        { "mtu",         required_argument, NULL, GETOPT_VAL_MTU },
-        { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP },
-        { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN },
+        { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN   },
+        { "mtu",         required_argument, NULL, GETOPT_VAL_MTU         },
+        { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP       },
+        { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN      },
         { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
-        { "reuse-port",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
-        { "password",    required_argument, NULL, GETOPT_VAL_PASSWORD },
-        { "key",         required_argument, NULL, GETOPT_VAL_KEY },
-        { "help",        no_argument,       NULL, GETOPT_VAL_HELP },
-        { NULL,          0,                 NULL, 0 }
+        { "reuse-port",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT  },
+        { "no-delay",    no_argument,       NULL, GETOPT_VAL_NODELAY     },
+        { "password",    required_argument, NULL, GETOPT_VAL_PASSWORD    },
+        { "key",         required_argument, NULL, GETOPT_VAL_KEY         },
+        { "help",        no_argument,       NULL, GETOPT_VAL_HELP        },
+        { NULL,                          0, NULL,                      0 }
     };
 
     opterr = 0;
@@ -929,6 +930,10 @@ main(int argc, char **argv)
         case GETOPT_VAL_MPTCP:
             mptcp = 1;
             LOGI("enable multipath TCP");
+            break;
+        case GETOPT_VAL_NODELAY:
+            no_delay = 1;
+            LOGI("enable TCP no-delay");
             break;
         case GETOPT_VAL_PLUGIN:
             plugin = optarg;
@@ -1066,6 +1071,9 @@ main(int argc, char **argv)
         if (mptcp == 0) {
             mptcp = conf->mptcp;
         }
+        if (no_delay == 0) {
+            no_delay = conf->no_delay;
+        }
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
@@ -1083,12 +1091,12 @@ main(int argc, char **argv)
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
         }
-	dscp_num = conf->dscp_num;
-	dscp = conf->dscp;
+        dscp_num = conf->dscp_num;
+        dscp     = conf->dscp;
     }
 
     if (remote_num == 0 || remote_port == NULL || local_port == NULL
-            || (password == NULL && key == NULL)) {
+        || (password == NULL && key == NULL)) {
         usage();
         exit(EXIT_FAILURE);
     }
@@ -1130,7 +1138,6 @@ main(int argc, char **argv)
         local_addr = "127.0.0.1";
     }
 
-
     if (fast_open == 1) {
 #ifdef TCP_FASTOPEN
         LOGI("using tcp fast open");
@@ -1140,9 +1147,13 @@ main(int argc, char **argv)
 #endif
     }
 
+    USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
-        USE_SYSLOG(argv[0]);
         daemonize(pid_path);
+    }
+
+    if (no_delay) {
+        LOGI("enable TCP no-delay");
     }
 
     if (ipv6first) {
@@ -1150,8 +1161,8 @@ main(int argc, char **argv)
     }
 
     if (plugin != NULL) {
-        int len = 0;
-        size_t buf_size = 256 * remote_num;
+        int len          = 0;
+        size_t buf_size  = 256 * remote_num;
         char *remote_str = ss_malloc(buf_size);
 
         snprintf(remote_str, buf_size, "%s", remote_addr[0].host);
@@ -1160,7 +1171,7 @@ main(int argc, char **argv)
             len = strlen(remote_str);
         }
         int err = start_plugin(plugin, plugin_opts, remote_str,
-                remote_port, plugin_host, plugin_port, MODE_CLIENT);
+                               remote_port, plugin_host, plugin_port, MODE_CLIENT);
         if (err) {
             FATAL("failed to start the plugin");
         }
@@ -1204,24 +1215,25 @@ main(int argc, char **argv)
         }
         listen_ctx.remote_addr[i] = (struct sockaddr *)storage;
 
-        if (plugin != NULL) break;
+        if (plugin != NULL)
+            break;
     }
     listen_ctx.timeout = atoi(timeout);
     listen_ctx.mptcp   = mptcp;
 
     struct ev_loop *loop = EV_DEFAULT;
 
-    listen_ctx_t* listen_ctx_current = &listen_ctx;
+    listen_ctx_t *listen_ctx_current = &listen_ctx;
     do {
         if (mode != UDP_ONLY) {
             // Setup socket
             int listenfd;
             listenfd = create_and_bind(local_addr, local_port);
             if (listenfd == -1) {
-               FATAL("bind() error");
+                FATAL("bind() error");
             }
             if (listen(listenfd, SOMAXCONN) == -1) {
-               FATAL("listen() error");
+                FATAL("listen() error");
             }
             setnonblocking(listenfd);
 
@@ -1234,8 +1246,8 @@ main(int argc, char **argv)
         // Setup UDP
         if (mode != TCP_ONLY) {
             LOGI("UDP relay enabled");
-            char *host = remote_addr[0].host;
-            char *port = remote_addr[0].port == NULL ? remote_port : remote_addr[0].port;
+            char *host                       = remote_addr[0].host;
+            char *port                       = remote_addr[0].port == NULL ? remote_port : remote_addr[0].port;
             struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
             memset(storage, 0, sizeof(struct sockaddr_storage));
             if (get_sockaddr(host, port, storage, 1, ipv6first) == -1) {
@@ -1250,18 +1262,18 @@ main(int argc, char **argv)
             LOGI("TCP relay disabled");
         }
 
-        if(listen_ctx_current->tos) {
-            LOGI("listening at %s:%s (TOS/DSCP 0x%x)", local_addr, local_port, listen_ctx_current->tos);
+        if (listen_ctx_current->tos) {
+            LOGI("listening at %s:%s (TOS 0x%x)", local_addr, local_port, listen_ctx_current->tos);
         } else {
             LOGI("listening at %s:%s", local_addr, local_port);
         }
 
         // Handle additionals TOS/DSCP listening ports
         if (dscp_num > 0) {
-            listen_ctx_current = (listen_ctx_t*) malloc(sizeof(listen_ctx_t));
-            listen_ctx_current = memcpy(listen_ctx_current, &listen_ctx, sizeof(listen_ctx_t));
-            local_port = dscp[dscp_num-1].port;
-            listen_ctx_current->tos = dscp[dscp_num-1].dscp;
+            listen_ctx_current      = (listen_ctx_t *)ss_malloc(sizeof(listen_ctx_t));
+            listen_ctx_current      = memcpy(listen_ctx_current, &listen_ctx, sizeof(listen_ctx_t));
+            local_port              = dscp[dscp_num - 1].port;
+            listen_ctx_current->tos = dscp[dscp_num - 1].dscp << 2;
         }
     } while (dscp_num-- > 0);
 

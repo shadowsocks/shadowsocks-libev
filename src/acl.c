@@ -120,12 +120,11 @@ update_block_list(char *addr, int err_level)
 static void
 parse_addr_cidr(const char *str, char *host, int *cidr)
 {
-    int ret = -1, n = 0;
+    int ret = -1;
     char *pch;
 
     pch = strchr(str, '/');
     while (pch != NULL) {
-        n++;
         ret = pch - str;
         pch = strchr(pch + 1, '/');
     }
@@ -192,6 +191,23 @@ init_acl(const char *path)
     char buf[257];
     while (!feof(f))
         if (fgets(buf, 256, f)) {
+            // Discards the whole line if longer than 255 characters
+            int long_line = 0;  // 1: Long  2: Error
+            while ((strlen(buf) == 255) && (buf[254] != '\n')) {
+                long_line = 1;
+                LOGE("Discarding long ACL content: %s", buf);
+                if (fgets(buf, 256, f) == NULL) {
+                    long_line = 2;
+                    break;
+                }
+            }
+            if (long_line) {
+                if (long_line == 1) {
+                    LOGE("Discarding long ACL content: %s", buf);
+                }
+                continue;
+            }
+
             // Trim the newline
             int len = strlen(buf);
             if (len > 0 && buf[len - 1] == '\n') {

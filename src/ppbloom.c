@@ -41,13 +41,15 @@ ppbloom_init(int n, double e)
 {
     int err;
     entries = n / 2;
-    error = e;
+    error   = e;
 
     err = bloom_init(ppbloom + PING, entries, error);
-    if (err) return err;
+    if (err)
+        return err;
 
     err = bloom_init(ppbloom + PONG, entries, error);
-    if (err) return err;
+    if (err)
+        return err;
 
     bloom_count[PING] = 0;
     bloom_count[PONG] = 0;
@@ -63,10 +65,12 @@ ppbloom_check(const void *buffer, int len)
     int ret;
 
     ret = bloom_check(ppbloom + PING, buffer, len);
-    if (ret) return ret;
+    if (ret)
+        return ret;
 
     ret = bloom_check(ppbloom + PONG, buffer, len);
-    if (ret) return ret;
+    if (ret)
+        return ret;
 
     return 0;
 }
@@ -76,13 +80,14 @@ ppbloom_add(const void *buffer, int len)
 {
     int err;
     err = bloom_add(ppbloom + current, buffer, len);
-    if (err == -1) return err;
+    if (err == -1)
+        return err;
 
     bloom_count[current]++;
 
     if (bloom_count[current] >= entries) {
         bloom_count[current] = 0;
-        current = current == PING ? PONG : PING;
+        current              = current == PING ? PONG : PING;
         bloom_free(ppbloom + current);
         bloom_init(ppbloom + current, entries, error);
     }

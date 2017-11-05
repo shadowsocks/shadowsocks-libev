@@ -1,3 +1,16 @@
+shadowsocks-libev (3.1.0-1) unstable; urgency=low
+
+  * Replace libudns with libc-ares.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 14 Sep 2017 19:27:51 -0700
+
+shadowsocks-libev (3.0.8-1) unstable; urgency=medium
+
+  * Refine the ping-pong bloom filter.
+  * Minor bug fixes by @vfreex, @vlolteanu and @jackyyf.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 27 Jul 2017 11:01:37 +0800
+
 shadowsocks-libev (3.0.7-1) unstable; urgency=medium
 
   * Refine manager mode by @mengxd.

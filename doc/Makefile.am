@@ -12,21 +12,16 @@ VERSION = `$(SED) -n 's/.*PACKAGE_VERSION "\(.*\)"/\1/p'\
 		  ../config.h`
 
 # Guard against environment variables
-if ENABLE_DOCUMENTATION
-  MAN1_DOC =
-  MAN1_DOC += ss-local.1
-  MAN1_DOC += ss-manager.1
-  MAN1_DOC += ss-nat.1
-  MAN1_DOC += ss-redir.1
-  MAN1_DOC += ss-server.1
-  MAN1_DOC += ss-tunnel.1
+MAN1_DOC =
+MAN1_DOC += ss-local.1
+MAN1_DOC += ss-manager.1
+MAN1_DOC += ss-nat.1
+MAN1_DOC += ss-redir.1
+MAN1_DOC += ss-server.1
+MAN1_DOC += ss-tunnel.1
 
-  MAN8_DOC =
-  MAN8_DOC += shadowsocks-libev.8
-else
-  MAN1_DOC =
-  MAN8_DOC =
-endif
+MAN8_DOC =
+MAN8_DOC += shadowsocks-libev.8
 
 MAN8_XML = $(MAN8_DOC:%.8=%.xml)
 MAN1_XML = $(MAN1_DOC:%.1=%.xml)
@@ -59,6 +54,7 @@ html-local: $(MAN_HTML)
 		-aversion=$(VERSION) $(ASCIIDOC_EXTRA) -o $@ $<
 
 doc_DATA = $(MAN_HTML)
+
 CLEANFILES = $(MAN_XML) $(man_MANS) $(MAN_HTML)
 
 EXTRA_DIST = *.asciidoc asciidoc.conf *.xsl

@@ -75,11 +75,4 @@ struct server {
     uint64_t traffic;
 };
 
-typedef struct sock_lock {
-    char *port;
-    int *fds;
-    int fd_count;
-    ev_timer watcher;
-} sock_lock_t;
-
 #endif // _MANAGER_H

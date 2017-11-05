@@ -88,7 +88,7 @@ find_library(LIBSODIUM libsodium.a)
 find_library(LIBMBEDTLS libmbedtls.a)
 find_library(LIBMBEDCRYPTO libmbedcrypto.a)
 find_library(LIBEV libev.a)
-find_library(LIBUDNS libudns.a)
+find_library(LIBUDNS libcares.a)
 find_library(LIBPCRE libpcre.a)
 endif ()
 
@@ -96,7 +96,7 @@ find_library(LIBSODIUM_SHARED sodium)
 find_library(LIBMBEDTLS_SHARED mbedtls)
 find_library(LIBMBEDCRYPTO_SHARED mbedcrypto)
 find_library(LIBEV_SHARED ev)
-find_library(LIBUDNS_SHARED udns)
+find_library(LIBUDNS_SHARED cares)
 find_library(LIBPCRE_SHARED pcre)
 
 # Dependencies we need for static and shared

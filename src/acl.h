@@ -26,7 +26,7 @@
 #define BLACK_LIST 0
 #define WHITE_LIST 1
 
-#define MAX_TRIES  64
+#define MAX_TRIES  256
 #define MALICIOUS  8
 #define SUSPICIOUS 4
 #define BAD        2

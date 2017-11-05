@@ -10,7 +10,7 @@ Build-Depends:
  libmbedtls-dev,
  libpcre3-dev,
  libsodium-dev (>= 1.0.8~),
- libudns-dev,
+ libc-ares-dev,
  pkg-config,
  xmlto
 Standards-Version: 3.9.8
