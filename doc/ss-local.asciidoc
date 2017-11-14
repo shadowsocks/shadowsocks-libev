@@ -13,7 +13,8 @@ SYNOPSIS
  [-k <password>] [-m <encrypt_method>] [-f <pid_file>]
  [-t <timeout>] [-c <config_file>] [-i <interface>]
  [-a <user_name>] [-b <local_address>] [-n <nofile>]
- [--fast-open] [--reuse-port] [--acl <acl_config>] [--mtu <MTU>]
+ [--fast-open] [--reuse-port] [--acl <acl_config>]
+ [--mtu <MTU>] [--no-delay]
  [--plugin <plugin_name>] [--plugin-opts <plugin_options>]
  [--password <password>] [--key <key_in_base64>]
 
@@ -123,6 +124,9 @@ Specify the MTU of your network interface.
 Enable Multipath TCP.
 +
 Only available with MPTCP enabled Linux kernel.
+
+--no-delay::
+Enable TCP_NODELAY.
 
 --plugin <plugin_name>::
 Enable SIP003 plugin. (Experimental)

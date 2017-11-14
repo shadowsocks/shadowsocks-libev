@@ -136,6 +136,9 @@ Enable port reuse.
 +
 Only available with Linux kernel > 3.9.0.
 
+--no-delay::
+Enable TCP_NODELAY.
+
 --acl <acl_config>::
 Enable ACL (Access Control List) and specify config file.
 +
@@ -176,6 +179,7 @@ The config file equivalent of command line options is listed as example below.
 | -a nobody                           | "user": "nobody"
 | --fast-open                         | "fast_open": true
 | --reuse-port                        | "reuse_port": true
+| --no-delay                          | "no_delay": true
 | --plugin "obfs-server"              | "plugin": "obfs-server"
 | --plugin-opts "obfs=http"           | "plugin_opts": "obfs=http"
 | -6                                  | "ipv6_first": true

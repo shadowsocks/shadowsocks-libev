@@ -67,7 +67,7 @@ typedef struct server_ctx {
 
 #ifdef MODULE_REMOTE
 typedef struct query_ctx {
-    struct ResolvQuery *query;
+    struct resolv_query *query;
     struct sockaddr_storage src_addr;
     buffer_t *buf;
     int addr_header_len;

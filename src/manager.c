@@ -83,16 +83,21 @@ setnonblocking(int fd)
 }
 
 static void
-destroy_server(struct server *server) {
+destroy_server(struct server *server)
+{
 // function used to free memories alloced in **get_server**
-    if (server->method) ss_free(server->method);
-    if (server->plugin) ss_free(server->plugin);
-    if (server->plugin_opts) ss_free(server->plugin_opts);
-    if (server->mode) ss_free(server->mode);
+    if (server->method)
+        ss_free(server->method);
+    if (server->plugin)
+        ss_free(server->plugin);
+    if (server->plugin_opts)
+        ss_free(server->plugin_opts);
+    if (server->mode)
+        ss_free(server->mode);
 }
 
 static void
-build_config(char *prefix, struct server *server)
+build_config(char *prefix, struct manager_ctx *manager, struct server *server)
 {
     char *path    = NULL;
     int path_size = strlen(prefix) + strlen(server->port) + 20;
@@ -110,11 +115,18 @@ build_config(char *prefix, struct server *server)
     fprintf(f, "{\n");
     fprintf(f, "\"server_port\":%d,\n", atoi(server->port));
     fprintf(f, "\"password\":\"%s\"", server->password);
-    if (server->fast_open[0]) fprintf(f, ",\n\"fast_open\": %s", server->fast_open);
-    if (server->mode)   fprintf(f, ",\n\"mode\":\"%s\"", server->mode);
-    if (server->method) fprintf(f, ",\n\"method\":\"%s\"", server->method);
-    if (server->plugin) fprintf(f, ",\n\"plugin\":\"%s\"", server->plugin);
-    if (server->plugin_opts) fprintf(f, ",\n\"plugin_opts\":\"%s\"", server->plugin_opts);
+    if (server->method)
+        fprintf(f, ",\n\"method\":\"%s\"", server->method);
+    else if (manager->method)
+        fprintf(f, ",\n\"method\":\"%s\"", manager->method);
+    if (server->fast_open[0])
+        fprintf(f, ",\n\"fast_open\": %s", server->fast_open);
+    if (server->mode)
+        fprintf(f, ",\n\"mode\":\"%s\"", server->mode);
+    if (server->plugin)
+        fprintf(f, ",\n\"plugin\":\"%s\"", server->plugin);
+    if (server->plugin_opts)
+        fprintf(f, ",\n\"plugin_opts\":\"%s\"", server->plugin_opts);
     fprintf(f, "\n}\n");
     fclose(f);
     ss_free(path);
@@ -124,17 +136,17 @@ static char *
 construct_command_line(struct manager_ctx *manager, struct server *server)
 {
     static char cmd[BUF_SIZE];
-    char *method = manager->method;
     int i;
+    int port;
 
-    build_config(working_dir, server);
+    port = atoi(server->port);
 
-    if (server->method) method = server->method;
+    build_config(working_dir, manager, server);
+
     memset(cmd, 0, BUF_SIZE);
     snprintf(cmd, BUF_SIZE,
-             "%s -m %s --manager-address %s -f %s/.shadowsocks_%s.pid -c %s/.shadowsocks_%s.conf",
-             executable, method, manager->manager_address,
-             working_dir, server->port, working_dir, server->port);
+             "%s --manager-address %s -f %s/.shadowsocks_%d.pid -c %s/.shadowsocks_%d.conf",
+             executable, manager->manager_address, working_dir, port, working_dir, port);
 
     if (manager->acl != NULL) {
         int len = strlen(cmd);
@@ -458,11 +470,10 @@ check_port(struct manager_ctx *manager, struct server *server)
     }
 
     /* clean socks */
-    for (int i = 0; i < fd_count; i++) {
+    for (int i = 0; i < fd_count; i++)
         if (sock_fds[i] > 0) {
             close(sock_fds[i]);
         }
-    }
 
     ss_free(sock_fds);
 
@@ -623,7 +634,7 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
             ERROR("add_sendto");
         }
     } else if (strcmp(action, "list") == 0) {
-        struct cork_hash_table_iterator  iter;
+        struct cork_hash_table_iterator iter;
         struct cork_hash_table_entry  *entry;
         char buf[BUF_SIZE];
         memset(buf, 0, BUF_SIZE);
@@ -632,10 +643,10 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         cork_hash_table_iterator_init(server_table, &iter);
         while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
             struct server *server = (struct server *)entry->value;
-            char *method = server->method?server->method:manager->method;
-            size_t pos = strlen(buf);
-            size_t entry_len = strlen(server->port) + strlen(server->password) + strlen(method);
-            if (pos > BUF_SIZE-entry_len-50) {
+            char *method          = server->method ? server->method : manager->method;
+            size_t pos            = strlen(buf);
+            size_t entry_len      = strlen(server->port) + strlen(server->password) + strlen(method);
+            if (pos > BUF_SIZE - entry_len - 50) {
                 if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
                     != pos) {
                     ERROR("list_sendto");
@@ -643,13 +654,12 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
                 memset(buf, 0, BUF_SIZE);
                 pos = 0;
             }
-            sprintf(buf + pos, "\n\t{\"server_port\":\"%s\",\"password\":\"%s\",\"method\":\"%s\"},", 
-                    server->port,server->password,method);
-
+            sprintf(buf + pos, "\n\t{\"server_port\":\"%s\",\"password\":\"%s\",\"method\":\"%s\"},",
+                    server->port, server->password, method);
         }
 
         size_t pos = strlen(buf);
-        strcpy(buf + pos - 1, "\n]"); //Remove trailing ","
+        strcpy(buf + pos - 1, "\n]"); // Remove trailing ","
         pos = strlen(buf);
         if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
             != pos) {
@@ -857,19 +867,19 @@ main(int argc, char **argv)
     jconf_t *conf = NULL;
 
     static struct option long_options[] = {
-        { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
-        { "reuse-port",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
-        { "acl",             required_argument, NULL, GETOPT_VAL_ACL },
+        { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN   },
+        { "reuse-port",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT  },
+        { "acl",             required_argument, NULL, GETOPT_VAL_ACL         },
         { "manager-address", required_argument, NULL,
-                                                GETOPT_VAL_MANAGER_ADDRESS },
+          GETOPT_VAL_MANAGER_ADDRESS },
         { "executable",      required_argument, NULL,
-                                                GETOPT_VAL_EXECUTABLE },
-        { "mtu",             required_argument, NULL, GETOPT_VAL_MTU },
-        { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN },
+          GETOPT_VAL_EXECUTABLE },
+        { "mtu",             required_argument, NULL, GETOPT_VAL_MTU         },
+        { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN      },
         { "plugin-opts",     required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
-        { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD },
-        { "help",            no_argument,       NULL, GETOPT_VAL_HELP },
-        { NULL,              0,                 NULL, 0 }
+        { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD    },
+        { "help",            no_argument,       NULL, GETOPT_VAL_HELP        },
+        { NULL,                              0, NULL,                      0 }
     };
 
     opterr = 0;

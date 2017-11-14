@@ -683,4 +683,3 @@ stream_init(const char *pass, const char *key, const char *method)
     }
     return stream_key_init(m, pass, key);
 }
-

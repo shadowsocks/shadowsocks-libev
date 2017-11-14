@@ -1,4 +1,4 @@
-%global requires   pcre openssl mbedtls libsodium >= 1.0.4 libev udns
+%global requires   pcre openssl mbedtls libsodium >= 1.0.4 libev c-ares
 %global conflicts  python-shadowsocks python3-shadowsocks
 %if 0%{?fedora} || 0%{?rhel}
 %global requires   %{?requires} libcap
@@ -24,7 +24,7 @@ License:	    GPLv3+
 URL:		    https://github.com/shadowsocks/%{name}
 Source0:	    %{url}/archive/v%{version}.tar.gz
 
-BuildRequires:	make gcc pcre-devel asciidoc xmlto automake libtool mbedtls-devel libsodium-devel >= 1.0.4 libev-devel udns-devel
+BuildRequires:	make gcc pcre-devel asciidoc xmlto automake libtool mbedtls-devel libsodium-devel >= 1.0.4 libev-devel c-ares-devel
 %if 0%{?suse_version}
 BuildRequires:  libopenssl-devel
 %else
@@ -161,7 +161,7 @@ fi
 %package -n libshadowsocks-libev
 Summary:        %{?summary} (shared library)
 AutoReq:        no
-Requires:       pcre openssl mbedtls libsodium >= 1.0.4 libev udns
+Requires:       pcre openssl mbedtls libsodium >= 1.0.4 libev c-ares
 
 %description -n libshadowsocks-libev
 Shared library powered by shadowsocks-libev.

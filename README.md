@@ -9,7 +9,7 @@ It is a port of [Shadowsocks](https://github.com/shadowsocks/shadowsocks)
 created by [@clowwindy](https://github.com/clowwindy), and maintained by
 [@madeye](https://github.com/madeye) and [@linusyang](https://github.com/linusyang).
 
-Current version: 3.0.8 | [Changelog](debian/changelog)
+Current version: 3.1.0 | [Changelog](debian/changelog)
 
 Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.svg?branch=master)](https://travis-ci.org/shadowsocks/shadowsocks-libev)
 
@@ -82,7 +82,7 @@ We strongly encourage you to install shadowsocks-libev from `jessie-backports-sl
 For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
 
 ```bash
-sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
+sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports main\n" > /etc/apt/sources.list.d/jessie-backports.list'
 sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports-sloppy main" >> /etc/apt/sources.list.d/jessie-backports.list'
 sudo apt update
 sudo apt -t jessie-backports-sloppy install shadowsocks-libev
@@ -101,7 +101,8 @@ sudo apt -t stretch-backports install shadowsocks-libev
 For **Ubuntu 14.04 and 16.04** users, please install from PPA:
 
 ```bash
-sudo add-apt-repository ppa:max-c-lv/shadowsocks-libev
+sudo apt-get install software-properties-common -y
+sudo add-apt-repository ppa:max-c-lv/shadowsocks-libev -y
 sudo apt-get update
 sudo apt install shadowsocks-libev
 ```
@@ -183,9 +184,9 @@ Supported distributions:
 
 If you are using CentOS 7, you need to install these prequirement to build from source code:
 
-```bash 
+```bash
 yum install epel-release -y
-yum install gcc gettext autoconf libtool automake make pcre-devel asciidoc xmlto udns-devel libev-devel libsodium-devel mbedtls-devel -y
+yum install gcc gettext autoconf libtool automake make pcre-devel asciidoc xmlto c-ares-devel libev-devel libsodium-devel mbedtls-devel -y
 ```
 
 #### Install from repository
@@ -245,7 +246,7 @@ In general, you need the following build dependencies:
 * libsodium
 * libpcre3 (old pcre library)
 * libev
-* libudns
+* libc-ares
 * asciidoc (for documentation only)
 * xmlto (for documentation only)
 
@@ -260,11 +261,11 @@ For some of the distributions, you might install build dependencies like this:
 ```bash
 # Installation of basic build dependencies
 ## Debian / Ubuntu
-sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libudns-dev automake libmbedtls-dev libsodium-dev
+sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libc-ares-dev automake libmbedtls-dev libsodium-dev
 ## CentOS / Fedora / RHEL
-sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto udns-devel libev-devel
+sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto c-ares-devel libev-devel
 ## Arch
-sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto udns libev
+sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto c-ares libev
 
 # Installation of Libsodium
 export LIBSODIUM_VER=1.0.13
@@ -277,7 +278,7 @@ popd
 sudo ldconfig
 
 # Installation of MbedTLS
-export MBEDTLS_VER=2.5.1
+export MBEDTLS_VER=2.6.0
 wget https://tls.mbed.org/download/mbedtls-$MBEDTLS_VER-gpl.tgz
 tar xvf mbedtls-$MBEDTLS_VER-gpl.tgz
 pushd mbedtls-$MBEDTLS_VER
@@ -380,8 +381,12 @@ you may refer to the man pages of the applications, respectively.
                                   for local port forwarding,
                                   only available in tunnel mode
 
+       [-6]                       Resovle hostname to IPv6 address first.
+
        [-d <addr>]                setup name servers for internal DNS resolver,
                                   only available in server mode
+
+       [--reuse-port]             Enable port reuse.
 
        [--fast-open]              enable TCP fast open,
                                   only available in local and server mode,
@@ -392,6 +397,12 @@ you may refer to the man pages of the applications, respectively.
 
        [--manager-address <addr>] UNIX domain socket address
                                   only available in server and manager mode
+
+       [--mtu <MTU>]              MTU of your network interface.
+
+       [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.
+
+       [--no-delay]               Enable TCP_NODELAY.
 
        [--executable <path>]      path to the executable of ss-server
                                   only available in manager mode
@@ -415,7 +426,6 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
     # Create new chain
     root@Wrt:~# iptables -t nat -N SHADOWSOCKS
     root@Wrt:~# iptables -t mangle -N SHADOWSOCKS
-    root@Wrt:~# iptables -t mangle -N SHADOWSOCKS_MARK
 
     # Ignore your shadowsocks server's addresses
     # It's very IMPORTANT, just be careful.
@@ -440,12 +450,10 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
     root@Wrt:~# ip route add local default dev lo table 100
     root@Wrt:~# ip rule add fwmark 1 lookup 100
     root@Wrt:~# iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01
-    root@Wrt:~# iptables -t mangle -A SHADOWSOCKS_MARK -p udp --dport 53 -j MARK --set-mark 1
 
     # Apply the rules
-    root@Wrt:~# iptables -t nat -A OUTPUT -p tcp -j SHADOWSOCKS
+    root@Wrt:~# iptables -t nat -A PREROUTING -p tcp -j SHADOWSOCKS
     root@Wrt:~# iptables -t mangle -A PREROUTING -j SHADOWSOCKS
-    root@Wrt:~# iptables -t mangle -A OUTPUT -j SHADOWSOCKS_MARK
 
     # Start the shadowsocks-redir
     root@Wrt:~# ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
