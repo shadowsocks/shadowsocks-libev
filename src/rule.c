@@ -103,6 +103,11 @@ init_rule(rule_t *rule)
         }
 
         rule->pattern_re_match_data = pcre2_match_data_create_from_pattern(rule->pattern_re, NULL);
+
+        if (rule->pattern_re_match_data == NULL) {
+            ERROR("PCRE2: the memory for the block could not be obtained");
+            return 0;
+        }
     }
 
     return 1;
@@ -150,10 +155,12 @@ free_rule(rule_t *rule)
 
     ss_free(rule->pattern);
     if (rule->pattern_re != NULL) {
-        pcre2_match_data_free(rule->pattern_re_match_data);   /* Release memory used for the match */
         pcre2_code_free(rule->pattern_re);                    /* data and the compiled pattern. */
-        rule->pattern_re_match_data = NULL;
         rule->pattern_re            = NULL;
+    }
+    if (rule->pattern_re_match_data != NULL) {
+        pcre2_match_data_free(rule->pattern_re_match_data);   /* Release memory used for the match */
+        rule->pattern_re_match_data = NULL;
     }
     ss_free(rule);
 }
