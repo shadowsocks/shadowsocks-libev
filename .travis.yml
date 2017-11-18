@@ -9,11 +9,12 @@ env:
     global:
         - LIBSODIUM_VER=1.0.12
         - MBEDTLS_VER=2.4.0
+        - PCRE2_VER=10.30
 before_install:
     - |
       if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
           # All dependencies for macOS build. Some packages has been installed by travis so use reinstall.
-          brew reinstall autoconf automake xmlto c-ares libev mbedtls libsodium asciidoc >> /dev/null 2>&1;
+          brew reinstall autoconf automake xmlto pcre2 c-ares libev mbedtls libsodium asciidoc >> /dev/null 2>&1;
       else
           wget  https://github.com/jedisct1/libsodium/releases/download/$LIBSODIUM_VER/libsodium-$LIBSODIUM_VER.tar.gz;
           tar xvf libsodium-$LIBSODIUM_VER.tar.gz;
@@ -25,6 +26,12 @@ before_install:
           tar xvf mbedtls-$MBEDTLS_VER-gpl.tgz;
           pushd mbedtls-$MBEDTLS_VER;
           make SHARED=1;
+          sudo make install;
+          popd;
+          wget https://ftp.pcre.org/pub/pcre/pcre2-$PCRE2_VER.tar.gz;
+          tar xvf pcre2-$PCRE2_VER.tar.gz;
+          pushd pcre2-$PCRE2_VER;
+          ./configure --prefix=/usr --enable-pcre2-16 --enable-pcre2-32 && make;
           sudo make install;
           popd;
           # Load cached docker images
