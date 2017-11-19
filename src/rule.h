@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 and 2012, Dustin Lundquist <dustin@null-ptr.net>
  * Copyright (c) 2011 Manuel Kasper <mk@neon1.net>
+ * Copyright (c) 2017 Syrone Wong <wong.syrone@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,17 +34,27 @@
 
 #include <libcork/ds.h>
 
-#ifdef HAVE_PCRE_H
-#include <pcre.h>
-#elif HAVE_PCRE_PCRE_H
-#include <pcre/pcre.h>
-#endif
+/*
+ * The PCRE2_CODE_UNIT_WIDTH macro must be defined before including pcre2.h.
+ * For a program that uses only one code unit width, setting it to 8, 16, or 32
+ * makes it possible to use generic function names such as pcre2_compile(). Note
+ * that just changing 8 to 16 (for example) is not sufficient to convert this
+ * program to process 16-bit characters. Even in a fully 16-bit environment, where
+ * string-handling functions such as strcmp() and printf() work with 16-bit
+ * characters, the code for handling the table of named substrings will still need
+ * to be modified.
+ */
+/* we only need to support ASCII chartable, thus set it to 8 */
+#define PCRE2_CODE_UNIT_WIDTH 8
+
+#include <pcre2.h>
 
 typedef struct rule {
     char *pattern;
 
     /* Runtime fields */
-    pcre *pattern_re;
+    pcre2_code *pattern_re;
+    pcre2_match_data *pattern_re_match_data;
 
     struct cork_dllist_item entries;
 } rule_t;
