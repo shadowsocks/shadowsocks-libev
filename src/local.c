@@ -157,7 +157,7 @@ create_and_bind(const char *addr, const char *port)
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family   = AF_UNSPEC;   /* Return IPv4 and IPv6 choices */
     hints.ai_socktype = SOCK_STREAM; /* We want a TCP socket */
-    result = NULL;
+    result            = NULL;
 
     s = getaddrinfo(addr, port, &hints, &result);
 
@@ -234,6 +234,7 @@ launch_or_create(const char *addr, const char *port)
     }
     return -1;
 }
+
 #endif
 
 static void
@@ -370,8 +371,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     ev_io_start(EV_A_ & remote->send_ctx->io);
                     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                 } else {
-#ifdef TCP_FASTOPEN
-#ifdef __APPLE__
+#if !defined(MSG_FASTOPEN)
+#if defined(CONNECT_DATA_IDEMPOTENT)
                     ((struct sockaddr_in *)&(remote->addr))->sin_len = sizeof(struct sockaddr_in);
                     sa_endpoints_t endpoints;
                     memset((char *)&endpoints, 0, sizeof(endpoints));
@@ -381,9 +382,17 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     int s = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
                                      CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
                                      NULL, 0, NULL, NULL);
-                    if (s == 0) {
+#elif defined(TCP_FASTOPEN_CONNECT)
+                    int optval = 1;
+                    if(setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                                (void *)&optval, sizeof(optval)) < 0)
+                        FATAL("failed to set TCP_FASTOPEN_CONNECT");
+                    int s = connect(remote->fd, (struct sockaddr *)&(remote->addr), remote->addr_len);
+#else
+                    FATAL("fast open is not enabled in this build");
+#endif
+                    if (s == 0)
                         s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
-                    }
 #else
                     int s = sendto(remote->fd, remote->buf->data, remote->buf->len, MSG_FASTOPEN,
                                    (struct sockaddr *)&(remote->addr), remote->addr_len);
@@ -396,7 +405,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                             ev_io_start(EV_A_ & remote->send_ctx->io);
                             return;
                         } else {
-                            ERROR("sendto");
                             if (errno == ENOTCONN) {
                                 LOGE("fast open is not supported on this platform");
                                 // just turn it off
@@ -406,7 +414,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                             close_and_free_server(EV_A_ server);
                             return;
                         }
-                    } else if (s < (int)(remote->buf->len)) {
+                    } else {
                         remote->buf->len -= s;
                         remote->buf->idx  = s;
 
@@ -414,27 +422,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                         ev_io_start(EV_A_ & remote->send_ctx->io);
                         ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                         return;
-                    } else {
-                        // Just connected
-                        remote->buf->idx = 0;
-                        remote->buf->len = 0;
-#ifdef __APPLE__
-                        ev_io_stop(EV_A_ & server_recv_ctx->io);
-                        ev_io_start(EV_A_ & remote->send_ctx->io);
-                        ev_timer_start(EV_A_ & remote->send_ctx->watcher);
-#else
-                        remote->send_ctx->connected = 1;
-                        ev_timer_stop(EV_A_ & remote->send_ctx->watcher);
-                        ev_timer_start(EV_A_ & remote->recv_ctx->watcher);
-                        ev_io_start(EV_A_ & remote->recv_ctx->io);
-                        return;
-#endif
                     }
-#else
-                    // if TCP_FASTOPEN is not defined, fast_open will always be 0
-                    LOGE("can't come here");
-                    exit(1);
-#endif
                 }
             } else {
                 int s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
@@ -477,7 +465,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 return;
             }
             struct method_select_request *method = (struct method_select_request *)buf->data;
-            int method_len = method->nmethods + sizeof(struct method_select_request);
+            int method_len                       = method->nmethods + sizeof(struct method_select_request);
             if (buf->len < method_len) {
                 return;
             }
@@ -485,12 +473,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             struct method_select_response response;
             response.ver    = SVERSION;
             response.method = METHOD_UNACCEPTABLE;
-            for (int i = 0; i < method->nmethods; i++) {
+            for (int i = 0; i < method->nmethods; i++)
                 if (method->methods[i] == METHOD_NOAUTH) {
                     response.method = METHOD_NOAUTH;
                     break;
                 }
-            }
             char *send_buf = (char *)&response;
             send(server->fd, send_buf, sizeof(response), 0);
             if (response.method == METHOD_UNACCEPTABLE) {
@@ -502,7 +489,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             server->stage = STAGE_HANDSHAKE;
 
             if (method_len < (int)(buf->len)) {
-                memmove(buf->data, buf->data + method_len , buf->len - method_len);
+                memmove(buf->data, buf->data + method_len, buf->len - method_len);
                 buf->len -= method_len;
                 continue;
             }
@@ -511,7 +498,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             return;
         } else if (server->stage == STAGE_HANDSHAKE || server->stage == STAGE_PARSE) {
             struct socks5_request *request = (struct socks5_request *)buf->data;
-            size_t request_len = sizeof(struct socks5_request);
+            size_t request_len             = sizeof(struct socks5_request);
             struct sockaddr_in sock_addr;
             memset(&sock_addr, 0, sizeof(sock_addr));
 
@@ -581,6 +568,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
             }
 
+            server->stage = STAGE_PARSE;
+
             char host[257], ip[INET6_ADDRSTRLEN], port[16];
 
             buffer_t *abuf = server->abuf;
@@ -603,7 +592,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (acl || verbose) {
                     uint16_t p = ntohs(*(uint16_t *)(buf->data + request_len + in_addr_len));
                     inet_ntop(AF_INET, (const void *)(buf->data + request_len),
-                             ip, INET_ADDRSTRLEN);
+                              ip, INET_ADDRSTRLEN);
                     sprintf(port, "%d", p);
                 }
             } else if (atyp == 3) {
@@ -622,7 +611,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     memcpy(host, buf->data + request_len + 1, name_len);
                     host[name_len] = '\0';
                     sprintf(port, "%d", p);
-
                 }
             } else if (atyp == 4) {
                 // IP V6
@@ -636,7 +624,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (acl || verbose) {
                     uint16_t p = ntohs(*(uint16_t *)(buf->data + request_len + in6_addr_len));
                     inet_ntop(AF_INET6, (const void *)(buf->data + request_len),
-                             ip, INET6_ADDRSTRLEN);
+                              ip, INET6_ADDRSTRLEN);
                     sprintf(port, "%d", p);
                 }
             } else {
@@ -660,7 +648,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     ret = tls_protocol->parse_packet(buf->data + 3 + abuf->len,
                                                      buf->len - 3 - abuf->len, &hostname);
                 if (ret == -1 && buf->len < BUF_SIZE) {
-                    server->stage = STAGE_PARSE;
                     return;
                 } else if (ret > 0) {
                     sni_detected = 1;
@@ -704,12 +691,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
             if (acl
 #ifdef __ANDROID__
-                    && !(vpn && strcmp(port, "53") == 0)
+                && !(vpn && strcmp(port, "53") == 0)
 #endif
-                    ) {
+                ) {
                 int host_match = acl_match_host(host);
-                int bypass = 0;
-                int resolved = 0;
+                int bypass     = 0;
+                int resolved   = 0;
                 struct sockaddr_storage storage;
                 memset(&storage, 0, sizeof(struct sockaddr_storage));
                 int err;
@@ -724,34 +711,36 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                         err = get_sockaddr(host, port, &storage, 0, ipv6first);
                         if (err != -1) {
                             resolved = 1;
-                            switch(((struct sockaddr*)&storage)->sa_family) {
-                                case AF_INET: {
-                                    struct sockaddr_in *addr_in = (struct sockaddr_in *)&storage;
-                                    inet_ntop(AF_INET, &(addr_in->sin_addr), ip, INET_ADDRSTRLEN);
-                                    break;
-                                }
-                                case AF_INET6: {
-                                    struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)&storage;
-                                    inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip, INET6_ADDRSTRLEN);
-                                    break;
-                                }
-                                default:
-                                    break;
+                            switch (((struct sockaddr *)&storage)->sa_family) {
+                            case AF_INET:
+                            {
+                                struct sockaddr_in *addr_in = (struct sockaddr_in *)&storage;
+                                inet_ntop(AF_INET, &(addr_in->sin_addr), ip, INET_ADDRSTRLEN);
+                                break;
+                            }
+                            case AF_INET6:
+                            {
+                                struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)&storage;
+                                inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip, INET6_ADDRSTRLEN);
+                                break;
+                            }
+                            default:
+                                break;
                             }
                         }
                     }
 #endif
                     int ip_match = acl_match_host(ip);
                     switch (get_acl_mode()) {
-                        case BLACK_LIST:
-                            if (ip_match > 0)
-                                bypass = 1;               // bypass IPs in black list
-                            break;
-                        case WHITE_LIST:
-                            bypass = 1;
-                            if (ip_match < 0)
-                                bypass = 0;               // proxy IPs in white list
-                            break;
+                    case BLACK_LIST:
+                        if (ip_match > 0)
+                            bypass = 1;                   // bypass IPs in black list
+                        break;
+                    case WHITE_LIST:
+                        bypass = 1;
+                        if (ip_match < 0)
+                            bypass = 0;                   // proxy IPs in white list
+                        break;
                     }
                 }
 
@@ -769,7 +758,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                         err = get_sockaddr(host, port, &storage, 0, ipv6first);
                     else
 #endif
-                        err = get_sockaddr(ip, port, &storage, 0, ipv6first);
+                    err = get_sockaddr(ip, port, &storage, 0, ipv6first);
                     if (err != -1) {
                         remote = create_remote(server->listener, (struct sockaddr *)&storage);
                         if (remote != NULL)
@@ -1113,7 +1102,7 @@ new_server(int fd)
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
 
     ev_timer_init(&server->delayed_connect_watcher,
-            delayed_connect_cb, 0.05, 0);
+                  delayed_connect_cb, 0.05, 0);
 
     cork_dllist_add(&connections, &server->entries);
 
@@ -1194,7 +1183,7 @@ create_remote(listen_ctx_t *listener,
         }
     } else if (listener->mptcp == 1) {
         int i = 0;
-        while((listener->mptcp = mptcp_enabled_values[i]) > 0) {
+        while ((listener->mptcp = mptcp_enabled_values[i]) > 0) {
             int err = setsockopt(remotefd, SOL_TCP, listener->mptcp, &opt, sizeof(opt));
             if (err != -1) {
                 break;
@@ -1299,18 +1288,18 @@ main(int argc, char **argv)
     char *remote_port = NULL;
 
     static struct option long_options[] = {
-        { "reuse-port",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
-        { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
-        { "no-delay",    no_argument,       NULL, GETOPT_VAL_NODELAY },
-        { "acl",         required_argument, NULL, GETOPT_VAL_ACL },
-        { "mtu",         required_argument, NULL, GETOPT_VAL_MTU },
-        { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP },
-        { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN },
+        { "reuse-port",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT  },
+        { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN   },
+        { "no-delay",    no_argument,       NULL, GETOPT_VAL_NODELAY     },
+        { "acl",         required_argument, NULL, GETOPT_VAL_ACL         },
+        { "mtu",         required_argument, NULL, GETOPT_VAL_MTU         },
+        { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP       },
+        { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN      },
         { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
-        { "password",    required_argument, NULL, GETOPT_VAL_PASSWORD },
-        { "key",         required_argument, NULL, GETOPT_VAL_KEY },
-        { "help",        no_argument,       NULL, GETOPT_VAL_HELP },
-        { NULL,          0,                 NULL, 0 }
+        { "password",    required_argument, NULL, GETOPT_VAL_PASSWORD    },
+        { "key",         required_argument, NULL, GETOPT_VAL_KEY         },
+        { "help",        no_argument,       NULL, GETOPT_VAL_HELP        },
+        { NULL,                          0, NULL,                      0 }
     };
 
     opterr = 0;
@@ -1493,6 +1482,9 @@ main(int argc, char **argv)
         if (mptcp == 0) {
             mptcp = conf->mptcp;
         }
+        if (no_delay == 0) {
+            no_delay = conf->no_delay;
+        }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;
@@ -1563,13 +1555,17 @@ main(int argc, char **argv)
 #endif
     }
 
+    if (no_delay) {
+        LOGI("enable TCP no-delay");
+    }
+
     if (ipv6first) {
         LOGI("resolving hostname to IPv6 address first");
     }
 
     if (plugin != NULL) {
-        int len = 0;
-        size_t buf_size = 256 * remote_num;
+        int len          = 0;
+        size_t buf_size  = 256 * remote_num;
         char *remote_str = ss_malloc(buf_size);
 
         snprintf(remote_str, buf_size, "%s", remote_addr[0].host);
@@ -1579,7 +1575,7 @@ main(int argc, char **argv)
             len = strlen(remote_str);
         }
         int err = start_plugin(plugin, plugin_opts, remote_str,
-                remote_port, plugin_host, plugin_port, MODE_CLIENT);
+                               remote_port, plugin_host, plugin_port, MODE_CLIENT);
         if (err) {
             FATAL("failed to start the plugin");
         }
@@ -1616,7 +1612,8 @@ main(int argc, char **argv)
         listen_ctx.remote_addr[i] = (struct sockaddr *)storage;
         ++listen_ctx.remote_num;
 
-        if (plugin != NULL) break;
+        if (plugin != NULL)
+            break;
     }
     listen_ctx.timeout = atoi(timeout);
     listen_ctx.iface   = iface;
@@ -1657,8 +1654,8 @@ main(int argc, char **argv)
     // Setup UDP
     if (mode != TCP_ONLY) {
         LOGI("udprelay enabled");
-        char *host = remote_addr[0].host;
-        char *port = remote_addr[0].port == NULL ? remote_port : remote_addr[0].port;
+        char *host                       = remote_addr[0].host;
+        char *port                       = remote_addr[0].port == NULL ? remote_port : remote_addr[0].port;
         struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
         memset(storage, 0, sizeof(struct sockaddr_storage));
         if (get_sockaddr(host, port, storage, 1, ipv6first) == -1) {
@@ -1666,7 +1663,7 @@ main(int argc, char **argv)
         }
         struct sockaddr *addr = (struct sockaddr *)storage;
         udp_fd = init_udprelay(local_addr, local_port, addr,
-                      get_sockaddr_len(addr), mtu, crypto, listen_ctx.timeout, iface);
+                               get_sockaddr_len(addr), mtu, crypto, listen_ctx.timeout, iface);
     }
 
 #ifdef HAVE_LAUNCHD
@@ -1821,7 +1818,7 @@ start_ss_local_server(profile_t profile)
         LOGI("udprelay enabled");
         struct sockaddr *addr = (struct sockaddr *)(&storage);
         udp_fd = init_udprelay(local_addr, local_port_str, addr,
-                      get_sockaddr_len(addr), mtu, crypto, timeout, NULL);
+                               get_sockaddr_len(addr), mtu, crypto, timeout, NULL);
     }
 
     if (strcmp(local_addr, ":") > 0)

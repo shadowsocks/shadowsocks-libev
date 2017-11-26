@@ -110,7 +110,7 @@ static void close_and_free_server(EV_P_ server_t *server);
 static void resolv_cb(struct sockaddr *addr, void *data);
 static void resolv_free_cb(void *data);
 
-int verbose     = 0;
+int verbose    = 0;
 int reuse_port = 0;
 
 static crypto_t *crypto;
@@ -277,7 +277,7 @@ reset_addr(int fd)
 }
 
 static void
-report_addr(int fd, int err_level, const char* info)
+report_addr(int fd, int err_level, const char *info)
 {
 #ifdef __linux__
     set_linger(fd);
@@ -410,7 +410,7 @@ create_and_bind(const char *host, const char *port, int mptcp)
 
         if (mptcp == 1) {
             int i = 0;
-            while((mptcp = mptcp_enabled_values[i]) > 0) {
+            while ((mptcp = mptcp_enabled_values[i]) > 0) {
                 int err = setsockopt(listen_sock, IPPROTO_TCP, mptcp, &opt, sizeof(opt));
                 if (err != -1) {
                     break;
@@ -506,31 +506,36 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 
     remote_t *remote = new_remote(sockfd);
 
-#ifdef TCP_FASTOPEN
     if (fast_open) {
-#ifdef __APPLE__
+
+#if !defined(MSG_FASTOPEN)
+
+#if defined(TCP_FASTOPEN_CONNECT)
+        int optval = 1;
+        if(setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                    (void *)&optval, sizeof(optval)) < 0)
+            FATAL("failed to set TCP_FASTOPEN_CONNECT");
+        int s = connect(sockfd, res->ai_addr, res->ai_addrlen);
+#elif defined(CONNECT_DATA_IDEMPOTENT)
         ((struct sockaddr_in *)(res->ai_addr))->sin_len = sizeof(struct sockaddr_in);
         sa_endpoints_t endpoints;
         memset((char *)&endpoints, 0, sizeof(endpoints));
         endpoints.sae_dstaddr    = res->ai_addr;
         endpoints.sae_dstaddrlen = res->ai_addrlen;
 
-        struct iovec iov;
-        iov.iov_base = server->buf->data;
-        iov.iov_len  = server->buf->len;
-        size_t len;
         int s = connectx(sockfd, &endpoints, SAE_ASSOCID_ANY, CONNECT_DATA_IDEMPOTENT,
-                         &iov, 1, &len, NULL);
-        if (s == 0) {
-            s = len;
-        }
+                         NULL, 0, NULL, NULL);
+#else
+        FATAL("fast open is not enabled in this build");
+#endif
+        if (s == 0)
+            s = send(sockfd, server->buf->data, server->buf->len, 0);
 #else
         ssize_t s = sendto(sockfd, server->buf->data, server->buf->len,
                 MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);
 #endif
         if (s == -1) {
-            if (errno == CONNECT_IN_PROGRESS || errno == EAGAIN
-                || errno == EWOULDBLOCK) {
+            if (errno == CONNECT_IN_PROGRESS) {
                 // The remote server doesn't support tfo or it's the first connection to the server.
                 // It will automatically fall back to conventional TCP.
             } else if (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
@@ -546,7 +551,6 @@ connect_to_remote(EV_P_ struct addrinfo *res,
             server->buf->len -= s;
         }
     }
-#endif
 
     if (!fast_open) {
         int r = connect(sockfd, res->ai_addr, res->ai_addrlen);
@@ -562,90 +566,94 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 }
 
 #ifdef USE_NFCONNTRACK_TOS
-int setMarkDscpCallback(enum nf_conntrack_msg_type type, struct nf_conntrack *ct, void *data)
+int
+setMarkDscpCallback(enum nf_conntrack_msg_type type, struct nf_conntrack *ct, void *data)
 {
-	server_t* server = (server_t*) data;
-	struct dscptracker* tracker = server->tracker;
+    server_t *server            = (server_t *)data;
+    struct dscptracker *tracker = server->tracker;
 
-	tracker->mark = nfct_get_attr_u32(ct, ATTR_MARK);
-	if ((tracker->mark & 0xff00) == MARK_MASK_PREFIX) {
-		// Extract DSCP value from mark value
-		tracker->dscp = tracker->mark & 0x00ff;
-		int tos = (tracker->dscp) << 2;
-		if (setsockopt(server->fd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)) != 0) {
-			ERROR("iptable setsockopt IP_TOS");
-		};
-	}
-	return NFCT_CB_CONTINUE;
+    tracker->mark = nfct_get_attr_u32(ct, ATTR_MARK);
+    if ((tracker->mark & 0xff00) == MARK_MASK_PREFIX) {
+        // Extract DSCP value from mark value
+        tracker->dscp = tracker->mark & 0x00ff;
+        int tos = (tracker->dscp) << 2;
+        if (setsockopt(server->fd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)) != 0) {
+            ERROR("iptable setsockopt IP_TOS");
+        }
+    }
+    return NFCT_CB_CONTINUE;
 }
 
-void conntrackQuery(server_t* server) {
-	struct dscptracker* tracker = server->tracker;
-	if(tracker && tracker->ct) {
-		// Trying query mark from nf conntrack
-		struct nfct_handle *h = nfct_open(CONNTRACK, 0);
-		if (h) {
-			nfct_callback_register(h, NFCT_T_ALL, setMarkDscpCallback, (void*) server);
-			int x = nfct_query(h, NFCT_Q_GET, tracker->ct);
-			if (x == -1) {
-				LOGE("QOS: Failed to retrieve connection mark %s", strerror(errno));
-			}
-			nfct_close(h);
-		} else {
-			LOGE("QOS: Failed to open conntrack handle for upstream netfilter mark retrieval.");
-		}
-	}
-}
-
-void setTosFromConnmark(remote_t* remote, server_t* server)
+void
+conntrackQuery(server_t *server)
 {
-	if(server->tracker && server->tracker->ct) {
-		if(server->tracker->mark == 0 && server->tracker->packet_count < MARK_MAX_PACKET) {
-			server->tracker->packet_count++;
-			conntrackQuery(server);
-		}
-	} else {
-		socklen_t len;
-		struct sockaddr_storage sin;
-		len = sizeof(sin);
-		if (getsockname(remote->fd, (struct sockaddr *)&sin, &len) == 0) {
-			struct sockaddr_storage from_addr;
-			len = sizeof from_addr;
-			if(getpeername(remote->fd, (struct sockaddr*)&from_addr, &len) == 0) {
-				if((server->tracker = (struct dscptracker*) ss_malloc(sizeof(struct dscptracker))))
-				{
-					if ((server->tracker->ct = nfct_new())) {
-						// Build conntrack query SELECT
-						if (from_addr.ss_family == AF_INET) {
-							struct sockaddr_in *src = (struct sockaddr_in *)&from_addr;
-							struct sockaddr_in *dst = (struct sockaddr_in *)&sin;
-
-							nfct_set_attr_u8(server->tracker->ct, ATTR_L3PROTO, AF_INET);
-							nfct_set_attr_u32(server->tracker->ct, ATTR_IPV4_DST, dst->sin_addr.s_addr);
-							nfct_set_attr_u32(server->tracker->ct, ATTR_IPV4_SRC, src->sin_addr.s_addr);
-							nfct_set_attr_u16(server->tracker->ct, ATTR_PORT_DST, dst->sin_port);
-							nfct_set_attr_u16(server->tracker->ct, ATTR_PORT_SRC, src->sin_port);
-						} else if (from_addr.ss_family == AF_INET6) {
-							struct sockaddr_in6 *src = (struct sockaddr_in6 *)&from_addr;
-							struct sockaddr_in6 *dst = (struct sockaddr_in6 *)&sin;
-
-							nfct_set_attr_u8(server->tracker->ct, ATTR_L3PROTO, AF_INET6);
-							nfct_set_attr(server->tracker->ct, ATTR_IPV6_DST, dst->sin6_addr.s6_addr);
-							nfct_set_attr(server->tracker->ct, ATTR_IPV6_SRC, src->sin6_addr.s6_addr);
-							nfct_set_attr_u16(server->tracker->ct, ATTR_PORT_DST, dst->sin6_port);
-							nfct_set_attr_u16(server->tracker->ct, ATTR_PORT_SRC, src->sin6_port);
-						}
-						nfct_set_attr_u8(server->tracker->ct, ATTR_L4PROTO, IPPROTO_TCP);
-						conntrackQuery(server);
-					} else {
-						LOGE("Failed to allocate new conntrack for upstream netfilter mark retrieval.");
-						server->tracker->ct=NULL;
-					};
-				}
-			}
-		}
-	}
+    struct dscptracker *tracker = server->tracker;
+    if (tracker && tracker->ct) {
+        // Trying query mark from nf conntrack
+        struct nfct_handle *h = nfct_open(CONNTRACK, 0);
+        if (h) {
+            nfct_callback_register(h, NFCT_T_ALL, setMarkDscpCallback, (void *)server);
+            int x = nfct_query(h, NFCT_Q_GET, tracker->ct);
+            if (x == -1) {
+                LOGE("QOS: Failed to retrieve connection mark %s", strerror(errno));
+            }
+            nfct_close(h);
+        } else {
+            LOGE("QOS: Failed to open conntrack handle for upstream netfilter mark retrieval.");
+        }
+    }
 }
+
+void
+setTosFromConnmark(remote_t *remote, server_t *server)
+{
+    if (server->tracker && server->tracker->ct) {
+        if (server->tracker->mark == 0 && server->tracker->packet_count < MARK_MAX_PACKET) {
+            server->tracker->packet_count++;
+            conntrackQuery(server);
+        }
+    } else {
+        socklen_t len;
+        struct sockaddr_storage sin;
+        len = sizeof(sin);
+        if (getsockname(remote->fd, (struct sockaddr *)&sin, &len) == 0) {
+            struct sockaddr_storage from_addr;
+            len = sizeof from_addr;
+            if (getpeername(remote->fd, (struct sockaddr *)&from_addr, &len) == 0) {
+                if ((server->tracker = (struct dscptracker *)ss_malloc(sizeof(struct dscptracker)))) {
+                    if ((server->tracker->ct = nfct_new())) {
+                        // Build conntrack query SELECT
+                        if (from_addr.ss_family == AF_INET) {
+                            struct sockaddr_in *src = (struct sockaddr_in *)&from_addr;
+                            struct sockaddr_in *dst = (struct sockaddr_in *)&sin;
+
+                            nfct_set_attr_u8(server->tracker->ct, ATTR_L3PROTO, AF_INET);
+                            nfct_set_attr_u32(server->tracker->ct, ATTR_IPV4_DST, dst->sin_addr.s_addr);
+                            nfct_set_attr_u32(server->tracker->ct, ATTR_IPV4_SRC, src->sin_addr.s_addr);
+                            nfct_set_attr_u16(server->tracker->ct, ATTR_PORT_DST, dst->sin_port);
+                            nfct_set_attr_u16(server->tracker->ct, ATTR_PORT_SRC, src->sin_port);
+                        } else if (from_addr.ss_family == AF_INET6) {
+                            struct sockaddr_in6 *src = (struct sockaddr_in6 *)&from_addr;
+                            struct sockaddr_in6 *dst = (struct sockaddr_in6 *)&sin;
+
+                            nfct_set_attr_u8(server->tracker->ct, ATTR_L3PROTO, AF_INET6);
+                            nfct_set_attr(server->tracker->ct, ATTR_IPV6_DST, dst->sin6_addr.s6_addr);
+                            nfct_set_attr(server->tracker->ct, ATTR_IPV6_SRC, src->sin6_addr.s6_addr);
+                            nfct_set_attr_u16(server->tracker->ct, ATTR_PORT_DST, dst->sin6_port);
+                            nfct_set_attr_u16(server->tracker->ct, ATTR_PORT_SRC, src->sin6_port);
+                        }
+                        nfct_set_attr_u8(server->tracker->ct, ATTR_L4PROTO, IPPROTO_TCP);
+                        conntrackQuery(server);
+                    } else {
+                        LOGE("Failed to allocate new conntrack for upstream netfilter mark retrieval.");
+                        server->tracker->ct = NULL;
+                    }
+                }
+            }
+        }
+    }
+}
+
 #endif
 
 static void
@@ -687,7 +695,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
     }
 
-    tx += r;
+    tx      += r;
     buf->len = r;
 
     int err = crypto->decrypt(buf, server->d_ctx, BUF_SIZE);
@@ -760,7 +768,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             if (server->buf->len >= in_addr_len + 3) {
                 addr->sin_addr = *(struct in_addr *)(server->buf->data + offset);
                 inet_ntop(AF_INET, (const void *)(server->buf->data + offset),
-                         host, INET_ADDRSTRLEN);
+                          host, INET_ADDRSTRLEN);
                 offset += in_addr_len;
             } else {
                 report_addr(server->fd, MALFORMED, "invalid length for ipv4 address");
@@ -827,7 +835,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             if (server->buf->len >= in6_addr_len + 3) {
                 addr->sin6_addr = *(struct in6_addr *)(server->buf->data + offset);
                 inet_ntop(AF_INET6, (const void *)(server->buf->data + offset),
-                         host, INET6_ADDRSTRLEN);
+                          host, INET6_ADDRSTRLEN);
                 offset += in6_addr_len;
             } else {
                 LOGE("invalid header with addr type %d", atyp);
@@ -884,7 +892,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (server->buf->len > 0) {
                     brealloc(remote->buf, server->buf->len, BUF_SIZE);
                     memcpy(remote->buf->data, server->buf->data + server->buf->idx,
-                            server->buf->len);
+                           server->buf->len);
                     remote->buf->len = server->buf->len;
                     remote->buf->idx = 0;
                     server->buf->len = 0;
@@ -904,10 +912,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
             server->stage = STAGE_RESOLVE;
             struct resolv_query *q = resolv_start(host, port,
-                    resolv_cb, resolv_free_cb, query);
+                                                  resolv_cb, resolv_free_cb, query);
 
             if (q == NULL) {
-                if (query != NULL) ss_free(query);
+                if (query != NULL)
+                    ss_free(query);
                 server->query = NULL;
                 close_and_free_server(EV_A_ server);
                 return;
@@ -1014,10 +1023,11 @@ resolv_free_cb(void *data)
 static void
 resolv_cb(struct sockaddr *addr, void *data)
 {
-    query_t *query       = (query_t *)data;
-    server_t *server     = query->server;
+    query_t *query   = (query_t *)data;
+    server_t *server = query->server;
 
-    if (server == NULL) return;
+    if (server == NULL)
+        return;
 
     struct ev_loop *loop = server->listen_ctx->loop;
 
@@ -1055,7 +1065,7 @@ resolv_cb(struct sockaddr *addr, void *data)
             if (server->buf->len > 0) {
                 brealloc(remote->buf, server->buf->len, BUF_SIZE);
                 memcpy(remote->buf->data, server->buf->data + server->buf->idx,
-                        server->buf->len);
+                       server->buf->len);
                 remote->buf->len = server->buf->len;
                 remote->buf->idx = 0;
                 server->buf->len = 0;
@@ -1311,9 +1321,9 @@ new_server(int fd, listen_ctx_t *listener)
 
     memset(server, 0, sizeof(server_t));
 
-    server->recv_ctx   = ss_malloc(sizeof(server_ctx_t));
-    server->send_ctx   = ss_malloc(sizeof(server_ctx_t));
-    server->buf        = ss_malloc(sizeof(buffer_t));
+    server->recv_ctx = ss_malloc(sizeof(server_ctx_t));
+    server->send_ctx = ss_malloc(sizeof(server_ctx_t));
+    server->buf      = ss_malloc(sizeof(buffer_t));
     memset(server->recv_ctx, 0, sizeof(server_ctx_t));
     memset(server->send_ctx, 0, sizeof(server_ctx_t));
     balloc(server->buf, BUF_SIZE);
@@ -1350,15 +1360,15 @@ static void
 free_server(server_t *server)
 {
 #ifdef USE_NFCONNTRACK_TOS
-    if(server->tracker) {
-        struct dscptracker* tracker = server->tracker;
-        struct nf_conntrack* ct = server->tracker->ct;
+    if (server->tracker) {
+        struct dscptracker *tracker = server->tracker;
+        struct nf_conntrack *ct     = server->tracker->ct;
         server->tracker = NULL;
         if (ct) {
             nfct_destroy(ct);
-       }
-       free(tracker);
-    };
+        }
+        free(tracker);
+    }
 #endif
     cork_dllist_remove(&server->entries);
 
@@ -1389,7 +1399,7 @@ close_and_free_server(EV_P_ server_t *server)
     if (server != NULL) {
         if (server->query != NULL) {
             server->query->server = NULL;
-            server->query = NULL;
+            server->query         = NULL;
         }
         ev_io_stop(EV_A_ & server->send_ctx->io);
         ev_io_stop(EV_A_ & server->recv_ctx->io);
@@ -1447,7 +1457,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
             }
         }
         if (!in_white_list && plugin == NULL
-                && check_block_list(peer_name)) {
+            && check_block_list(peer_name)) {
             LOGE("block all requests from %s", peer_name);
 #ifdef __linux__
             set_linger(serverfd);
@@ -1500,22 +1510,22 @@ main(int argc, char **argv)
     char *nameservers = NULL;
 
     static struct option long_options[] = {
-        { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
-        { "reuse-port",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
-        { "no-delay",        no_argument,       NULL, GETOPT_VAL_NODELAY },
-        { "acl",             required_argument, NULL, GETOPT_VAL_ACL },
+        { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN   },
+        { "reuse-port",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT  },
+        { "no-delay",        no_argument,       NULL, GETOPT_VAL_NODELAY     },
+        { "acl",             required_argument, NULL, GETOPT_VAL_ACL         },
         { "manager-address", required_argument, NULL,
-                                                GETOPT_VAL_MANAGER_ADDRESS },
-        { "mtu",             required_argument, NULL, GETOPT_VAL_MTU },
-        { "help",            no_argument,       NULL, GETOPT_VAL_HELP },
-        { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN },
+          GETOPT_VAL_MANAGER_ADDRESS },
+        { "mtu",             required_argument, NULL, GETOPT_VAL_MTU         },
+        { "help",            no_argument,       NULL, GETOPT_VAL_HELP        },
+        { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN      },
         { "plugin-opts",     required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
-        { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD },
-        { "key",             required_argument, NULL, GETOPT_VAL_KEY },
+        { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD    },
+        { "key",             required_argument, NULL, GETOPT_VAL_KEY         },
 #ifdef __linux__
-        { "mptcp",           no_argument,       NULL, GETOPT_VAL_MPTCP },
+        { "mptcp",           no_argument,       NULL, GETOPT_VAL_MPTCP       },
 #endif
-        { NULL,              0,                 NULL, 0 }
+        { NULL,                              0, NULL,                      0 }
     };
 
     opterr = 0;
@@ -1679,6 +1689,9 @@ main(int argc, char **argv)
         if (mptcp == 0) {
             mptcp = conf->mptcp;
         }
+        if (no_delay == 0) {
+            no_delay = conf->no_delay;
+        }
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
@@ -1703,7 +1716,7 @@ main(int argc, char **argv)
     }
 
     if (server_num == 0 || server_port == NULL
-            || (password == NULL && key == NULL)) {
+        || (password == NULL && key == NULL)) {
         usage();
         exit(EXIT_FAILURE);
     }
@@ -1771,6 +1784,10 @@ main(int argc, char **argv)
         LOGI("TCP relay disabled");
     }
 
+    if (no_delay) {
+        LOGI("enable TCP no-delay");
+    }
+
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
@@ -1799,8 +1816,8 @@ main(int argc, char **argv)
 
     // Start plugin server
     if (plugin != NULL) {
-        int len = 0;
-        size_t buf_size = 256 * server_num;
+        int len          = 0;
+        size_t buf_size  = 256 * server_num;
         char *server_str = ss_malloc(buf_size);
 
         snprintf(server_str, buf_size, "%s", server_host[0]);
@@ -1811,7 +1828,7 @@ main(int argc, char **argv)
         }
 
         int err = start_plugin(plugin, plugin_opts, server_str,
-                plugin_port, "127.0.0.1", server_port, MODE_SERVER);
+                               plugin_port, "127.0.0.1", server_port, MODE_SERVER);
         if (err) {
             FATAL("failed to start the plugin");
         }
@@ -1856,7 +1873,8 @@ main(int argc, char **argv)
             else
                 LOGI("tcp server listening at %s:%s", host ? host : "0.0.0.0", server_port);
 
-            if (plugin != NULL) break;
+            if (plugin != NULL)
+                break;
         }
     }
 
@@ -1929,7 +1947,8 @@ main(int argc, char **argv)
             ev_io_stop(loop, &listen_ctx->io);
             close(listen_ctx->fd);
         }
-        if (plugin != NULL) break;
+        if (plugin != NULL)
+            break;
     }
 
     if (mode != UDP_ONLY) {

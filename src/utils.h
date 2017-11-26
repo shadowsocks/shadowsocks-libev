@@ -174,4 +174,3 @@ void *ss_realloc(void *ptr, size_t new_size);
     } while (0)
 
 #endif // _UTILS_H
-

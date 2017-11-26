@@ -59,10 +59,10 @@ typedef struct server_ctx {
 #include <libnetfilter_conntrack/libnetfilter_conntrack_tcp.h>
 
 struct dscptracker {
-        struct nf_conntrack *ct;
-        long unsigned int mark;
-        unsigned int dscp;
-        unsigned int packet_count;
+    struct nf_conntrack *ct;
+    long unsigned int mark;
+    unsigned int dscp;
+    unsigned int packet_count;
 };
 
 #endif
@@ -87,7 +87,7 @@ typedef struct server {
 
     struct cork_dllist_item entries;
 #ifdef USE_NFCONNTRACK_TOS
-    struct dscptracker* tracker;
+    struct dscptracker *tracker;
 #endif
 } server_t;
 

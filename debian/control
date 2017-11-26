@@ -1,19 +1,19 @@
 Source: shadowsocks-libev
 Section: net
-Priority: extra
+Priority: optional
 Maintainer: Roger Shimizu <rogershimizu@gmail.com>
 Uploaders: Max Lv <max.c.lv@gmail.com>, Boyuan Yang <073plan@gmail.com>
 Build-Depends:
  asciidoc-base | asciidoc,
  debhelper (>= 10),
+ libc-ares-dev,
  libev-dev,
  libmbedtls-dev,
  libpcre3-dev,
- libsodium-dev (>= 1.0.8~),
- libc-ares-dev,
+ libsodium-dev (>= 1.0.12),
  pkg-config,
  xmlto
-Standards-Version: 3.9.8
+Standards-Version: 4.1.1
 Homepage: https://www.shadowsocks.org
 Vcs-Git: https://github.com/shadowsocks/shadowsocks-libev.git
 Vcs-Browser: https://github.com/shadowsocks/shadowsocks-libev
@@ -28,6 +28,10 @@ Depends:
  lsb-base (>= 3.0-6),
  ${misc:Depends},
  ${shlibs:Depends}
+Suggests:
+ haveged,
+ kcptun,
+ simple-obfs
 Description: lightweight and secure socks5 proxy
  Shadowsocks-libev is a lightweight and secure socks5 proxy for
  embedded devices and low end boxes.

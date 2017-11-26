@@ -25,10 +25,10 @@
 #endif
 
 #if defined(__linux__) && defined(HAVE_LINUX_RANDOM_H)
-# include <fcntl.h>
-# include <unistd.h>
-# include <sys/ioctl.h>
-# include <linux/random.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <linux/random.h>
 #endif
 
 #include <stdint.h>
@@ -115,10 +115,10 @@ entropy_check(void)
 
     if ((fd = open("/dev/random", O_RDONLY)) != -1) {
         if (ioctl(fd, RNDGETENTCNT, &c) == 0 && c < 160) {
-            LOGI("This system doesn't provide enough entropy to quickly generate high-quality random numbers\n"
-                 "Installing the rng-utils/rng-tools or haveged packages may help.\n"
+            LOGI("This system doesn't provide enough entropy to quickly generate high-quality random numbers.\n"
+                 "Installing the rng-utils/rng-tools, jitterentropy or haveged packages may help.\n"
                  "On virtualized Linux environments, also consider using virtio-rng.\n"
-                 "The service will not start until enough entropy has been collected.");
+                 "The service will not start until enough entropy has been collected.\n");
         }
         close(fd);
     }
@@ -239,22 +239,24 @@ crypto_derive_key(const char *pass, uint8_t *key, size_t key_len)
 }
 
 /* HKDF-Extract + HKDF-Expand */
-int crypto_hkdf(const mbedtls_md_info_t *md, const unsigned char *salt,
-                 int salt_len, const unsigned char *ikm, int ikm_len,
-                 const unsigned char *info, int info_len, unsigned char *okm,
-                 int okm_len)
+int
+crypto_hkdf(const mbedtls_md_info_t *md, const unsigned char *salt,
+            int salt_len, const unsigned char *ikm, int ikm_len,
+            const unsigned char *info, int info_len, unsigned char *okm,
+            int okm_len)
 {
     unsigned char prk[MBEDTLS_MD_MAX_SIZE];
 
     return crypto_hkdf_extract(md, salt, salt_len, ikm, ikm_len, prk) ||
            crypto_hkdf_expand(md, prk, mbedtls_md_get_size(md), info, info_len,
-                               okm, okm_len);
+                              okm, okm_len);
 }
 
 /* HKDF-Extract(salt, IKM) -> PRK */
-int crypto_hkdf_extract(const mbedtls_md_info_t *md, const unsigned char *salt,
-                         int salt_len, const unsigned char *ikm, int ikm_len,
-                         unsigned char *prk)
+int
+crypto_hkdf_extract(const mbedtls_md_info_t *md, const unsigned char *salt,
+                    int salt_len, const unsigned char *ikm, int ikm_len,
+                    unsigned char *prk)
 {
     int hash_len;
     unsigned char null_salt[MBEDTLS_MD_MAX_SIZE] = { '\0' };
@@ -266,7 +268,7 @@ int crypto_hkdf_extract(const mbedtls_md_info_t *md, const unsigned char *salt,
     hash_len = mbedtls_md_get_size(md);
 
     if (salt == NULL) {
-        salt = null_salt;
+        salt     = null_salt;
         salt_len = hash_len;
     }
 
@@ -274,9 +276,10 @@ int crypto_hkdf_extract(const mbedtls_md_info_t *md, const unsigned char *salt,
 }
 
 /* HKDF-Expand(PRK, info, L) -> OKM */
-int crypto_hkdf_expand(const mbedtls_md_info_t *md, const unsigned char *prk,
-                        int prk_len, const unsigned char *info, int info_len,
-                        unsigned char *okm, int okm_len)
+int
+crypto_hkdf_expand(const mbedtls_md_info_t *md, const unsigned char *prk,
+                   int prk_len, const unsigned char *info, int info_len,
+                   unsigned char *okm, int okm_len)
 {
     int hash_len;
     int N;
@@ -323,7 +326,7 @@ int crypto_hkdf_expand(const mbedtls_md_info_t *md, const unsigned char *prk,
               mbedtls_md_hmac_update(&ctx, T, T_len) ||
               mbedtls_md_hmac_update(&ctx, info, info_len) ||
               /* The constant concatenated to the end of each T(n) is a single
-                 octet. */
+               * octet. */
               mbedtls_md_hmac_update(&ctx, &c, 1) ||
               mbedtls_md_hmac_finish(&ctx, T);
 
@@ -334,7 +337,7 @@ int crypto_hkdf_expand(const mbedtls_md_info_t *md, const unsigned char *prk,
 
         memcpy(okm + where, T, (i != N) ? hash_len : (okm_len - where));
         where += hash_len;
-        T_len = hash_len;
+        T_len  = hash_len;
     }
 
     mbedtls_md_free(&ctx);
@@ -346,14 +349,14 @@ int
 crypto_parse_key(const char *base64, uint8_t *key, size_t key_len)
 {
     size_t base64_len = strlen(base64);
-    int out_len = BASE64_SIZE(base64_len);
+    int out_len       = BASE64_SIZE(base64_len);
     uint8_t out[out_len];
 
     out_len = base64_decode(out, base64, out_len);
     if (out_len > 0 && out_len >= key_len) {
         memcpy(key, out, key_len);
 #ifdef SS_DEBUG
-        dump("KEY", (char*)key, key_len);
+        dump("KEY", (char *)key, key_len);
 #endif
         return key_len;
     }
@@ -379,4 +382,5 @@ dump(char *tag, char *text, int len)
         printf("0x%02x ", (uint8_t)text[i]);
     printf("\n");
 }
+
 #endif

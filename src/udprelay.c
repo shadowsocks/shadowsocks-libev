@@ -242,7 +242,7 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
             }
             if (host != NULL) {
                 inet_ntop(AF_INET, (const void *)(buf + offset),
-                         host, INET_ADDRSTRLEN);
+                          host, INET_ADDRSTRLEN);
             }
             offset += in_addr_len;
         }
@@ -285,7 +285,7 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
             }
             if (host != NULL) {
                 inet_ntop(AF_INET6, (const void *)(buf + offset),
-                         host, INET6_ADDRSTRLEN);
+                          host, INET6_ADDRSTRLEN);
             }
             offset += in6_addr_len;
         }
@@ -316,14 +316,14 @@ get_addr_str(const struct sockaddr *sa)
     switch (sa->sa_family) {
     case AF_INET:
         inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
-                 addr, INET_ADDRSTRLEN);
+                  addr, INET_ADDRSTRLEN);
         p = ntohs(((struct sockaddr_in *)sa)->sin_port);
         sprintf(port, "%d", p);
         break;
 
     case AF_INET6:
         inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
-                 addr, INET6_ADDRSTRLEN);
+                  addr, INET6_ADDRSTRLEN);
         p = ntohs(((struct sockaddr_in *)sa)->sin_port);
         sprintf(port, "%d", p);
         break;
@@ -1294,7 +1294,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         struct resolv_query *query = resolv_start(host, htons(atoi(port)),
-                resolv_cb, resolv_free_cb, query_ctx);
+                                                  resolv_cb, resolv_free_cb, query_ctx);
 
         if (query == NULL) {
             ERROR("[udp] unable to create DNS query");
