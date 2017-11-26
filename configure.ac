@@ -139,7 +139,7 @@ AM_CONDITIONAL(BUILD_REDIRECTOR, test "$os_support" = "linux")
 AM_CONDITIONAL(BUILD_WINCOMPAT, test "$os_support" = "mingw")
 
 dnl Checks for header files.
-AC_CHECK_HEADERS([limits.h stdint.h inttypes.h arpa/inet.h fcntl.h langinfo.h locale.h netdb.h netinet/in.h stdlib.h string.h strings.h unistd.h sys/ioctl.h linux/random.h])
+AC_CHECK_HEADERS([limits.h stdint.h inttypes.h arpa/inet.h fcntl.h langinfo.h locale.h linux/tcp.h netinet/tcp.h netdb.h netinet/in.h stdlib.h string.h strings.h unistd.h sys/ioctl.h linux/random.h])
 
 dnl A special check required for <net/if.h> on Darwin. See
 dnl http://www.gnu.org/software/autoconf/manual/html_node/Header-Portability.html.

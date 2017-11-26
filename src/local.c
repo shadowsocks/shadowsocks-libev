@@ -100,7 +100,9 @@ static crypto_t *crypto;
 static int acl       = 0;
 static int mode      = TCP_ONLY;
 static int ipv6first = 0;
+#ifdef TCP_FASTOPEN
 static int fast_open = 0;
+#endif
 static int no_delay  = 0;
 static int udp_fd    = 0;
 
@@ -371,7 +373,32 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     ev_io_start(EV_A_ & remote->send_ctx->io);
                     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                 } else {
-#ifdef TCP_FASTOPEN
+#ifdef TCP_FASTOPEN_CONNECT
+                    // connecting, wait until connected
+                    int optval = 1;
+                    if (setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                                   (void *)&optval, sizeof(optval)) < 0) {
+                        LOGE("Failed to enable TCP Fast Open on fd %d\n", remote->fd);
+                        fast_open = 0;
+                        close_and_free_remote(EV_A_ remote);
+                        close_and_free_server(EV_A_ server);
+                        return;
+                    }
+
+                    int r = connect(remote->fd, (struct sockaddr *)&(remote->addr), remote->addr_len);
+
+                    if (r == -1 && errno != CONNECT_IN_PROGRESS) {
+                        ERROR("connect");
+                        close_and_free_remote(EV_A_ remote);
+                        close_and_free_server(EV_A_ server);
+                        return;
+                    }
+
+                    // wait on remote connected event
+                    ev_io_stop(EV_A_ & server_recv_ctx->io);
+                    ev_io_start(EV_A_ & remote->send_ctx->io);
+                    ev_timer_start(EV_A_ & remote->send_ctx->watcher);
+#elif defined(TCP_FASTOPEN) && !defined(TCP_FASTOPEN_CONNECT)
 #ifdef __APPLE__
                     ((struct sockaddr_in *)&(remote->addr))->sin_len = sizeof(struct sockaddr_in);
                     sa_endpoints_t endpoints;
