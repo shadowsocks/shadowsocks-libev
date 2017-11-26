@@ -118,7 +118,9 @@ static crypto_t *crypto;
 static int acl       = 0;
 static int mode      = TCP_ONLY;
 static int ipv6first = 0;
+#ifdef TCP_FASTOPEN
 static int fast_open = 0;
+#endif
 static int no_delay  = 0;
 
 #ifdef HAVE_SETRLIMIT
@@ -506,7 +508,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 
     remote_t *remote = new_remote(sockfd);
 
-#ifdef TCP_FASTOPEN
+#if defined(TCP_FASTOPEN) && !defined(TCP_FASTOPEN_CONNECT)
     if (fast_open) {
 #ifdef __APPLE__
         ((struct sockaddr_in *)(res->ai_addr))->sin_len = sizeof(struct sockaddr_in);
@@ -544,6 +546,24 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         } else {
             server->buf->idx += s;
             server->buf->len -= s;
+        }
+    }
+#elif defined(TCP_FASTOPEN_CONNECT)
+    if (fast_open) {
+        if (setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                       (void *)&opt, sizeof(opt)) < 0) {
+            LOGE("Failed to enable TCP Fast Open on fd %d\n", sockfd);
+            fast_open = 0;
+            close_and_free_remote(EV_A_ remote);
+            return NULL;
+        }
+
+        int r = connect(sockfd, res->ai_addr, res->ai_addrlen);
+
+        if (r == -1 && errno != CONNECT_IN_PROGRESS) {
+            ERROR("connect");
+            close_and_free_remote(EV_A_ remote);
+            return NULL;
         }
     }
 #endif
