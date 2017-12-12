@@ -1383,8 +1383,8 @@ void
 free_udprelay()
 {
     struct ev_loop *loop = EV_DEFAULT;
-    while (server_num-- > 0) {
-        server_ctx_t *server_ctx = server_ctx_list[server_num];
+    while (server_num > 0) {
+        server_ctx_t *server_ctx = server_ctx_list[--server_num];
         ev_io_stop(loop, &server_ctx->io);
         close(server_ctx->fd);
         cache_delete(server_ctx->conn_cache, 0);
