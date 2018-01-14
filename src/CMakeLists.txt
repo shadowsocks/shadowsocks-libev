@@ -94,17 +94,8 @@ find_library(LIBMBEDCRYPTO libmbedcrypto.a)
 find_library(LIBEV libev.a)
 find_library(LIBUDNS libcares.a)
 find_library(LIBPCRE libpcre.a)
-endif ()
-
-find_library(LIBSODIUM_SHARED sodium)
-find_library(LIBMBEDTLS_SHARED mbedtls)
-find_library(LIBMBEDCRYPTO_SHARED mbedcrypto)
-find_library(LIBEV_SHARED ev)
-find_library(LIBUDNS_SHARED cares)
-find_library(LIBPCRE_SHARED pcre)
 
 # Dependencies we need for static and shared
-if (WITH_STATIC)
 list(APPEND DEPS
         m
         bloom
@@ -117,9 +108,19 @@ list(APPEND DEPS
         )
 endif ()
 
+find_library(LIBSODIUM_SHARED sodium)
+find_library(LIBMBEDTLS_SHARED mbedtls)
+find_library(LIBMBEDCRYPTO_SHARED mbedcrypto)
+find_library(LIBEV_SHARED ev)
+find_library(LIBUDNS_SHARED cares)
+find_library(LIBPCRE_SHARED pcre)
+
+if (WITH_EMBEDDED_SRC)
 list(APPEND DEPS_SHARED
         m
         bloom-shared
+        cork-shared
+        ipset-shared
         ${LIBEV_SHARED}
         ${LIBUDNS_SHARED}
         ${LIBPCRE_SHARED}
@@ -127,6 +128,23 @@ list(APPEND DEPS_SHARED
         ${LIBMBEDTLS_SHARED}
         ${LIBMBEDCRYPTO_SHARED}
         )
+else ()
+find_library(LIBBLOOM_SHARED bloom)
+find_library(LIBCORK_SHARED cork)
+find_library(LIBCORKIPSET_SHARED corkipset)
+list(APPEND DEPS_SHARED
+        m
+        ${LIBBLOOM_SHARED}
+        ${LIBCORK_SHARED}
+        ${LIBCORKIPSET_SHARED}
+        ${LIBEV_SHARED}
+        ${LIBUDNS_SHARED}
+        ${LIBPCRE_SHARED}
+        ${LIBSODIUM_SHARED}
+        ${LIBMBEDTLS_SHARED}
+        ${LIBMBEDCRYPTO_SHARED}
+        )
+endif ()
 
 find_package (Threads)
 
@@ -184,12 +202,12 @@ target_compile_definitions(ss-local-shared PUBLIC -DMODULE_LOCAL)
 target_compile_definitions(ss-redir-shared PUBLIC -DMODULE_REDIR)
 target_compile_definitions(shadowsocks-libev-shared PUBLIC -DMODULE_LOCAL)
 
-target_link_libraries(ss-server-shared cork-shared ipset-shared ${DEPS_SHARED})
-target_link_libraries(ss-tunnel-shared cork-shared ${DEPS_SHARED})
-target_link_libraries(ss-manager-shared m bloom-shared cork-shared ${CMAKE_THREAD_LIBS_INIT} ${LIBEV_SHARED} ${LIBUDNS_SHARED})
-target_link_libraries(ss-local-shared cork-shared ipset-shared ${DEPS_SHARED})
-target_link_libraries(ss-redir-shared cork-shared ipset-shared ${DEPS_SHARED})
-target_link_libraries(shadowsocks-libev-shared cork-shared ipset-shared ${DEPS_SHARED})
+target_link_libraries(ss-server-shared ${DEPS_SHARED})
+target_link_libraries(ss-tunnel-shared ${DEPS_SHARED})
+target_link_libraries(ss-manager-shared ${CMAKE_THREAD_LIBS_INIT} ${LIBEV_SHARED} ${LIBUDNS_SHARED} ${DEPS_SHARED})
+target_link_libraries(ss-local-shared ${DEPS_SHARED})
+target_link_libraries(ss-redir-shared ${DEPS_SHARED})
+target_link_libraries(shadowsocks-libev-shared ${DEPS_SHARED})
 
 set_target_properties(ss-server-shared PROPERTIES OUTPUT_NAME ss-server)
 set_target_properties(ss-tunnel-shared PROPERTIES OUTPUT_NAME ss-tunnel)
@@ -204,7 +222,7 @@ set_target_properties(ss-server-shared ss-tunnel-shared ss-manager-shared ss-loc
 
 set_target_properties(shadowsocks-libev-shared PROPERTIES OUTPUT_NAME shadowsocks-libev)
 target_compile_definitions(shadowsocks-libev-shared PUBLIC -DMODULE_LOCAL)
-target_link_libraries(shadowsocks-libev-shared cork-shared ipset-shared ${DEPS_SHARED})
+target_link_libraries(shadowsocks-libev-shared ${DEPS_SHARED})
 
 # ------------------------------------------------------------------
 # Misc
