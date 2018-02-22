@@ -50,6 +50,10 @@
 #include <pwd.h>
 #include <libcork/core.h>
 
+#ifdef __APPLE__
+#include <Availability.h>
+#endif
+
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
 #include <net/if.h>
 #include <sys/ioctl.h>
@@ -96,6 +100,7 @@ destroy_server(struct server *server)
         ss_free(server->mode);
 }
 
+#ifndef __IPHONE_11_0
 static void
 build_config(char *prefix, struct manager_ctx *manager, struct server *server)
 {
@@ -223,6 +228,7 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
 
     return cmd;
 }
+#endif
 
 static char *
 get_data(char *buf, int len)
@@ -365,6 +371,7 @@ parse_traffic(char *buf, int len, char *port, uint64_t *traffic)
     return 0;
 }
 
+#ifndef __IPHONE_11_0
 static int
 create_and_bind(const char *host, const char *port, int protocol)
 {
@@ -488,10 +495,12 @@ check_port(struct manager_ctx *manager, struct server *server)
 
     return bind_err == -1 ? -1 : 0;
 }
+#endif
 
 static int
 add_server(struct manager_ctx *manager, struct server *server)
 {
+#ifndef __IPHONE_11_0
     int ret = check_port(manager, server);
 
     if (ret == -1) {
@@ -507,8 +516,12 @@ add_server(struct manager_ctx *manager, struct server *server)
         ERROR("add_server_system");
         return -1;
     }
-
     return 0;
+#else
+    ERROR("add_server not supported on iOS 11+");
+    return -1;
+#endif
+
 }
 
 static void
