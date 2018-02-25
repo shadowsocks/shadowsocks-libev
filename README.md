@@ -65,6 +65,7 @@ You have to install libsodium at least 1.0.8, but recommended 1.0.12 or later ve
 - [FreeBSD](#freebsd)
 - [OpenWRT](#openwrt)
 - [OS X](#os-x)
+- [Docker](#docker)
 
 * * *
 
@@ -345,13 +346,22 @@ Install shadowsocks-libev:
 brew install shadowsocks-libev
 ```
 
+### Docker
+
+As you expect, simply pull the image and run.
+```
+docker pull shadowsocks/shadowsocks-libev
+docker run -e PASSWORD=<password> -p<server-port>:8388 -p<server-port>:8388/udp -d shadowsocks/shadowsocks-libev
+```
+
+More information about the image can be found [here](docker/alpine/README.md).
+
 ## Usage
 
 For a detailed and complete list of all supported arguments,
 you may refer to the man pages of the applications, respectively.
 
-```
-    ss-[local|redir|server|tunnel|manager]
+    ss-[local|redir|server|tunnel|manager]
 
        -s <server_host>           host name or ip address of your remote server
 
@@ -422,51 +432,44 @@ you may refer to the man pages of the applications, respectively.
 
        [-v]                       verbose mode
 
-notes:
+## Transparent proxy
 
-    ss-redir provides a transparent proxy function and only works on the
-    Linux platform with iptables.
-
-```
-
-## Advanced usage
-
-The latest shadowsocks-libev has provided a *redir* mode. You can configure your Linux-based box or router to proxy all TCP traffic transparently.
+The latest shadowsocks-libev has provided a *redir* mode. You can configure your Linux-based box or router to proxy all TCP traffic transparently, which is handy if you use a OpenWRT-powered router.
 
     # Create new chain
-    root@Wrt:~# iptables -t nat -N SHADOWSOCKS
-    root@Wrt:~# iptables -t mangle -N SHADOWSOCKS
+    iptables -t nat -N SHADOWSOCKS
+    iptables -t mangle -N SHADOWSOCKS
 
     # Ignore your shadowsocks server's addresses
     # It's very IMPORTANT, just be careful.
-    root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 123.123.123.123 -j RETURN
+    iptables -t nat -A SHADOWSOCKS -d 123.123.123.123 -j RETURN
 
     # Ignore LANs and any other addresses you'd like to bypass the proxy
     # See Wikipedia and RFC5735 for full list of reserved networks.
     # See ashi009/bestroutetb for a highly optimized CHN route list.
-    root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 0.0.0.0/8 -j RETURN
-    root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 10.0.0.0/8 -j RETURN
-    root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 127.0.0.0/8 -j RETURN
-    root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 169.254.0.0/16 -j RETURN
-    root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 172.16.0.0/12 -j RETURN
-    root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 192.168.0.0/16 -j RETURN
-    root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 224.0.0.0/4 -j RETURN
-    root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 240.0.0.0/4 -j RETURN
+    iptables -t nat -A SHADOWSOCKS -d 0.0.0.0/8 -j RETURN
+    iptables -t nat -A SHADOWSOCKS -d 10.0.0.0/8 -j RETURN
+    iptables -t nat -A SHADOWSOCKS -d 127.0.0.0/8 -j RETURN
+    iptables -t nat -A SHADOWSOCKS -d 169.254.0.0/16 -j RETURN
+    iptables -t nat -A SHADOWSOCKS -d 172.16.0.0/12 -j RETURN
+    iptables -t nat -A SHADOWSOCKS -d 192.168.0.0/16 -j RETURN
+    iptables -t nat -A SHADOWSOCKS -d 224.0.0.0/4 -j RETURN
+    iptables -t nat -A SHADOWSOCKS -d 240.0.0.0/4 -j RETURN
 
     # Anything else should be redirected to shadowsocks's local port
-    root@Wrt:~# iptables -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports 12345
+    iptables -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports 12345
 
     # Add any UDP rules
-    root@Wrt:~# ip route add local default dev lo table 100
-    root@Wrt:~# ip rule add fwmark 1 lookup 100
-    root@Wrt:~# iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01
+    ip route add local default dev lo table 100
+    ip rule add fwmark 1 lookup 100
+    iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01
 
     # Apply the rules
-    root@Wrt:~# iptables -t nat -A PREROUTING -p tcp -j SHADOWSOCKS
-    root@Wrt:~# iptables -t mangle -A PREROUTING -j SHADOWSOCKS
+    iptables -t nat -A PREROUTING -p tcp -j SHADOWSOCKS
+    iptables -t mangle -A PREROUTING -j SHADOWSOCKS
 
     # Start the shadowsocks-redir
-    root@Wrt:~# ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
+    ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
 
 ## Shadowsocks over KCP
 

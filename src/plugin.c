@@ -87,14 +87,6 @@ start_ss_plugin(const char *plugin,
                 const char *local_port,
                 enum plugin_mode mode)
 {
-    char *cmd = NULL;
-
-    size_t plugin_len = strlen(plugin);
-    size_t cmd_len    = plugin_len + CMD_RESRV_LEN;
-    cmd = ss_malloc(cmd_len);
-
-    snprintf(cmd, cmd_len, "exec %s", plugin);
-
     cork_env_add(env, "SS_REMOTE_HOST", remote_host);
     cork_env_add(env, "SS_REMOTE_PORT", remote_port);
 
@@ -104,17 +96,13 @@ start_ss_plugin(const char *plugin,
     if (plugin_opts != NULL)
         cork_env_add(env, "SS_PLUGIN_OPTIONS", plugin_opts);
 
-    exec = cork_exec_new_with_params("sh", "-c", cmd, NULL);
+    exec = cork_exec_new(plugin);
 
     cork_exec_set_env(exec, env);
 
     sub = cork_subprocess_new_exec(exec, NULL, NULL, &exit_code);
-
-    int err = cork_subprocess_start(sub);
-
-    ss_free(cmd);
-
-    return err;
+  
+    return cork_subprocess_start(sub);
 }
 
 #define OBFSPROXY_OPTS_MAX  4096
