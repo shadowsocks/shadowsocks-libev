@@ -154,10 +154,21 @@ create_and_bind(const char *addr, const char *port)
         }
 
         int opt = 1;
-        setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        if (fast_open == 1){
+        
+        setsockopt(listen_sock, SOL_TCP, TCP_FASTOPEN, &opt, sizeof(opt));
+#ifdef SO_NOSIGPIPE
+        setsockopt(listen_sock, SOL_TCP, TCP_FASTOPEN, &opt, sizeof(opt));
+#endif
+        }
+        else {
+            setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 #ifdef SO_NOSIGPIPE
         setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
+            
+        }
+            
         if (reuse_port) {
             int err = set_reuseport(listen_sock);
             if (err == 0) {
@@ -1022,6 +1033,8 @@ main(int argc, char **argv)
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
+        fast_open = conf->fast_open;
+        
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;
