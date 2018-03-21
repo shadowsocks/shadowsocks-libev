@@ -156,9 +156,9 @@ create_and_bind(const char *addr, const char *port)
         int opt = 1;
         if (fast_open == 1){
         
-        setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, TCP_FASTOPEN, &opt, sizeof(opt));
+        setsockopt(listen_sock, SOL_TCP, TCP_FASTOPEN, &opt, sizeof(opt));
 #ifdef SO_NOSIGPIPE
-        setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, TCP_FASTOPEN, &opt, sizeof(opt));
+        setsockopt(listen_sock, SOL_TCP, TCP_FASTOPEN, &opt, sizeof(opt));
 #endif
         }
         else {
