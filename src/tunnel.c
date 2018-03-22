@@ -501,8 +501,14 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 ss_free(server->abuf);
                 server->abuf = NULL;
             }
-            ssize_t s = send(remote->fd, remote->buf->data + remote->buf->idx,
-                             remote->buf->len, 0);
+            /*ssize_t s = send(remote->fd, remote->buf->data + remote->buf->idx,
+                             remote->buf->len, 0);*/
+            
+            // Force enable TCP Fast Open?
+            ssize_t s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
+                       remote->buf->len, MSG_FASTOPEN, remote->addr,
+                       get_sockaddr_len(remote->addr));
+            
             if (s == -1) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
                     ERROR("send");
