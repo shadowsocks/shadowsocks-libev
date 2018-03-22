@@ -406,9 +406,10 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = remote_send_ctx->remote;
     server_t *server              = remote->server;
 
+    struct sockaddr_storage addr;
+    socklen_t len = sizeof(struct sockaddr_storage);
+    
     if (!remote_send_ctx->connected) {
-        struct sockaddr_storage addr;
-        socklen_t len = sizeof(struct sockaddr_storage);
 
         int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
         if (r == 0) {
