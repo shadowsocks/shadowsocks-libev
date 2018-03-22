@@ -505,7 +505,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             
             #if defined(MSG_FASTOPEN)
             ssize_t s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
-                             remote->buf->len, MSG_FASTOPEN, &addr, &len);
+                             remote->buf->len, MSG_FASTOPEN, (struct sockaddr *) &addr, &len);
             #else
             ssize_t s = send(remote->fd, remote->buf->data + remote->buf->idx,
                              remote->buf->len, 0);
