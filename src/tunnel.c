@@ -501,8 +501,15 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 ss_free(server->abuf);
                 server->abuf = NULL;
             }
+            
+            #if defined(MSG_FASTOPEN)
+            ssize_t s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
+                             remote->buf->len, MSG_FASTOPEN, &addr, &len);
+            #else
             ssize_t s = send(remote->fd, remote->buf->data + remote->buf->idx,
                              remote->buf->len, 0);
+            #endif
+            
             if (s == -1) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
                     ERROR("send");
