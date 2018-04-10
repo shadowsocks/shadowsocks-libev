@@ -15,6 +15,8 @@ SYNOPSIS
  [-b <local_addr>] [-a <user_name>]
  [--manager-address <path_to_unix_domain>]
  [--executable <path_to_server_executable>]
+ [--fast-open] [--reuse-port]
+ [--plugin <plugin_name>] [--plugin-opts <plugin_options>]
 
 DESCRIPTION
 -----------
@@ -43,11 +45,13 @@ Set the cipher.
 +
 *Shadowsocks-libev* accepts 18 different ciphers:
 +
-table, rc4, rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb, bf-cfb,
-camellia-128-cfb, camellia-192-cfb, camellia-256-cfb, cast5-cfb, des-cfb,
-idea-cfb, rc2-cfb, seed-cfb, salsa20, chacha20 and chacha20-ietf.
+aes-128-gcm, aes-192-gcm, aes-256-gcm,
+rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb,
+aes-128-ctr, aes-192-ctr, aes-256-ctr, bf-cfb,
+camellia-128-cfb, camellia-192-cfb, camellia-256-cfb,
+chacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf.
 +
-The default cipher is 'table'.
+The default cipher is 'rc4-md5'.
 +
 If built with PolarSSL or custom OpenSSL libraries, some of
 these ciphers may not work.
@@ -63,6 +67,9 @@ Set the socket timeout in seconds. The default value is 60.
 
 -c <config_file>::
 Use a configuration file.
++
+You may use "port_password" field inside this configuration file to bring up
+multiple ss-server instances together.
 
 -i <interface>::
 Send traffic through specific network interface.
@@ -91,6 +98,11 @@ Enable TCP fast open.
 +
 Only available with Linux kernel > 3.7.0.
 
+--reuse-port::
+Enable port reuse.
++
+Only available with Linux kernel > 3.9.0.
+
 --acl <acl_config>::
 Enable ACL (Access Control List) and specify config file.
 
@@ -103,6 +115,12 @@ Only available in server and manager mode.
 Specify the executable path of ss-server.
 +
 Only available in manager mode.
+
+--plugin <plugin_name>::
+Enable SIP003 plugin. (Experimental)
+
+--plugin-opts <plugin_options>::
+Set SIP003 plugin options. (Experimental)
 
 -v::
 Enable verbose mode.

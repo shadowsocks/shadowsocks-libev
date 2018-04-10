@@ -1,7 +1,7 @@
 /*
  * tunnel.h - Define tunnel's buffers and callbacks
  *
- * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -23,8 +23,13 @@
 #ifndef _TUNNEL_H
 #define _TUNNEL_H
 
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
 #include <ev.h>
-#include "encrypt.h"
+#endif
+
+#include "crypto.h"
 #include "jconf.h"
 
 #include "common.h"
@@ -34,7 +39,6 @@ typedef struct listen_ctx {
     ss_addr_t tunnel_addr;
     char *iface;
     int remote_num;
-    int method;
     int timeout;
     int fd;
     int mptcp;
@@ -49,13 +53,17 @@ typedef struct server_ctx {
 
 typedef struct server {
     int fd;
+
     buffer_t *buf;
-    struct enc_ctx *e_ctx;
-    struct enc_ctx *d_ctx;
+    buffer_t *abuf;
+    cipher_ctx_t *e_ctx;
+    cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
     ss_addr_t destaddr;
+
+    ev_timer delayed_connect_watcher;
 } server_t;
 
 typedef struct remote_ctx {

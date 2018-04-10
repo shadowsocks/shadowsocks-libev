@@ -16,9 +16,10 @@ After=network.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/default/shadowsocks-libev
-User=root
+User=nobody
+Group=nogroup
 LimitNOFILE=32768
-ExecStart=/usr/bin/ss-server -a $USER -c $CONFFILE $DAEMON_ARGS
+ExecStart=/usr/bin/ss-server -c $CONFFILE $DAEMON_ARGS
 
 [Install]
 WantedBy=multi-user.target

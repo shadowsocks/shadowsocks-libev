@@ -32,397 +32,443 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include <ev.h>
-#include <udns.h>
-
-#ifdef __MINGW32__
-#include "win32.h"
-#else
+#ifndef __MINGW32__
+#include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include <unistd.h>
+#else
+#include "winsock.h" // Should be before <ares.h>
 #endif
+#include <ares.h>
+
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
+#include <ev.h>
+#endif
+
+#include <libcork/core.h>
 
 #include "resolv.h"
 #include "utils.h"
 #include "netutils.h"
 
+#ifdef __MINGW32__
+#define CONV_STATE_CB (ares_sock_state_cb)
+#else
+#define CONV_STATE_CB
+#endif
+
 /*
- * Implement DNS resolution interface using libudns
+ * Implement DNS resolution interface using libc-ares
  */
 
-struct ResolvQuery {
-    void (*client_cb)(struct sockaddr *, void *);
-    void (*client_free_cb)(void *);
-    void *client_cb_data;
-    struct dns_query *queries[2];
+struct resolv_ctx {
+    struct ev_io io;
+    struct ev_timer tw;
+
+    ares_channel channel;
+    struct ares_options options;
+};
+
+struct resolv_query {
+    int requests[2];
     size_t response_count;
     struct sockaddr **responses;
+
+    void (*client_cb)(struct sockaddr *, void *);
+    void (*free_cb)(void *);
+
     uint16_t port;
+
+    void *data;
+
+    int is_closed;
 };
 
 extern int verbose;
 
-static struct ev_io resolv_io_watcher;
-static struct ev_timer resolv_timeout_watcher;
-static const int MODE_IPV4_ONLY  = 0;
-static const int MODE_IPV6_ONLY  = 1;
-static const int MODE_IPV4_FIRST = 2;
-static const int MODE_IPV6_FIRST = 3;
-static int resolv_mode           = 0;
+struct resolv_ctx default_ctx;
+static struct ev_loop *default_loop;
+
+enum {
+    MODE_IPV4_FIRST = 0,
+    MODE_IPV6_FIRST = 1
+} RESOLV_MODE;
+
+static int resolv_mode = MODE_IPV4_FIRST;
 
 static void resolv_sock_cb(struct ev_loop *, struct ev_io *, int);
 static void resolv_timeout_cb(struct ev_loop *, struct ev_timer *, int);
-static void dns_query_v4_cb(struct dns_ctx *, struct dns_rr_a4 *, void *);
-static void dns_query_v6_cb(struct dns_ctx *, struct dns_rr_a6 *, void *);
-static void dns_timer_setup_cb(struct dns_ctx *, int, void *);
-static void process_client_callback(struct ResolvQuery *);
-static inline int all_queries_are_null(struct ResolvQuery *);
-static struct sockaddr *choose_ipv4_first(struct ResolvQuery *);
-static struct sockaddr *choose_ipv6_first(struct ResolvQuery *);
-static struct sockaddr *choose_any(struct ResolvQuery *);
+static void resolv_sock_state_cb(void *, int, int, int);
 
-int resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, int ipv6first)
+static void dns_query_v4_cb(void *, int, int, struct hostent *);
+static void dns_query_v6_cb(void *, int, int, struct hostent *);
+
+static void process_client_callback(struct resolv_query *);
+static inline int all_requests_are_null(struct resolv_query *);
+static struct sockaddr *choose_ipv4_first(struct resolv_query *);
+static struct sockaddr *choose_ipv6_first(struct resolv_query *);
+static struct sockaddr *choose_any(struct resolv_query *);
+
+static void reset_timer();
+
+/*
+ * DNS UDP socket activity callback
+ */
+static void
+resolv_sock_cb(EV_P_ ev_io *w, int revents)
 {
+    struct resolv_ctx *ctx = (struct resolv_ctx *)w;
+
+    ares_socket_t rfd = ARES_SOCKET_BAD, wfd = ARES_SOCKET_BAD;
+
+    if (revents & EV_READ)
+        rfd = w->fd;
+    if (revents & EV_WRITE)
+        wfd = w->fd;
+
+    ares_process_fd(ctx->channel, rfd, wfd);
+
+    reset_timer();
+}
+
+int
+resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
+{
+    int status;
+
     if (ipv6first)
         resolv_mode = MODE_IPV6_FIRST;
     else
         resolv_mode = MODE_IPV4_FIRST;
 
-    struct dns_ctx *ctx = &dns_defctx;
-    if (nameservers == NULL) {
-        /* Nameservers not specified, use system resolver config */
-        dns_init(ctx, 0);
-    } else {
-        dns_reset(ctx);
+    default_loop = loop;
 
-        for (int i = 0; i < nameserver_num; i++) {
-            char *server = nameservers[i];
-            dns_add_serv(ctx, server);
-        }
+    if ((status = ares_library_init(ARES_LIB_INIT_ALL)) != ARES_SUCCESS) {
+        LOGE("c-ares error: %s", ares_strerror(status));
+        FATAL("failed to initialize c-ares");
     }
 
-    int sockfd = dns_open(ctx);
-    if (sockfd < 0) {
-        FATAL("Failed to open DNS resolver socket");
-    }
+    memset(&default_ctx, 0, sizeof(struct resolv_ctx));
 
-    if (nameserver_num == 1 && nameservers != NULL) {
-        if (strncmp("127.0.0.1", nameservers[0], 9) == 0
-                || strncmp("::1",  nameservers[0], 3) == 0) {
-            if (verbose) {
-                LOGI("bind UDP resolver to %s", nameservers[0]);
-            }
-            if (bind_to_address(sockfd, nameservers[0]) == -1)
-                ERROR("bind_to_address");
-        }
-    }
+    default_ctx.options.sock_state_cb_data = &default_ctx;
+    default_ctx.options.sock_state_cb      = CONV_STATE_CB resolv_sock_state_cb;
+    default_ctx.options.timeout            = 3000;
+    default_ctx.options.tries              = 2;
 
-#ifdef __MINGW32__
-    setnonblocking(sockfd);
-#else
-    int flags = fcntl(sockfd, F_GETFL, 0);
-    fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
+    status = ares_init_options(&default_ctx.channel, &default_ctx.options,
+#if ARES_VERSION_MAJOR >= 1 && ARES_VERSION_MINOR >= 12
+                               ARES_OPT_NOROTATE |
 #endif
+                               ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SOCK_STATE_CB);
 
-    ev_io_init(&resolv_io_watcher, resolv_sock_cb, sockfd, EV_READ);
-    resolv_io_watcher.data = ctx;
-
-    ev_io_start(loop, &resolv_io_watcher);
-
-    ev_timer_init(&resolv_timeout_watcher, resolv_timeout_cb, 0.0, 0.0);
-    resolv_timeout_watcher.data = ctx;
-
-    dns_set_tmcbck(ctx, dns_timer_setup_cb, loop);
-
-    return sockfd;
-}
-
-void resolv_shutdown(struct ev_loop *loop)
-{
-    struct dns_ctx *ctx = (struct dns_ctx *)resolv_io_watcher.data;
-
-    ev_io_stop(loop, &resolv_io_watcher);
-
-    if (ev_is_active(&resolv_timeout_watcher)) {
-        ev_timer_stop(loop, &resolv_timeout_watcher);
+    if (status != ARES_SUCCESS) {
+        FATAL("failed to initialize c-ares");
     }
 
-    dns_close(ctx);
+    if (nameservers != NULL) {
+#if ARES_VERSION_MAJOR >= 1 && ARES_VERSION_MINOR >= 11
+        status = ares_set_servers_ports_csv(default_ctx.channel, nameservers);
+#else
+        status = ares_set_servers_csv(default_ctx.channel, nameservers);
+#endif
+    }
+
+    if (status != ARES_SUCCESS) {
+        FATAL("failed to set nameservers");
+    }
+
+    ev_init(&default_ctx.io, resolv_sock_cb);
+    ev_timer_init(&default_ctx.tw, resolv_timeout_cb, 0.0, 0.0);
+
+    return 0;
 }
 
-struct ResolvQuery *resolv_query(const char *hostname, void (*client_cb)(struct sockaddr *, void *),
-                                 void (*client_free_cb)(void *), void *client_cb_data,
-                                 uint16_t port)
+void
+resolv_shutdown(struct ev_loop *loop)
 {
-    struct dns_ctx *ctx = (struct dns_ctx *)resolv_io_watcher.data;
+    ares_cancel(default_ctx.channel);
+    ares_destroy(default_ctx.channel);
 
+    ares_library_cleanup();
+}
+
+void
+resolv_start(const char *hostname, uint16_t port,
+             void (*client_cb)(struct sockaddr *, void *),
+             void (*free_cb)(void *), void *data)
+{
     /*
-     * Wrap udns's call back in our own
+     * Wrap c-ares's call back in our own
      */
-    struct ResolvQuery *cb_data = ss_malloc(sizeof(struct ResolvQuery));
-    if (cb_data == NULL) {
-        LOGE("Failed to allocate memory for DNS query callback data.");
-        return NULL;
-    }
-    cb_data->client_cb      = client_cb;
-    cb_data->client_free_cb = client_free_cb;
-    cb_data->client_cb_data = client_cb_data;
-    memset(cb_data->queries, 0, sizeof(cb_data->queries));
-    cb_data->response_count = 0;
-    cb_data->responses      = NULL;
-    cb_data->port           = port;
+    struct resolv_query *query = ss_malloc(sizeof(struct resolv_query));
 
-    /* Submit A and AAAA queries */
-    if (resolv_mode != MODE_IPV6_ONLY) {
-        cb_data->queries[0] = dns_submit_a4(ctx,
-                                            hostname, 0,
-                                            dns_query_v4_cb, cb_data);
-        if (cb_data->queries[0] == NULL) {
-            LOGE("Failed to submit DNS query: %s",
-                 dns_strerror(dns_status(ctx)));
-        }
-    }
+    memset(query, 0, sizeof(struct resolv_query));
 
-    if (resolv_mode != MODE_IPV4_ONLY) {
-        cb_data->queries[1] = dns_submit_a6(ctx,
-                                            hostname, 0,
-                                            dns_query_v6_cb, cb_data);
-        if (cb_data->queries[1] == NULL) {
-            LOGE("Failed to submit DNS query: %s",
-                 dns_strerror(dns_status(ctx)));
-        }
-    }
+    query->port           = port;
+    query->client_cb      = client_cb;
+    query->response_count = 0;
+    query->responses      = NULL;
+    query->data           = data;
+    query->free_cb        = free_cb;
 
-    if (all_queries_are_null(cb_data)) {
-        if (cb_data->client_free_cb != NULL) {
-            cb_data->client_free_cb(cb_data->client_cb_data);
-        }
-        ss_free(cb_data);
-    }
+    query->requests[0] = AF_INET;
+    query->requests[1] = AF_INET6;
 
-    return cb_data;
-}
+    ares_gethostbyname(default_ctx.channel, hostname, AF_INET, dns_query_v4_cb, query);
+    ares_gethostbyname(default_ctx.channel, hostname, AF_INET6, dns_query_v6_cb, query);
 
-void resolv_cancel(struct ResolvQuery *query_handle)
-{
-    struct ResolvQuery *cb_data = (struct ResolvQuery *)query_handle;
-    struct dns_ctx *ctx         = (struct dns_ctx *)resolv_io_watcher.data;
-
-    for (int i = 0; i < sizeof(cb_data->queries) / sizeof(cb_data->queries[0]);
-         i++)
-        if (cb_data->queries[i] != NULL) {
-            dns_cancel(ctx, cb_data->queries[i]);
-            ss_free(cb_data->queries[i]);
-        }
-
-    if (cb_data->client_free_cb != NULL) {
-        cb_data->client_free_cb(cb_data->client_cb_data);
-    }
-
-    ss_free(cb_data);
+    reset_timer();
 }
 
 /*
- * DNS UDP socket activity callback
+ * Wrapper for client callback we provide to c-ares
  */
-static void resolv_sock_cb(struct ev_loop *loop, struct ev_io *w, int revents)
+static void
+dns_query_v4_cb(void *arg, int status, int timeouts, struct hostent *he)
 {
-    struct dns_ctx *ctx = (struct dns_ctx *)w->data;
+    int i, n;
+    struct resolv_query *query = (struct resolv_query *)arg;
 
-    if (revents & EV_READ) {
-        dns_ioevent(ctx, ev_now(loop));
+    if (status == ARES_EDESTRUCTION) {
+        return;
     }
-}
 
-/*
- * Wrapper for client callback we provide to udns
- */
-static void dns_query_v4_cb(struct dns_ctx *ctx, struct dns_rr_a4 *result, void *data)
-{
-    struct ResolvQuery *cb_data = (struct ResolvQuery *)data;
-
-    if (result == NULL) {
+    if (!he || status != ARES_SUCCESS) {
         if (verbose) {
-            LOGI("IPv4 resolv: %s", dns_strerror(dns_status(ctx)));
+            LOGI("failed to lookup v4 address %s", ares_strerror(status));
         }
-    } else if (result->dnsa4_nrr > 0) {
-        struct sockaddr **new_responses = ss_realloc(cb_data->responses,
-                                                     (cb_data->response_count +
-                                                      result->dnsa4_nrr) *
-                                                     sizeof(struct sockaddr *));
-        if (new_responses == NULL) {
-            LOGE("Failed to allocate memory for additional DNS responses");
-        } else {
-            cb_data->responses = new_responses;
+        goto CLEANUP;
+    }
 
-            for (int i = 0; i < result->dnsa4_nrr; i++) {
-                struct sockaddr_in *sa =
-                    (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
+    if (verbose) {
+        LOGI("found address name v4 address %s", he->h_name);
+    }
+
+    n = 0;
+    while (he->h_addr_list[n])
+        n++;
+
+    if (n > 0) {
+        struct sockaddr **new_responses = ss_realloc(query->responses,
+                                                     (query->response_count + n)
+                                                     * sizeof(struct sockaddr *));
+
+        if (new_responses == NULL) {
+            LOGE("failed to allocate memory for additional DNS responses");
+        } else {
+            query->responses = new_responses;
+
+            for (i = 0; i < n; i++) {
+                struct sockaddr_in *sa = ss_malloc(sizeof(struct sockaddr_in));
+                memset(sa, 0, sizeof(struct sockaddr_in));
                 sa->sin_family = AF_INET;
-                sa->sin_port   = cb_data->port;
-                sa->sin_addr   = result->dnsa4_addr[i];
+                sa->sin_port   = query->port;
+                memcpy(&sa->sin_addr, he->h_addr_list[i], he->h_length);
 
-                cb_data->responses[cb_data->response_count] =
-                    (struct sockaddr *)sa;
-                if (cb_data->responses[cb_data->response_count] == NULL) {
-                    LOGE(
-                        "Failed to allocate memory for DNS query result address");
+                query->responses[query->response_count] = (struct sockaddr *)sa;
+                if (query->responses[query->response_count] == NULL) {
+                    LOGE("failed to allocate memory for DNS query result address");
                 } else {
-                    cb_data->response_count++;
+                    query->response_count++;
                 }
             }
         }
     }
 
-    ss_free(result);
-    cb_data->queries[0] = NULL; /* mark A query as being completed */
+CLEANUP:
 
-    /* Once all queries have completed, call client callback */
-    if (all_queries_are_null(cb_data)) {
-        return process_client_callback(cb_data);
+    query->requests[0] = 0; /* mark A query as being completed */
+
+    /* Once all requests have completed, call client callback */
+    if (all_requests_are_null(query)) {
+        return process_client_callback(query);
     }
 }
 
-static void dns_query_v6_cb(struct dns_ctx *ctx, struct dns_rr_a6 *result, void *data)
+static void
+dns_query_v6_cb(void *arg, int status, int timeouts, struct hostent *he)
 {
-    struct ResolvQuery *cb_data = (struct ResolvQuery *)data;
+    int i, n;
+    struct resolv_query *query = (struct resolv_query *)arg;
 
-    if (result == NULL) {
+    if (status == ARES_EDESTRUCTION) {
+        return;
+    }
+
+    if (!he || status != ARES_SUCCESS) {
         if (verbose) {
-            LOGI("IPv6 resolv: %s", dns_strerror(dns_status(ctx)));
+            LOGI("failed to lookup v6 address %s", ares_strerror(status));
         }
-    } else if (result->dnsa6_nrr > 0) {
-        struct sockaddr **new_responses = ss_realloc(cb_data->responses,
-                                                     (cb_data->response_count +
-                                                      result->dnsa6_nrr) *
-                                                     sizeof(struct sockaddr *));
+        goto CLEANUP;
+    }
+
+    if (verbose) {
+        LOGI("found address name v6 address %s", he->h_name);
+    }
+
+    n = 0;
+    while (he->h_addr_list[n])
+        n++;
+
+    if (n > 0) {
+        struct sockaddr **new_responses = ss_realloc(query->responses,
+                                                     (query->response_count + n)
+                                                     * sizeof(struct sockaddr *));
+
         if (new_responses == NULL) {
-            LOGE("Failed to allocate memory for additional DNS responses");
+            LOGE("failed to allocate memory for additional DNS responses");
         } else {
-            cb_data->responses = new_responses;
+            query->responses = new_responses;
 
-            for (int i = 0; i < result->dnsa6_nrr; i++) {
-                struct sockaddr_in6 *sa =
-                    (struct sockaddr_in6 *)malloc(sizeof(struct sockaddr_in6));
+            for (i = 0; i < n; i++) {
+                struct sockaddr_in6 *sa = ss_malloc(sizeof(struct sockaddr_in6));
+                memset(sa, 0, sizeof(struct sockaddr_in6));
                 sa->sin6_family = AF_INET6;
-                sa->sin6_port   = cb_data->port;
-                sa->sin6_addr   = result->dnsa6_addr[i];
+                sa->sin6_port   = query->port;
+                memcpy(&sa->sin6_addr, he->h_addr_list[i], he->h_length);
 
-                cb_data->responses[cb_data->response_count] =
-                    (struct sockaddr *)sa;
-                if (cb_data->responses[cb_data->response_count] == NULL) {
-                    LOGE(
-                        "Failed to allocate memory for DNS query result address");
+                query->responses[query->response_count] = (struct sockaddr *)sa;
+                if (query->responses[query->response_count] == NULL) {
+                    LOGE("failed to allocate memory for DNS query result address");
                 } else {
-                    cb_data->response_count++;
+                    query->response_count++;
                 }
             }
         }
     }
 
-    ss_free(result);
-    cb_data->queries[1] = NULL; /* mark AAAA query as being completed */
+CLEANUP:
 
-    /* Once all queries have completed, call client callback */
-    if (all_queries_are_null(cb_data)) {
-        return process_client_callback(cb_data);
+    query->requests[1] = 0; /* mark A query as being completed */
+
+    /* Once all requests have completed, call client callback */
+    if (all_requests_are_null(query)) {
+        return process_client_callback(query);
     }
 }
 
 /*
- * Called once all queries have been completed
+ * Called once all requests have been completed
  */
-static void process_client_callback(struct ResolvQuery *cb_data)
+static void
+process_client_callback(struct resolv_query *query)
 {
     struct sockaddr *best_address = NULL;
 
     if (resolv_mode == MODE_IPV4_FIRST) {
-        best_address = choose_ipv4_first(cb_data);
+        best_address = choose_ipv4_first(query);
     } else if (resolv_mode == MODE_IPV6_FIRST) {
-        best_address = choose_ipv6_first(cb_data);
+        best_address = choose_ipv6_first(query);
     } else {
-        best_address = choose_any(cb_data);
+        best_address = choose_any(query);
     }
 
-    cb_data->client_cb(best_address, cb_data->client_cb_data);
+    query->client_cb(best_address, query->data);
 
-    for (int i = 0; i < cb_data->response_count; i++)
-        ss_free(cb_data->responses[i]);
+    for (int i = 0; i < query->response_count; i++)
+        ss_free(query->responses[i]);
 
-    ss_free(cb_data->responses);
-    if (cb_data->client_free_cb != NULL) {
-        cb_data->client_free_cb(cb_data->client_cb_data);
-    }
-    ss_free(cb_data);
+    ss_free(query->responses);
+
+    if (query->free_cb != NULL)
+        query->free_cb(query->data);
+    else
+        ss_free(query->data);
+
+    ss_free(query);
 }
 
-static struct sockaddr *choose_ipv4_first(struct ResolvQuery *cb_data)
+static struct sockaddr *
+choose_ipv4_first(struct resolv_query *query)
 {
-    for (int i = 0; i < cb_data->response_count; i++)
-        if (cb_data->responses[i]->sa_family == AF_INET) {
-            return cb_data->responses[i];
+    for (int i = 0; i < query->response_count; i++)
+        if (query->responses[i]->sa_family == AF_INET) {
+            return query->responses[i];
         }
 
-    return choose_any(cb_data);
+    return choose_any(query);
 }
 
-static struct sockaddr *choose_ipv6_first(struct ResolvQuery *cb_data)
+static struct sockaddr *
+choose_ipv6_first(struct resolv_query *query)
 {
-    for (int i = 0; i < cb_data->response_count; i++)
-        if (cb_data->responses[i]->sa_family == AF_INET6) {
-            return cb_data->responses[i];
+    for (int i = 0; i < query->response_count; i++)
+        if (query->responses[i]->sa_family == AF_INET6) {
+            return query->responses[i];
         }
 
-    return choose_any(cb_data);
+    return choose_any(query);
 }
 
-static struct sockaddr *choose_any(struct ResolvQuery *cb_data)
+static struct sockaddr *
+choose_any(struct resolv_query *query)
 {
-    if (cb_data->response_count >= 1) {
-        return cb_data->responses[0];
+    if (query->response_count >= 1) {
+        return query->responses[0];
     }
 
     return NULL;
 }
 
-/*
- * DNS timeout callback
- */
-static void resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
-{
-    struct dns_ctx *ctx = (struct dns_ctx *)w->data;
-
-    if (revents & EV_TIMER) {
-        dns_timeouts(ctx, 30, ev_now(loop));
-    }
-}
-
-/*
- * Callback to setup DNS timeout callback
- */
-static void dns_timer_setup_cb(struct dns_ctx *ctx, int timeout, void *data)
-{
-    struct ev_loop *loop = (struct ev_loop *)data;
-
-    if (ev_is_active(&resolv_timeout_watcher)) {
-        ev_timer_stop(loop, &resolv_timeout_watcher);
-    }
-
-    if (ctx != NULL && timeout >= 0) {
-        ev_timer_set(&resolv_timeout_watcher, timeout, 0.0);
-        ev_timer_start(loop, &resolv_timeout_watcher);
-    }
-}
-
-static inline int all_queries_are_null(struct ResolvQuery *cb_data)
+static inline int
+all_requests_are_null(struct resolv_query *query)
 {
     int result = 1;
 
-    for (int i = 0; i < sizeof(cb_data->queries) / sizeof(cb_data->queries[0]);
+    for (int i = 0; i < sizeof(query->requests) / sizeof(query->requests[0]);
          i++)
-        result = result && cb_data->queries[i] == NULL;
+        result = result && query->requests[i] == 0;
 
     return result;
+}
+
+/*
+ *  DNS timeout callback
+ */
+static void
+resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
+{
+    struct resolv_ctx *ctx = cork_container_of(w, struct resolv_ctx, tw);
+
+    ares_process_fd(ctx->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
+
+    reset_timer();
+}
+
+static void
+reset_timer()
+{
+    struct timeval tvout;
+    struct timeval *tv = ares_timeout(default_ctx.channel, NULL, &tvout);
+    if (tv == NULL) {
+        return;
+    }
+    float repeat = tv->tv_sec + tv->tv_usec / 1000000. + 1e-9;
+    ev_timer_set(&default_ctx.tw, repeat, repeat);
+    ev_timer_again(default_loop, &default_ctx.tw);
+}
+
+/*
+ * Handle c-ares events
+ */
+static void
+resolv_sock_state_cb(void *data, int s, int read, int write)
+{
+    struct resolv_ctx *ctx = (struct resolv_ctx *)data;
+    int io_active          = ev_is_active(&ctx->io);
+
+    if (read || write) {
+        if (io_active && ctx->io.fd != s) {
+            ev_io_stop(default_loop, &ctx->io);
+        }
+        ev_io_set(&ctx->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
+        ev_io_start(default_loop, &ctx->io);
+    } else {
+        ev_io_stop(default_loop, &ctx->io);
+        ev_io_set(&ctx->io, -1, 0);
+    }
 }

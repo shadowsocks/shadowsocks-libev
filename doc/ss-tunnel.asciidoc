@@ -8,12 +8,14 @@ ss-tunnel - shadowsocks tools for local port forwarding, libev port
 SYNOPSIS
 --------
 *ss-tunnel*
- [-AuUv] [-h|--help]
+ [-uUv6] [-h|--help]
  [-s <server_host>] [-p <server_port>] [-l <local_port>]
  [-k <password>] [-m <encrypt_method>] [-f <pid_file>]
  [-t <timeout>] [-c <config_file>] [-i <interface>]
- [-b <local_addr>] [-a <user_name>] [-n <nofile>]
- [-L addr:port] [--mtu <MTU>]
+ [-b <local_address>] [-a <user_name>] [-n <nofile>]
+ [-L addr:port] [--mtu <MTU>] [--mptcp] [--reuse-port] [--no-delay]
+ [--plugin <plugin_name>] [--plugin-opts <plugin_options>]
+ [--key <key_in_base64>]
 
 DESCRIPTION
 -----------
@@ -39,18 +41,24 @@ Set the server's port number.
 Set the local port number.
 
 -k <password>::
+--password <password>::
 Set the password. The server and the client should use the same password.
+
+--key <key_in_base64>::
+Set the key directly. The key should be encoded with URL-safe Base64.
 
 -m <encrypt_method>::
 Set the cipher.
 +
 *Shadowsocks-libev* accepts 18 different ciphers:
 +
-table, rc4, rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb, bf-cfb,
-camellia-128-cfb, camellia-192-cfb, camellia-256-cfb, cast5-cfb, des-cfb,
-idea-cfb, rc2-cfb, seed-cfb, salsa20, chacha20 and chacha20-ietf.
+aes-128-gcm, aes-192-gcm, aes-256-gcm,
+rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb,
+aes-128-ctr, aes-192-ctr, aes-256-ctr, bf-cfb,
+camellia-128-cfb, camellia-192-cfb, camellia-256-cfb,
+chacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf.
 +
-The default cipher is 'table'.
+The default cipher is 'rc4-md5'.
 +
 If built with PolarSSL or custom OpenSSL libraries, some of
 these ciphers may not work.
@@ -92,8 +100,8 @@ Enable UDP relay.
 -U::
 Enable UDP relay and disable TCP relay.
 
--A::
-Enable onetime authentication.
+-6::
+Resovle hostname to IPv6 address first.
 
 -L <addr:port>::
 Specify destination server address and port for local port forwarding.
@@ -107,6 +115,20 @@ Specify the MTU of your network interface.
 Enable Multipath TCP.
 +
 Only available with MPTCP enabled Linux kernel.
+
+--reuse-port::
+Enable port reuse.
++
+Only available with Linux kernel > 3.9.0.
+
+--no-delay::
+Enable TCP_NODELAY.
+
+--plugin <plugin_name>::
+Enable SIP003 plugin. (Experimental)
+
+--plugin-opts <plugin_options>::
+Set SIP003 plugin options. (Experimental)
 
 -v::
 Enable verbose mode.

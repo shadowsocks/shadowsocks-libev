@@ -1,7 +1,7 @@
 /*
  * netutils.c - Network utilities
  *
- * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -23,17 +23,13 @@
 #include <math.h>
 
 #include <libcork/core.h>
-#include <udns.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#ifdef __MINGW32__
-#include "win32.h"
-#define sleep(n) Sleep(1000 * (n))
-#else
-#include <sys/socket.h>
+#ifndef __MINGW32__
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -55,19 +51,21 @@
 extern int verbose;
 
 static const char valid_label_bytes[] =
-"-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+    "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
 #if defined(MODULE_LOCAL)
 extern int keep_resolving;
 #endif
 
-int set_reuseport(int socket)
+int
+set_reuseport(int socket)
 {
     int opt = 1;
     return setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
 }
 
-size_t get_sockaddr_len(struct sockaddr *addr)
+size_t
+get_sockaddr_len(struct sockaddr *addr)
 {
     if (addr->sa_family == AF_INET) {
         return sizeof(struct sockaddr_in);
@@ -78,32 +76,39 @@ size_t get_sockaddr_len(struct sockaddr *addr)
 }
 
 #ifdef SET_INTERFACE
-int setinterface(int socket_fd, const char *interface_name)
+int
+setinterface(int socket_fd, const char *interface_name)
 {
     struct ifreq interface;
-    memset(&interface, 0, sizeof(interface));
+    memset(&interface, 0, sizeof(struct ifreq));
     strncpy(interface.ifr_name, interface_name, IFNAMSIZ);
     int res = setsockopt(socket_fd, SOL_SOCKET, SO_BINDTODEVICE, &interface,
                          sizeof(struct ifreq));
     return res;
 }
+
 #endif
 
-int bind_to_address(int socket_fd, const char *host)
+int
+bind_to_address(int socket_fd, const char *host)
 {
-    if (host != NULL) {
+    static struct sockaddr_storage storage = {0};
+    if (storage.ss_family == AF_INET) {
+        return bind(socket_fd, (struct sockaddr *)&storage, sizeof(struct sockaddr_in));
+    }
+    else if (storage.ss_family == AF_INET6) {
+        return bind(socket_fd, (struct sockaddr *)&storage, sizeof(struct sockaddr_in6));
+    } else if (host != NULL) {
         struct cork_ip ip;
-        struct sockaddr_storage storage;
-        memset(&storage, 0, sizeof(storage));
         if (cork_ip_init(&ip, host) != -1) {
             if (ip.version == 4) {
                 struct sockaddr_in *addr = (struct sockaddr_in *)&storage;
-                dns_pton(AF_INET, host, &addr->sin_addr);
+                inet_pton(AF_INET, host, &addr->sin_addr);
                 addr->sin_family = AF_INET;
                 return bind(socket_fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in));
             } else if (ip.version == 6) {
                 struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&storage;
-                dns_pton(AF_INET6, host, &addr->sin6_addr);
+                inet_pton(AF_INET6, host, &addr->sin6_addr);
                 addr->sin6_family = AF_INET6;
                 return bind(socket_fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in6));
             }
@@ -112,21 +117,24 @@ int bind_to_address(int socket_fd, const char *host)
     return -1;
 }
 
-ssize_t get_sockaddr(char *host, char *port, struct sockaddr_storage *storage, int block)
+ssize_t
+get_sockaddr(char *host, char *port,
+             struct sockaddr_storage *storage, int block,
+             int ipv6first)
 {
     struct cork_ip ip;
     if (cork_ip_init(&ip, host) != -1) {
         if (ip.version == 4) {
             struct sockaddr_in *addr = (struct sockaddr_in *)storage;
             addr->sin_family = AF_INET;
-            dns_pton(AF_INET, host, &(addr->sin_addr));
+            inet_pton(AF_INET, host, &(addr->sin_addr));
             if (port != NULL) {
                 addr->sin_port = htons(atoi(port));
             }
         } else if (ip.version == 6) {
             struct sockaddr_in6 *addr = (struct sockaddr_in6 *)storage;
             addr->sin6_family = AF_INET6;
-            dns_pton(AF_INET6, host, &(addr->sin6_addr));
+            inet_pton(AF_INET6, host, &(addr->sin6_addr));
             if (port != NULL) {
                 addr->sin6_port = htons(atoi(port));
             }
@@ -161,18 +169,24 @@ ssize_t get_sockaddr(char *host, char *port, struct sockaddr_storage *storage, i
             return -1;
         }
 
+        int prefer_af = ipv6first ? AF_INET6 : AF_INET;
         for (rp = result; rp != NULL; rp = rp->ai_next)
-            if (rp->ai_family == AF_INET) {
-                memcpy(storage, rp->ai_addr, sizeof(struct sockaddr_in));
+            if (rp->ai_family == prefer_af) {
+                if (rp->ai_family == AF_INET)
+                    memcpy(storage, rp->ai_addr, sizeof(struct sockaddr_in));
+                else if (rp->ai_family == AF_INET6)
+                    memcpy(storage, rp->ai_addr, sizeof(struct sockaddr_in6));
                 break;
             }
 
         if (rp == NULL) {
-            for (rp = result; rp != NULL; rp = rp->ai_next)
-                if (rp->ai_family == AF_INET6) {
+            for (rp = result; rp != NULL; rp = rp->ai_next) {
+                if (rp->ai_family == AF_INET)
+                    memcpy(storage, rp->ai_addr, sizeof(struct sockaddr_in));
+                else if (rp->ai_family == AF_INET6)
                     memcpy(storage, rp->ai_addr, sizeof(struct sockaddr_in6));
-                    break;
-                }
+                break;
+            }
         }
 
         if (rp == NULL) {
@@ -187,8 +201,9 @@ ssize_t get_sockaddr(char *host, char *port, struct sockaddr_storage *storage, i
     return -1;
 }
 
-int sockaddr_cmp(struct sockaddr_storage *addr1,
-                 struct sockaddr_storage *addr2, socklen_t len)
+int
+sockaddr_cmp(struct sockaddr_storage *addr1,
+             struct sockaddr_storage *addr2, socklen_t len)
 {
     struct sockaddr_in *p1_in   = (struct sockaddr_in *)addr1;
     struct sockaddr_in *p2_in   = (struct sockaddr_in *)addr2;
@@ -198,9 +213,6 @@ int sockaddr_cmp(struct sockaddr_storage *addr1,
         return -1;
     if (p1_in->sin_family > p2_in->sin_family)
         return 1;
-    if (verbose) {
-        LOGI("sockaddr_cmp: sin_family equal? %d", p1_in->sin_family == p2_in->sin_family);
-    }
     /* compare ip4 */
     if (p1_in->sin_family == AF_INET) {
         /* just order it, ntohs not required */
@@ -208,9 +220,6 @@ int sockaddr_cmp(struct sockaddr_storage *addr1,
             return -1;
         if (p1_in->sin_port > p2_in->sin_port)
             return 1;
-        if (verbose) {
-            LOGI("sockaddr_cmp: sin_port equal? %d", p1_in->sin_port == p2_in->sin_port);
-        }
         return memcmp(&p1_in->sin_addr, &p2_in->sin_addr, INET_SIZE);
     } else if (p1_in6->sin6_family == AF_INET6) {
         /* just order it, ntohs not required */
@@ -218,9 +227,6 @@ int sockaddr_cmp(struct sockaddr_storage *addr1,
             return -1;
         if (p1_in6->sin6_port > p2_in6->sin6_port)
             return 1;
-        if (verbose) {
-            LOGI("sockaddr_cmp: sin6_port equal? %d", p1_in6->sin6_port == p2_in6->sin6_port);
-        }
         return memcmp(&p1_in6->sin6_addr, &p2_in6->sin6_addr,
                       INET6_SIZE);
     } else {
@@ -229,8 +235,9 @@ int sockaddr_cmp(struct sockaddr_storage *addr1,
     }
 }
 
-int sockaddr_cmp_addr(struct sockaddr_storage *addr1,
-                      struct sockaddr_storage *addr2, socklen_t len)
+int
+sockaddr_cmp_addr(struct sockaddr_storage *addr1,
+                  struct sockaddr_storage *addr2, socklen_t len)
 {
     struct sockaddr_in *p1_in   = (struct sockaddr_in *)addr1;
     struct sockaddr_in *p2_in   = (struct sockaddr_in *)addr2;
@@ -255,7 +262,8 @@ int sockaddr_cmp_addr(struct sockaddr_storage *addr1,
     }
 }
 
-int validate_hostname(const char *hostname, const int hostname_len)
+int
+validate_hostname(const char *hostname, const int hostname_len)
 {
     if (hostname == NULL)
         return 0;
@@ -269,7 +277,7 @@ int validate_hostname(const char *hostname, const int hostname_len)
     const char *label = hostname;
     while (label < hostname + hostname_len) {
         size_t label_len = hostname_len - (label - hostname);
-        char *next_dot = strchr(label, '.');
+        char *next_dot   = strchr(label, '.');
         if (next_dot != NULL)
             label_len = next_dot - label;
 

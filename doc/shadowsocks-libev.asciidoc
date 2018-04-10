@@ -45,18 +45,26 @@ Set the local port number.
 Not available in server nor manager mode.
 
 -k <password>::
+--password <password>::
 Set the password. The server and the client should use the same password.
+
+--key <key_in_base64>::
+Set the key directly. The key should be encoded with URL-safe Base64.
++
+Not available in manager mode.
 
 -m <encrypt_method>::
 Set the cipher.
 +
 *Shadowsocks-libev* accepts 18 different ciphers:
 +
-table, rc4, rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb, bf-cfb,
-camellia-128-cfb, camellia-192-cfb, camellia-256-cfb, cast5-cfb, des-cfb,
-idea-cfb, rc2-cfb, seed-cfb, salsa20, chacha20 and chacha20-ietf.
+aes-128-gcm, aes-192-gcm, aes-256-gcm,
+rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb,
+aes-128-ctr, aes-192-ctr, aes-256-ctr, bf-cfb,
+camellia-128-cfb, camellia-192-cfb, camellia-256-cfb,
+chacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf.
 +
-The default cipher is 'table'.
+The default cipher is 'rc4-md5'.
 +
 If built with PolarSSL or custom OpenSSL libraries, some of
 these ciphers may not work.
@@ -107,14 +115,6 @@ Enable UDP relay and disable TCP relay.
 +
 Not available in local mode.
 
--A::
-Enable onetime authentication.
-
--w::
-Enable white list mode (when ACL enabled).
-+
-Only available in server mode.
-
 -L <addr:port>::
 Specify destination server address and port for local port forwarding.
 +
@@ -130,6 +130,14 @@ Only available in server and manager mode.
 Enable TCP fast open.
 +
 Not available in redir nor tunnel mode, with Linux kernel > 3.7.0.
+
+--reuse-port::
+Enable port reuse.
++
+Only available with Linux kernel > 3.9.0.
+
+--no-delay::
+Enable TCP_NODELAY.
 
 --acl <acl_config>::
 Enable ACL (Access Control List) and specify config file.
@@ -162,21 +170,26 @@ The config file equivalent of command line options is listed as example below.
 | Command line                        | JSON
 | -s some.server.net                  | "server": "some.server.net"
 | -s some.server.net -p 1234 (client) | "server": "some.server.net:1234"
-| -p 1234 -k "PasSworD" (server)      | "port_password": {"1234":"PasSworD"}
 | -p 1234                             | "server_port": "1234"
-| -b 0.0.0.0                          | "local_adress": "0.0.0.0"
+| -b 0.0.0.0                          | "local_address": "0.0.0.0"
 | -l 4321                             | "local_port": "4321"
 | -k "PasSworD"                       | "password": "PasSworD"
 | -m "aes-256-cfb"                    | "method": "aes-256-cfb"
 | -t 60                               | "timeout": 60
+| -a nobody                           | "user": "nobody"
 | --fast-open                         | "fast_open": true
-| -A                                  | "auth": true
+| --reuse-port                        | "reuse_port": true
+| --no-delay                          | "no_delay": true
+| --plugin "obfs-server"              | "plugin": "obfs-server"
+| --plugin-opts "obfs=http"           | "plugin_opts": "obfs=http"
+| -6                                  | "ipv6_first": true
 | -n "/etc/nofile"                    | "nofile": "/etc/nofile"
 | -d "8.8.8.8"                        | "nameserver": "8.8.8.8"
 | -L "somedns.net:53"                 | "tunnel_address": "somedns.net:53"
 | -u                                  | "mode": "tcp_and_udp"
 | -U                                  | "mode": "udp_only"
 | no "-u" nor "-U" options (default)  | "mode": "tcp_only"
+| (only in ss-manager's config)       | "port_password": {"1234":"PasSworD"}
 |============================================================================
 
 EXAMPLE
@@ -185,39 +198,39 @@ EXAMPLE
 
 ....
 # Create new chain
-root@Wrt:~# iptables -t nat -N SHADOWSOCKS
-root@Wrt:~# iptables -t mangle -N SHADOWSOCKS
+iptables -t nat -N SHADOWSOCKS
+iptables -t mangle -N SHADOWSOCKS
 
 # Ignore your shadowsocks server's addresses
 # It's very IMPORTANT, just be careful.
-root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 123.123.123.123 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 123.123.123.123 -j RETURN
 
 # Ignore LANs and any other addresses you'd like to bypass the proxy
 # See Wikipedia and RFC5735 for full list of reserved networks.
 # See ashi009/bestroutetb for a highly optimized CHN route list.
-root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 0.0.0.0/8 -j RETURN
-root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 10.0.0.0/8 -j RETURN
-root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 127.0.0.0/8 -j RETURN
-root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 169.254.0.0/16 -j RETURN
-root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 172.16.0.0/12 -j RETURN
-root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 192.168.0.0/16 -j RETURN
-root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 224.0.0.0/4 -j RETURN
-root@Wrt:~# iptables -t nat -A SHADOWSOCKS -d 240.0.0.0/4 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 0.0.0.0/8 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 10.0.0.0/8 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 127.0.0.0/8 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 169.254.0.0/16 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 172.16.0.0/12 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 192.168.0.0/16 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 224.0.0.0/4 -j RETURN
+iptables -t nat -A SHADOWSOCKS -d 240.0.0.0/4 -j RETURN
 
 # Anything else should be redirected to shadowsocks's local port
-root@Wrt:~# iptables -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports 12345
+iptables -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports 12345
 
 # Add any UDP rules
-root@Wrt:~# ip rule add fwmark 0x01/0x01 table 100
-root@Wrt:~# ip route add local 0.0.0.0/0 dev lo table 100
-root@Wrt:~# iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01
+ip rule add fwmark 0x01/0x01 table 100
+ip route add local 0.0.0.0/0 dev lo table 100
+iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01
 
 # Apply the rules
-root@Wrt:~# iptables -t nat -A PREROUTING -p tcp -j SHADOWSOCKS
-root@Wrt:~# iptables -t mangle -A PREROUTING -j SHADOWSOCKS
+iptables -t nat -A PREROUTING -p tcp -j SHADOWSOCKS
+iptables -t mangle -A PREROUTING -j SHADOWSOCKS
 
 # Start the shadowsocks-redir
-root@Wrt:~# ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
+ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
 ....
 
 PROTOCOL

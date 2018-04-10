@@ -6,20 +6,19 @@
 # Security Hardening
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
-DPKG_EXPORT_BUILDFLAGS = 1
-include /usr/share/dpkg/buildflags.mk
-
 override_dh_auto_install:
 	find src/ -name '*.la' -delete
 	dh_auto_install
 
 override_dh_auto_configure:
+	# Whether to have stack-protector is decided by dpkg-buildflags.
+	# So --disable-ssp here should be safe. See Bug#829498
 	dh_auto_configure -- \
-        --enable-shared \
-        --disable-ssp
+		--enable-shared \
+		--disable-ssp
 
 override_dh_installchangelogs:
 	dh_installchangelogs -XChanges
 
 %:
-	dh $@ --with systemd
+	dh $@

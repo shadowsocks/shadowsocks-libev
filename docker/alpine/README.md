@@ -1,37 +1,72 @@
-shadowsocks-libev
-=================
+# Shadowsocks-libev Docker Image
 
 [shadowsocks-libev][1] is a lightweight secured socks5 proxy for embedded
 devices and low end boxes.  It is a port of [shadowsocks][2] created by
 @clowwindy maintained by @madeye and @linusyang.
 
-Suppose we have a VPS running Debian or Ubuntu.
-To deploy the service quickly, we can use [docker][3].
+Docker images are built for quick deployment in various computing cloud providers. For more information on docker and containerization technologies, refer to [official document][9].
 
-## Install docker
+## Prepare the host
 
-```
-$ curl -sSL https://get.docker.com/ | sh
-$ docker --version
-```
+Many cloud providers offer docker-ready environments, for instance the [CoreOS Droplet in DigitalOcean][10] or the [Container-Optimized OS in Google Cloud][11].
 
-## Build docker image
+If you need to install docker yourself, follow the [official installation guide][12].
+
+## Pull the image
 
 ```bash
-$ curl -sSL https://github.com/shadowsocks/shadowsocks-libev/raw/master/docker/alpine/Dockerfile | docker build -t shadowsocks-libev .
-$ docker images
+$ docker pull shadowsocks/shadowsocks-libev
 ```
+This pulls the latest release of shadowsocks-libev.
 
-> You can also use a pre-built docker image: [vimagick/shadowsocks-libev][4] ![][5].
+You can also choose to pull a previous release or to try the bleeding edge build:
+```bash
+$ docker pull shadowsocks/shadowsocks-libev:<tag>
+$ docker pull shadowsocks/shadowsocks-libev:edge
+```
+> A list of supported tags can be found at [Docker Hub][13].
 
-## Run docker container
+## Start a container
 
 ```bash
-$ docker run -d -e METHOD=aes-256-cfb -e PASSWORD=9MLSpPmNt -p 8388:8388 --restart always shadowsocks-libev
-$ docker ps
+$ docker run -p8388:8388 -p8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev:latest
+```
+This starts a container of the latest release with all the default settings, which is equivalent to
+```bash
+$ ss-server -s 0.0.0.0 -p 8388 -k "$(hostname)" -m aes-256-cfb -t 300 --fast-open -d 8.8.8.8 -d 8.8.4.4 -u
+```
+> **Note**: It's the hostname in the container that is used as the password, not that of the host.
+
+### With custom port
+
+In most cases you'll want to change a thing or two, for instance the port which the server listens on. This is done by changing the `-p` arguments.
+
+Here's an example to start a container that listens on `28388` (both TCP and UDP):
+```bash
+$ docker run -p28388:8388 -p28388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
 ```
 
+### With custom password
+
+Another thing you may want to change is the password. To change that, you can pass your own password as an environment variable when starting the container.
+
+Here's an example to start a container with `9MLSpPmNt` as the password:
+```bash
+$ docker run -e PASSWORD=9MLSpPmNt -p8388:8388 -p8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
+```
 > :warning: Click [here][6] to generate a strong password to protect your server.
+
+### With other customizations
+Besides `PASSWORD`, the image also defines the following environment variables that you can customize:
+* `SERVER_ADDR`: the IP/domain to bind to, defaults to `0.0.0.0`
+* `METHOD`: encryption method to use, defaults to `aes-256-cfb`
+* `TIMEOUT`: defaults to `300`
+* `DNS_ADDR`, `DNS_ADDR_2`: DNS servers to redirect NS lookup requests to, defaults to `8.8.8.8` and `8.8.4.4`
+
+Additional arguments supported by `ss-server` can be passed with the environment variable `ARGS`, for instance to start in verbose mode:
+```bash
+$ docker run -e ARGS=-v -p8388:8388 -p8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev:latest
+```
 
 ## Use docker-compose to manage (optional)
 
@@ -42,7 +77,7 @@ This is a sample `docker-compose.yml` file.
 
 ```yaml
 shadowsocks:
-  image: shadowsocks-libev
+  image: shadowsocks/shadowsocks-libev
   ports:
     - "8388:8388"
   environment:
@@ -80,9 +115,11 @@ Don't forget to share internet with your friends.
 
 [1]: https://github.com/shadowsocks/shadowsocks-libev
 [2]: https://shadowsocks.org/en/index.html
-[3]: https://github.com/docker/docker
-[4]: https://hub.docker.com/r/vimagick/shadowsocks-libev/
-[5]: https://badge.imagelayers.io/vimagick/shadowsocks-libev:latest.svg
 [6]: https://duckduckgo.com/?q=password+12&t=ffsb&ia=answer
 [7]: https://github.com/docker/compose
 [8]: https://shadowsocks.org/en/download/clients.html
+[9]: https://docs.docker.com/
+[10]: https://www.digitalocean.com/products/linux-distribution/coreos/
+[11]: https://cloud.google.com/container-optimized-os/
+[12]: https://docs.docker.com/install/
+[13]: https://hub.docker.com/r/shadowsocks/shadowsocks-libev/tags/

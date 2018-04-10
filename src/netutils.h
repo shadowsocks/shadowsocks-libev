@@ -1,7 +1,7 @@
 /*
  * netutils.h - Network utilities
  *
- * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -23,38 +23,44 @@
 #ifndef _NETUTILS_H
 #define _NETUTILS_H
 
-#if defined(__linux__)
+#ifdef __MINGW32__
+#include "winsock.h"
+#else
+#include <sys/socket.h>
+#endif
+
+#ifdef HAVE_LINUX_TCP_H
 #include <linux/tcp.h>
-#elif !defined(__MINGW32__)
+#elif defined(HAVE_NETINET_TCP_H)
 #include <netinet/tcp.h>
 #endif
 
-// only enable TCP_FASTOPEN on linux
-#if defined(__linux__)
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
 
-#include <linux/tcp.h>
-
-/*  conditional define for TCP_FASTOPEN */
+/* Hard coded defines for TCP fast open on Android */
+#ifdef __ANDROID__
 #ifndef TCP_FASTOPEN
 #define TCP_FASTOPEN   23
 #endif
-
-/*  conditional define for MSG_FASTOPEN */
 #ifndef MSG_FASTOPEN
 #define MSG_FASTOPEN   0x20000000
 #endif
-
-#elif !defined(__APPLE__)
-
-#ifdef TCP_FASTOPEN
-#undef TCP_FASTOPEN
+#ifdef TCP_FASTOPEN_CONNECT
+#undef TCP_FASTOPEN_CONNECT
+#endif
 #endif
 
-#endif
-
-/* Define the flag MPTCP_ENABLED if not defined*/
+/* MPTCP_ENABLED setsockopt values for kernel 4 & 3, best behaviour to be independant of kernel version is to test from newest to the latest values */
 #ifndef MPTCP_ENABLED
-#define MPTCP_ENABLED 42
+static const char mptcp_enabled_values[] = { 42, 26, 0 };
+#else
+static const char mptcp_enabled_values[] = { MPTCP_ENABLED, 0 };
+#endif
+
+#ifndef UPDATE_INTERVAL
+#define UPDATE_INTERVAL 5
 #endif
 
 /** byte size of ip4 address */
@@ -63,7 +69,9 @@
 #define INET6_SIZE 16
 
 size_t get_sockaddr_len(struct sockaddr *addr);
-ssize_t get_sockaddr(char *host, char *port, struct sockaddr_storage *storage, int block);
+ssize_t get_sockaddr(char *host, char *port,
+                     struct sockaddr_storage *storage, int block,
+                     int ipv6first);
 int set_reuseport(int socket);
 
 #ifdef SET_INTERFACE
