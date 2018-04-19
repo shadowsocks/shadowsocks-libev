@@ -38,6 +38,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #endif
 #ifdef LIB_ONLY
 #include "shadowsocks.h"
