@@ -38,6 +38,13 @@ case "$1" in
 			sed "s/barfoo!/$passwd/" /usr/share/shadowsocks-libev/config.json \
 				> /etc/shadowsocks-libev/config.json
 		fi
+		if ! getent passwd debian-shadowsocks-libev > /dev/null; then
+		    	adduser --quiet \
+        			--system \
+        			--group \
+        			--no-create-home \
+        			debian-shadowsocks-libev
+		fi
 		;;
 	abort-upgrade|abort-remove|abort-deconfigure)
 		exit 0
