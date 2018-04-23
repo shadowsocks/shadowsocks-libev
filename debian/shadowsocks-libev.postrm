@@ -10,7 +10,9 @@ case "$1" in
 		if getent passwd debian-shadowsocks-libev > /dev/null; then
     			deluser --quiet \
         			--system \
-        			--group \
+        			debian-shadowsocks-libev
+			delgroup --quiet \
+        			--system \
         			debian-shadowsocks-libev
 		fi
 		;;
