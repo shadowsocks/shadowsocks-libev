@@ -16,8 +16,6 @@ After=network.target
 
 [Service]
 Type=simple
-User=debian-shadowsocks-libev
-Group=debian-shadowsocks-libev
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 ExecStart=/usr/bin/ss-tunnel -c /etc/shadowsocks-libev/%i.json
 
