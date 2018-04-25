@@ -36,7 +36,9 @@
 #include <stdio.h>
 #include <stdlib.h> /* malloc() */
 #include <string.h> /* strncpy() */
+#ifndef __MINGW32__
 #include <sys/socket.h>
+#endif
 
 #include "tls.h"
 #include "protocol.h"

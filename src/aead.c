@@ -31,11 +31,14 @@
 #include <assert.h>
 
 #include <sodium.h>
+#ifndef __MINGW32__
 #include <arpa/inet.h>
+#endif
 
 #include "ppbloom.h"
 #include "aead.h"
 #include "utils.h"
+#include "winsock.h"
 
 #define NONE                    (-1)
 #define AES128GCM               0
@@ -644,15 +647,19 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
     }
     plaintext->len = plen;
 
-    brealloc(ciphertext, plaintext->len, capacity);
-    memcpy(ciphertext->data, plaintext->data, plaintext->len);
-    ciphertext->len = plaintext->len;
-
     // Add the salt to bloom filter
     if (cipher_ctx->init == 1) {
+        if (ppbloom_check((void *)cipher_ctx->salt, salt_len) == 1) {
+            LOGE("crypto: AEAD: repeat salt detected");
+            return CRYPTO_ERROR;
+        }
         ppbloom_add((void *)cipher_ctx->salt, salt_len);
         cipher_ctx->init = 2;
     }
+
+    brealloc(ciphertext, plaintext->len, capacity);
+    memcpy(ciphertext->data, plaintext->data, plaintext->len);
+    ciphertext->len = plaintext->len;
 
     return CRYPTO_OK;
 }

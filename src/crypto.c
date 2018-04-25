@@ -33,6 +33,7 @@
 
 #include <stdint.h>
 #include <sodium.h>
+#include <mbedtls/version.h>
 #include <mbedtls/md5.h>
 
 #include "base64.h"
@@ -103,7 +104,12 @@ crypto_md5(const unsigned char *d, size_t n, unsigned char *md)
     if (md == NULL) {
         md = m;
     }
+#if MBEDTLS_VERSION_NUMBER >= 0x02070000
+    if (mbedtls_md5_ret(d, n, md) != 0)
+        FATAL("Failed to calculate MD5");
+#else
     mbedtls_md5(d, n, md);
+#endif
     return md;
 }
 
@@ -381,7 +387,7 @@ crypto_parse_key(const char *base64, uint8_t *key, size_t key_len)
     rand_bytes(key, key_len);
     base64_encode(out_key, out_len, key, key_len);
     LOGE("Invalid key for your chosen cipher!");
-    LOGE("It requires a %zu-byte key encoded with URL-safe Base64", key_len);
+    LOGE("It requires a " SIZE_FMT "-byte key encoded with URL-safe Base64", key_len);
     LOGE("Generating a new random key: %s", out_key);
     FATAL("Please use the key above or input a valid key");
     return key_len;

@@ -66,7 +66,7 @@ dnl Add library for mingw
 case $host in
   *-mingw*)
     CFLAGS="$CFLAGS -mno-ms-bitfields"
-    LIBS="$LIBS -ladvapi32 -lgdi32 -lws2_32 -lcrypt32"
+    LIBS="$LIBS -lws2_32"
     ;;
   *-cygwin*)
     CFLAGS="$CFLAGS -mno-ms-bitfields"
@@ -92,6 +92,10 @@ case $host in
   *-linux*)
     os_support=linux
     AC_MSG_RESULT(Linux)
+    ;;
+  *-mingw*)
+    os_support=mingw
+    AC_MSG_RESULT(MinGW)
     ;;
   *)
     AC_MSG_RESULT(transparent proxy does not support for $host)
@@ -161,6 +165,10 @@ AC_CHECK_HEADERS([net/if.h], [], [],
 ])
 
 case $host in
+  *-mingw*)
+    AC_DEFINE([CONNECT_IN_PROGRESS], [WSAEWOULDBLOCK], [errno for incomplete non-blocking connect(2)])
+    AC_CHECK_HEADERS([winsock2.h ws2tcpip.h mswsock.h], [], [AC_MSG_ERROR([Missing MinGW headers])], [])
+    ;;
   *-linux*)
     AC_DEFINE([CONNECT_IN_PROGRESS], [EINPROGRESS], [errno for incomplete non-blocking connect(2)])
     dnl Checks for netfilter headers
@@ -219,6 +227,12 @@ AC_CHECK_LIB(socket, connect)
 dnl Checks for library functions.
 AC_CHECK_FUNCS([malloc memset posix_memalign socket])
 
+AC_ARG_WITH(ev,
+  AS_HELP_STRING([--with-ev=DIR], [use a specific libev library]),
+  [CFLAGS="$CFLAGS -I$withval/include"
+   CPPFLAGS="$CPPFLAGS -I$withval/include"
+   LDFLAGS="$LDFLAGS -L$withval/lib"]
+)
 AC_CHECK_HEADERS([ev.h libev/ev.h], [], [])
 AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
 

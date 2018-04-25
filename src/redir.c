@@ -96,6 +96,7 @@ static int nofile = 0;
 #endif
 static int fast_open = 0;
 static int no_delay  = 0;
+static int ret_val   = 0;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
@@ -819,8 +820,10 @@ signal_cb(EV_P_ ev_signal *w, int revents)
     if (revents & EV_SIGNAL) {
         switch (w->signum) {
         case SIGCHLD:
-            if (!is_plugin_running())
+            if (!is_plugin_running()) {
                 LOGE("plugin service exit unexpectedly");
+                ret_val = -1;
+            }
             else
                 return;
         case SIGINT:
@@ -1258,5 +1261,5 @@ main(int argc, char **argv)
         stop_plugin();
     }
 
-    return 0;
+    return ret_val;
 }

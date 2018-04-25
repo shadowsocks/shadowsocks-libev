@@ -35,6 +35,12 @@
    #endif
 #endif
 
+#ifdef __MINGW32__
+#define CONV_PTR (uintptr_t)
+#else
+#define CONV_PTR (unsigned long)
+#endif
+
 const struct _json_value json_value_none;
 
 #include <stdio.h>
@@ -138,7 +144,7 @@ static int new_value (json_state * state,
             values_size = sizeof (*value->u.object.values) * value->u.object.length;
 
             if (! (value->u.object.values = (json_object_entry *) json_alloc
-                  (state, values_size + ((unsigned long) value->u.object.values), 0)) )
+                  (state, values_size + (CONV_PTR value->u.object.values), 0)) )
             {
                return 0;
             }

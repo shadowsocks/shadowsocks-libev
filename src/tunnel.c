@@ -29,13 +29,13 @@
 #include <strings.h>
 #include <unistd.h>
 #include <getopt.h>
-
+#ifndef __MINGW32__
 #include <errno.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
-
+#endif
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -52,6 +52,7 @@
 #include "utils.h"
 #include "plugin.h"
 #include "tunnel.h"
+#include "winsock.h"
 
 #ifndef EAGAIN
 #define EAGAIN EWOULDBLOCK
@@ -95,11 +96,22 @@ static int mode      = TCP_ONLY;
 static int nofile = 0;
 #endif
 static int no_delay = 0;
+static int ret_val  = 0;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
+#ifndef __MINGW32__
 static struct ev_signal sigchld_watcher;
+#else
+static struct plugin_watcher_t {
+    ev_io io;
+    SOCKET fd;
+    uint16_t port;
+    int valid;
+} plugin_watcher;
+#endif
 
+#ifndef __MINGW32__
 static int
 setnonblocking(int fd)
 {
@@ -109,6 +121,7 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+#endif
 
 int
 create_and_bind(const char *addr, const char *port)
@@ -738,21 +751,50 @@ signal_cb(EV_P_ ev_signal *w, int revents)
 {
     if (revents & EV_SIGNAL) {
         switch (w->signum) {
+#ifndef __MINGW32__
         case SIGCHLD:
-            if (!is_plugin_running())
+            if (!is_plugin_running()) {
                 LOGE("plugin service exit unexpectedly");
+                ret_val = -1;
+            }
             else
                 return;
+#endif
         case SIGINT:
         case SIGTERM:
             ev_signal_stop(EV_DEFAULT, &sigint_watcher);
             ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+#ifndef __MINGW32__
             ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
+#else
+            ev_io_stop(EV_DEFAULT, &plugin_watcher.io);
+#endif
             keep_resolving = 0;
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
     }
 }
+
+#ifdef __MINGW32__
+static void
+plugin_watcher_cb(EV_P_ ev_io *w, int revents)
+{
+    char buf[1];
+    SOCKET fd = accept(plugin_watcher.fd, NULL, NULL);
+    if (fd == INVALID_SOCKET) {
+        return;
+    }
+    recv(fd, buf, 1, 0);
+    closesocket(fd);
+    LOGE("plugin service exit unexpectedly");
+    ret_val = -1;
+    ev_signal_stop(EV_DEFAULT, &sigint_watcher);
+    ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+    ev_io_stop(EV_DEFAULT, &plugin_watcher.io);
+    keep_resolving = 0;
+    ev_unloop(EV_A_ EVUNLOOP_ALL);
+}
+#endif
 
 int
 main(int argc, char **argv)
@@ -993,6 +1035,10 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+#ifdef __MINGW32__
+    winsock_init();
+#endif
+
     if (plugin != NULL) {
         uint16_t port = get_local_port();
         if (port == 0) {
@@ -1001,6 +1047,14 @@ main(int argc, char **argv)
         snprintf(tmp_port, 8, "%d", port);
         plugin_host = "127.0.0.1";
         plugin_port = tmp_port;
+
+#ifdef __MINGW32__
+        memset(&plugin_watcher, 0, sizeof(plugin_watcher));
+        plugin_watcher.port = get_local_port();
+        if (plugin_watcher.port == 0) {
+            LOGE("failed to assign a control port for plugin");
+        }
+#endif
 
         LOGI("plugin \"%s\" enabled", plugin);
     }
@@ -1046,6 +1100,40 @@ main(int argc, char **argv)
         FATAL("tunnel port is not defined");
     }
 
+#ifdef __MINGW32__
+    // Listen on plugin control port
+    if (plugin != NULL && plugin_watcher.port != 0) {
+        SOCKET fd;
+        fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (fd != INVALID_SOCKET) {
+            plugin_watcher.valid = 0;
+            do {
+                struct sockaddr_in addr;
+                memset(&addr, 0, sizeof(addr));
+                addr.sin_family = AF_INET;
+                addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+                addr.sin_port = htons(plugin_watcher.port);
+                if (bind(fd, (struct sockaddr *)&addr, sizeof(addr))) {
+                    LOGE("failed to bind plugin control port");
+                    break;
+                }
+                if (listen(fd, 1)) {
+                    LOGE("failed to listen on plugin control port");
+                    break;
+                }
+                plugin_watcher.fd = fd;
+                ev_io_init(&plugin_watcher.io, plugin_watcher_cb, fd, EV_READ);
+                ev_io_start(EV_DEFAULT, &plugin_watcher.io);
+                plugin_watcher.valid = 1;
+            } while (0);
+            if (!plugin_watcher.valid) {
+                closesocket(fd);
+                plugin_watcher.port = 0;
+            }
+        }
+    }
+#endif
+
     if (plugin != NULL) {
         int len          = 0;
         size_t buf_size  = 256 * remote_num;
@@ -1057,22 +1145,31 @@ main(int argc, char **argv)
             len = strlen(remote_str);
         }
         int err = start_plugin(plugin, plugin_opts, remote_str,
-                               remote_port, plugin_host, plugin_port, MODE_CLIENT);
+                               remote_port, plugin_host, plugin_port,
+#ifdef __MINGW32__
+                               plugin_watcher.port,
+#endif
+                               MODE_CLIENT);
         if (err) {
+            ERROR("start_plugin");
             FATAL("failed to start the plugin");
         }
     }
 
+#ifndef __MINGW32__
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
+#endif
 
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
-    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
+#ifndef __MINGW32__
+    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
+#endif
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
@@ -1149,6 +1246,7 @@ main(int argc, char **argv)
         LOGI("TCP relay disabled");
     }
 
+#ifndef __MINGW32__
     // setuid
     if (user != NULL && !run_as(user)) {
         FATAL("failed to switch user");
@@ -1157,6 +1255,7 @@ main(int argc, char **argv)
     if (geteuid() == 0) {
         LOGI("running from root user");
     }
+#endif
 
     ev_run(loop, 0);
 
@@ -1164,5 +1263,13 @@ main(int argc, char **argv)
         stop_plugin();
     }
 
-    return 0;
+#ifdef __MINGW32__
+    if (plugin_watcher.valid) {
+        closesocket(plugin_watcher.fd);
+    }
+
+    winsock_cleanup();
+#endif
+
+    return ret_val;
 }

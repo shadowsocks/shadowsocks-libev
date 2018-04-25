@@ -23,7 +23,11 @@
 #ifndef _NETUTILS_H
 #define _NETUTILS_H
 
+#ifdef __MINGW32__
+#include "winsock.h"
+#else
 #include <sys/socket.h>
+#endif
 
 #ifdef HAVE_LINUX_TCP_H
 #include <linux/tcp.h>
