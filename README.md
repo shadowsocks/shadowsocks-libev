@@ -269,7 +269,8 @@ sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto c-are
 ## Arch
 sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto c-ares libev
 
-# Installation of Libsodium #If you're a Debian 9 user,you should do this rather than install libsodium-dev.
+# Installation of Libsodium 
+#If you're a Debian 9 user,you should do this rather than install libsodium-dev.
 export LIBSODIUM_VER=1.0.13
 wget https://download.libsodium.org/libsodium/releases/libsodium-$LIBSODIUM_VER.tar.gz
 tar xvf libsodium-$LIBSODIUM_VER.tar.gz
