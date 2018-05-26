@@ -34,7 +34,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <netinet/tcp.h>
 #include <pthread.h>
 #endif
 #ifdef HAVE_CONFIG_H
@@ -696,9 +695,8 @@ accept_cb(EV_P_ ev_io *w, int revents)
     server->remote   = remote;
     remote->server   = server;
 
-#ifdef MSG_FASTOPEN
     remote->addr = remote_addr;
-#else
+
     int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
 
     if (r == -1 && errno != CONNECT_IN_PROGRESS) {
@@ -711,7 +709,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
     // listen to remote connected event
     ev_io_start(EV_A_ & remote->send_ctx->io);
     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
-#endif
+
 }
 
 static void
