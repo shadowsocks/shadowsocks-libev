@@ -677,8 +677,8 @@ stream_init(const char *pass, const char *key, const char *method)
                 break;
             }
         if (m >= STREAM_CIPHER_NUM) {
-            LOGE("Invalid cipher name: %s, use rc4-md5 instead", method);
-            m = RC4_MD5;
+            LOGE("Invalid cipher name: %s, use chacha20-ietf instead", method);
+            m = CHACHA20IETF;
         }
     }
     if (m == TABLE) {
