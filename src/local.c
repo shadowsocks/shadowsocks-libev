@@ -1697,7 +1697,7 @@ main(int argc, char **argv)
     }
 
     if (method == NULL) {
-        method = "rc4-md5";
+        method = "chacha20-ietf-poly1305";
     }
 
     if (timeout == NULL) {
