@@ -1021,7 +1021,7 @@ main(int argc, char **argv)
     }
 
     if (method == NULL) {
-        method = "chacha20-ietf";
+        method = "chacha20-ietf-poly1305";
     }
 
     if (timeout == NULL) {
