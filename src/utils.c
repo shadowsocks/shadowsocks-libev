@@ -317,7 +317,7 @@ usage()
     printf(
         "                                  salsa20, chacha20 and chacha20-ietf.\n");
     printf(
-        "                                  The default cipher is rc4-md5.\n");
+        "                                  The default cipher is chacha20-ietf.\n");
     printf("\n");
     printf(
         "       [-a <user>]                Run as another user.\n");
