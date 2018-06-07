@@ -58,7 +58,7 @@ aes-128-ctr, aes-192-ctr, aes-256-ctr, bf-cfb,
 camellia-128-cfb, camellia-192-cfb, camellia-256-cfb,
 chacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf.
 +
-The default cipher is 'rc4-md5'.
+The default cipher is 'chacha20-ietf-poly1305'.
 +
 If built with PolarSSL or custom OpenSSL libraries, some of
 these ciphers may not work.
