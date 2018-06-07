@@ -719,8 +719,8 @@ aead_init(const char *pass, const char *key, const char *method)
                 break;
             }
         if (m >= AEAD_CIPHER_NUM) {
-            LOGE("Invalid cipher name: %s, use aes-256-gcm instead", method);
-            m = AES256GCM;
+            LOGE("Invalid cipher name: %s, use chacha20-ietf-poly1305 instead", method);
+            m = CHACHA20POLY1305IETF;
         }
     }
     return aead_key_init(m, pass, key);
