@@ -1830,7 +1830,7 @@ main(int argc, char **argv)
     }
 
     if (server_num == 0 || server_port == NULL
-        || (password == NULL && key == NULL)) {
+            || (strncmp(method, "none", 4) && password == NULL && key == NULL)) {
         usage();
         exit(EXIT_FAILURE);
     }

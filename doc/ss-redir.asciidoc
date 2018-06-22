@@ -48,7 +48,9 @@ Set the password. The server and the client should use the same password.
 Set the key directly. The key should be encoded with URL-safe Base64.
 
 -m <encrypt_method>::
-Set the cipher.
+Set the cipher or turn off the encryption.
++
+To disable encryption use `none` as cipher.
 +
 *Shadowsocks-libev* accepts 18 different ciphers:
 +
