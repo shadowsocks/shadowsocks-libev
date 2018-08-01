@@ -469,11 +469,18 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         close_and_free_server(EV_A_ server);
         return;
     } else {
-        // has data to send
-        ssize_t s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
-                           remote->buf->len, MSG_FASTOPEN, remote->addr,                          
-                           get_sockaddr_len(remote->addr));
         
+        // has data to send
+        if (remote->addr != NULL) {
+            ssize_t s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
+                               remote->buf->len, MSG_FASTOPEN, remote->addr,                          
+                               get_sockaddr_len(remote->addr));
+            remote->addr = NULL;
+        } else {
+            s = send(remote->fd, remote->buf->data + remote->buf->idx,
+                remote->buf->len, 0);
+        }
+
         if (s == -1) {
             if (errno != EAGAIN && errno != EWOULDBLOCK) {
                 ERROR("send");
