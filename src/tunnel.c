@@ -489,7 +489,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 } else {
                     if (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
                             errno == ENOPROTOOPT) {
-                        fast_open = 0;
                         LOGE("fast open is not supported on this platform");
                     } else {
                         ERROR("fast_open_connect");
