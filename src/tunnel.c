@@ -469,9 +469,40 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         close_and_free_server(EV_A_ server);
         return;
     } else {
+        
         // has data to send
-        ssize_t s = send(remote->fd, remote->buf->data + remote->buf->idx,
+        ssize_t s = -1;
+        if (remote->addr != NULL) {
+            
+#ifdef MSG_FASTOPEN
+            s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
+                       remote->buf->len, MSG_FASTOPEN, remote->addr,                          
+                       get_sockaddr_len(remote->addr));
+#endif
+            
+            remote->addr = NULL;
+            
+            if (s == -1) {
+                if (errno == CONNECT_IN_PROGRESS) {
+                    ev_io_start(EV_A_ & remote_send_ctx->io);
+                    ev_timer_start(EV_A_ & remote_send_ctx->watcher);
+                } else {
+                    if (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
+                            errno == ENOPROTOOPT) {
+                        LOGE("fast open is not supported on this platform");
+                    } else {
+                        ERROR("fast_open_connect");
+                    }
+                    close_and_free_remote(EV_A_ remote);
+                    close_and_free_server(EV_A_ server);
+                }
+                return;
+            }
+        } else {
+            s = send(remote->fd, remote->buf->data + remote->buf->idx,
                 remote->buf->len, 0);
+        }
+
         if (s == -1) {
             if (errno != EAGAIN && errno != EWOULDBLOCK) {
                 ERROR("send");
@@ -693,6 +724,8 @@ accept_cb(EV_P_ ev_io *w, int revents)
     server->remote   = remote;
     remote->server   = server;
 
+    remote->addr = remote_addr;
+
     int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
 
     if (r == -1 && errno != CONNECT_IN_PROGRESS) {
@@ -705,6 +738,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
     // listen to remote connected event
     ev_io_start(EV_A_ & remote->send_ctx->io);
     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
+
 }
 
 static void

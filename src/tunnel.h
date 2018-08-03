@@ -76,6 +76,7 @@ typedef struct remote {
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
+    struct sockaddr *addr;
     uint32_t counter;
 } remote_t;
 
