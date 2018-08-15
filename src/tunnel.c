@@ -485,7 +485,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                        get_sockaddr_len(remote->addr));
 #endif
             
-            //remote->addr = NULL;
+            remote->addr = NULL;
             
             if (s == -1) {
                 if (errno == CONNECT_IN_PROGRESS) {
