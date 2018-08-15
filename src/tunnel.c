@@ -388,10 +388,14 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     server_t *server              = remote->server;
 
     if (!remote_send_ctx->connected) {
-        //struct sockaddr_storage addr;
-        //socklen_t len = sizeof(struct sockaddr_storage);
-        //int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+        
         int r = 0;
+        
+        if (remote->addr == NULL) {
+            struct sockaddr_storage addr;
+            socklen_t len = sizeof(struct sockaddr_storage);
+            r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+        }
         
         if (r == 0) {
             remote_send_ctx->connected = 1;
