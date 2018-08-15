@@ -388,10 +388,11 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     server_t *server              = remote->server;
 
     if (!remote_send_ctx->connected) {
-        struct sockaddr_storage addr;
-        socklen_t len = sizeof(struct sockaddr_storage);
-
-        int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+        //struct sockaddr_storage addr;
+        //socklen_t len = sizeof(struct sockaddr_storage);
+        //int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+        int r = 0;
+        
         if (r == 0) {
             remote_send_ctx->connected = 1;
             ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
@@ -476,11 +477,11 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             
 #ifdef MSG_FASTOPEN
             s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
-                       remote->buf->len, MSG_FASTOPEN, remote->addr,                          
+                       remote->buf->len, MSG_FASTOPEN, remote->addr,
                        get_sockaddr_len(remote->addr));
 #endif
             
-            remote->addr = NULL;
+            //remote->addr = NULL;
             
             if (s == -1) {
                 if (errno == CONNECT_IN_PROGRESS) {
@@ -726,6 +727,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
 
     remote->addr = remote_addr;
 
+    /*
     int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
 
     if (r == -1 && errno != CONNECT_IN_PROGRESS) {
@@ -734,6 +736,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
         close_and_free_server(EV_A_ server);
         return;
     }
+    */
 
     // listen to remote connected event
     ev_io_start(EV_A_ & remote->send_ctx->io);
