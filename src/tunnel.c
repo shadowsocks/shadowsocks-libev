@@ -83,6 +83,7 @@ static void close_and_free_server(EV_P_ server_t *server);
 #ifdef __ANDROID__
 int vpn = 0;
 #endif
+static int fast_open = 0;
 
 int verbose        = 0;
 int reuse_port     = 0;
@@ -492,6 +493,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                     ev_io_start(EV_A_ & remote_send_ctx->io);
                     ev_timer_start(EV_A_ & remote_send_ctx->watcher);
                 } else {
+                    fast_open = 0;
                     if (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
                             errno == ENOPROTOOPT) {
                         LOGE("fast open is not supported on this platform");
@@ -729,19 +731,19 @@ accept_cb(EV_P_ ev_io *w, int revents)
     server->remote   = remote;
     remote->server   = server;
 
-    remote->addr = remote_addr;
+    if (fast_open) {
+        remote->addr = remote_addr;
+    } else {
+        int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
 
-    /*
-    int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
-
-    if (r == -1 && errno != CONNECT_IN_PROGRESS) {
-        ERROR("connect");
-        close_and_free_remote(EV_A_ remote);
-        close_and_free_server(EV_A_ server);
-        return;
+        if (r == -1 && errno != CONNECT_IN_PROGRESS) {
+            ERROR("connect");
+            close_and_free_remote(EV_A_ remote);
+            close_and_free_server(EV_A_ server);
+            return;
+        }
     }
-    */
-
+    
     // listen to remote connected event
     ev_io_start(EV_A_ & remote->send_ctx->io);
     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
@@ -832,6 +834,7 @@ main(int argc, char **argv)
     char *tunnel_addr_str = NULL;
 
     static struct option long_options[] = {
+        { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
         { "mtu",         required_argument, NULL, GETOPT_VAL_MTU         },
         { "no-delay",    no_argument,       NULL, GETOPT_VAL_NODELAY     },
         { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP       },
@@ -856,6 +859,9 @@ main(int argc, char **argv)
                             long_options, NULL)) != -1) {
 #endif
         switch (c) {
+        case GETOPT_VAL_FAST_OPEN:
+            fast_open = 1;
+            break;
         case GETOPT_VAL_MTU:
             mtu = atoi(optarg);
             LOGI("set MTU to %d", mtu);
@@ -1024,6 +1030,9 @@ main(int argc, char **argv)
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
+        if (fast_open == 0) {
+            fast_open = conf->fast_open;
+        }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;
@@ -1085,7 +1094,16 @@ main(int argc, char **argv)
     if (local_addr == NULL) {
         local_addr = "127.0.0.1";
     }
-
+        
+    if (fast_open == 1) {
+#ifdef TCP_FASTOPEN
+        LOGI("using tcp fast open");
+#else
+        LOGE("tcp fast open is not supported by this environment");
+        fast_open = 0;
+#endif
+    }
+        
     USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
         daemonize(pid_path);
