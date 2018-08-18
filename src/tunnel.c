@@ -723,9 +723,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
     }
     setnonblocking(serverfd);
     int opt = 1;
-    int keepAlive = 1;
     setsockopt(serverfd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
-    setsockopt(remotefd, SOL_SOCKET, SO_KEEPALIVE, (void *)&keepAlive, sizeof(keepAlive));
 #ifdef SO_NOSIGPIPE
     setsockopt(serverfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
@@ -756,7 +754,9 @@ accept_cb(EV_P_ ev_io *w, int revents)
         }
     }
 #endif
-
+    
+    int keepAlive = 1;
+    setsockopt(remotefd, SOL_SOCKET, SO_KEEPALIVE, (void *)&keepAlive, sizeof(keepAlive));
     setsockopt(remotefd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
 #ifdef SO_NOSIGPIPE
     setsockopt(remotefd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
