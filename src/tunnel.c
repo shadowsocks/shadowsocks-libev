@@ -545,6 +545,8 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
                        remote->buf->len, MSG_FASTOPEN, remote->addr,
                        get_sockaddr_len(remote->addr));
+#else
+            FATAL("tcp fast open is not supported on this platform");
 #endif
             
             remote->addr = NULL;
