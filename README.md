@@ -1,5 +1,4 @@
 # shadowsocks-libev
-with TCP Fast Open enabled
 
 ## Intro
 
