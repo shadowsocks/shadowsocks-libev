@@ -388,6 +388,8 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = remote_send_ctx->remote;
     server_t *server              = remote->server;
 
+    ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
+
     if (!remote_send_ctx->connected) {
         
         int r = 0;
@@ -400,7 +402,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
 
         if (r == 0) {
             remote_send_ctx->connected = 1;
-            ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
 
             assert(remote->buf->len == 0);
             buffer_t *abuf = remote->buf;
