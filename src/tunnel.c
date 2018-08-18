@@ -530,7 +530,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             memset((char *)&endpoints, 0, sizeof(endpoints));
             endpoints.sae_dstaddr    = (struct sockaddr *)&(remote->addr);
             endpoints.sae_dstaddrlen = remote->addr_len;
-            r = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
+            s = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
                          CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
                          NULL, 0, NULL, NULL);
 #elif defined(TCP_FASTOPEN_CONNECT)
