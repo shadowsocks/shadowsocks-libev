@@ -83,7 +83,6 @@ static void close_and_free_server(EV_P_ server_t *server);
 #ifdef __ANDROID__
 int vpn = 0;
 #endif
-static int fast_open = 0;
 
 int verbose        = 0;
 int reuse_port     = 0;
@@ -97,6 +96,7 @@ static int mode      = TCP_ONLY;
 static int nofile = 0;
 #endif
 static int no_delay = 0;
+static int fast_open = 0;
 static int ret_val  = 0;
 
 static struct ev_signal sigint_watcher;
@@ -397,7 +397,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             socklen_t len = sizeof(struct sockaddr_storage);
             r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
         }
-        
+
         if (r == 0) {
             remote_send_ctx->connected = 1;
             ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
@@ -480,7 +480,68 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         ssize_t s = -1;
         if (remote->addr != NULL) {
             
-#ifdef MSG_FASTOPEN
+#if defined(TCP_FASTOPEN_WINSOCK)
+            DWORD s   = -1;
+            DWORD err = 0;
+            do {
+                int optval = 1;
+                // Set fast open option
+                if (setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN,
+                               &optval, sizeof(optval)) != 0) {
+                    ERROR("setsockopt");
+                    break;
+                }
+                // Load ConnectEx function
+                LPFN_CONNECTEX ConnectEx = winsock_getconnectex();
+                if (ConnectEx == NULL) {
+                    LOGE("Cannot load ConnectEx() function");
+                    err = WSAENOPROTOOPT;
+                    break;
+                }
+                // ConnectEx requires a bound socket
+                if (winsock_dummybind(remote->fd,
+                                      (struct sockaddr *)&(remote->addr)) != 0) {
+                    ERROR("bind");
+                    break;
+                }
+                // Call ConnectEx to send data
+                memset(&remote->olap, 0, sizeof(remote->olap));
+                remote->connect_ex_done = 0;
+                if (ConnectEx(remote->fd, (const struct sockaddr *)&(remote->addr),
+                              remote->addr_len, remote->buf->data, remote->buf->len,
+                              &s, &remote->olap)) {
+                    remote->connect_ex_done = 1;
+                    break;
+                }
+                // XXX: ConnectEx pending, check later in remote_send
+                if (WSAGetLastError() == ERROR_IO_PENDING) {
+                    err = CONNECT_IN_PROGRESS;
+                    break;
+                }
+                ERROR("ConnectEx");
+            } while (0);
+            // Set error number
+            if (err) {
+                SetLastError(err);
+            }
+#elif defined(CONNECT_DATA_IDEMPOTENT)
+            ((struct sockaddr_in *)&(remote->addr))->sin_len = sizeof(struct sockaddr_in);
+            sa_endpoints_t endpoints;
+            memset((char *)&endpoints, 0, sizeof(endpoints));
+            endpoints.sae_dstaddr    = (struct sockaddr *)&(remote->addr);
+            endpoints.sae_dstaddrlen = remote->addr_len;
+            r = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
+                         CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
+                         NULL, 0, NULL, NULL);
+#elif defined(TCP_FASTOPEN_CONNECT)
+            int optval = 1;
+            if(setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                        (void *)&optval, sizeof(optval)) < 0)
+                FATAL("failed to set TCP_FASTOPEN_CONNECT");
+            s = connect(remote->fd, remote->addr, get_sockaddr_len(remote->addr));
+            if (s == 0)
+                s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
+#elif defined(MSG_FASTOPEN)
             s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
                        remote->buf->len, MSG_FASTOPEN, remote->addr,
                        get_sockaddr_len(remote->addr));
