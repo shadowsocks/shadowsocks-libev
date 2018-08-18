@@ -508,7 +508,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 memset(&remote->olap, 0, sizeof(remote->olap));
                 remote->connect_ex_done = 0;
                 if (ConnectEx(remote->fd, (const struct sockaddr *)&(remote->addr),
-                              remote->addr_len, remote->buf->data, remote->buf->len,
+                              get_sockaddr_len(remote->addr), remote->buf->data, remote->buf->len,
                               &s, &remote->olap)) {
                     remote->connect_ex_done = 1;
                     break;
@@ -529,7 +529,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             sa_endpoints_t endpoints;
             memset((char *)&endpoints, 0, sizeof(endpoints));
             endpoints.sae_dstaddr    = (struct sockaddr *)&(remote->addr);
-            endpoints.sae_dstaddrlen = remote->addr_len;
+            endpoints.sae_dstaddrlen = get_sockaddr_len(remote->addr);
             s = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
                          CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
                          NULL, 0, NULL, NULL);
