@@ -475,11 +475,9 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         close_and_free_server(EV_A_ server);
         return;
     } else {
-        
         // has data to send
         ssize_t s = -1;
         if (remote->addr != NULL) {
-            
 #if defined(TCP_FASTOPEN_WINSOCK)
             DWORD s   = -1;
             DWORD err = 0;
@@ -754,7 +752,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
         }
     }
 #endif
-    
+
     int keepAlive = 1;
     setsockopt(remotefd, SOL_SOCKET, SO_KEEPALIVE, (void *)&keepAlive, sizeof(keepAlive));
     setsockopt(remotefd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
@@ -808,7 +806,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
             return;
         }
     }
-    
+
     // listen to remote connected event
     ev_io_start(EV_A_ & remote->send_ctx->io);
     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
