@@ -1,7 +1,7 @@
 /*
  * tunnel.h - Define tunnel's buffers and callbacks
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -23,8 +23,17 @@
 #ifndef _TUNNEL_H
 #define _TUNNEL_H
 
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
 #include <ev.h>
-#include "encrypt.h"
+#endif
+
+#ifdef __MINGW32__
+#include "winsock.h"
+#endif
+
+#include "crypto.h"
 #include "jconf.h"
 
 #include "common.h"
@@ -34,9 +43,9 @@ typedef struct listen_ctx {
     ss_addr_t tunnel_addr;
     char *iface;
     int remote_num;
-    int method;
     int timeout;
     int fd;
+    int mptcp;
     struct sockaddr **remote_addr;
 } listen_ctx_t;
 
@@ -48,9 +57,10 @@ typedef struct server_ctx {
 
 typedef struct server {
     int fd;
+
     buffer_t *buf;
-    struct enc_ctx *e_ctx;
-    struct enc_ctx *d_ctx;
+    cipher_ctx_t *e_ctx;
+    cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
@@ -66,10 +76,15 @@ typedef struct remote_ctx {
 
 typedef struct remote {
     int fd;
+#ifdef TCP_FASTOPEN_WINSOCK
+    OVERLAPPED olap;
+    int connect_ex_done;
+#endif
     buffer_t *buf;
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
+    struct sockaddr *addr;
     uint32_t counter;
 } remote_t;
 

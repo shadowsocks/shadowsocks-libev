@@ -1,7 +1,7 @@
 /*
  * cache.c - Manage the connection cache for UDPRELAY
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -25,13 +25,15 @@
  * License:  This is licensed under the same terms as uthash itself
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <errno.h>
 #include <stdlib.h>
-#include "cache.h"
 
-#ifdef __MINGW32__
-#include "win32.h"
-#endif
+#include "cache.h"
+#include "utils.h"
 
 /** Creates a new cache object
  *
@@ -43,8 +45,9 @@
  *
  *  @return EINVAL if dst is NULL, ENOMEM if malloc fails, 0 otherwise
  */
-int cache_create(struct cache **dst, const size_t capacity,
-                 void (*free_cb)(void *element))
+int
+cache_create(struct cache **dst, const size_t capacity,
+             void (*free_cb)(void *key, void *element))
 {
     struct cache *new = NULL;
 
@@ -73,7 +76,8 @@ int cache_create(struct cache **dst, const size_t capacity,
  *
  *  @return EINVAL if cache is NULL, 0 otherwise
  */
-int cache_delete(struct cache *cache, int keep_data)
+int
+cache_delete(struct cache *cache, int keep_data)
 {
     struct cache_entry *entry, *tmp;
 
@@ -88,16 +92,56 @@ int cache_delete(struct cache *cache, int keep_data)
             HASH_DEL(cache->entries, entry);
             if (entry->data != NULL) {
                 if (cache->free_cb) {
-                    cache->free_cb(entry->data);
+                    cache->free_cb(entry->key, entry->data);
+                } else {
+                    ss_free(entry->data);
                 }
             }
-            free(entry->key);
-            free(entry);
+            ss_free(entry->key);
+            ss_free(entry);
         }
     }
 
-    free(cache);
-    cache = NULL;
+    ss_free(cache);
+    return 0;
+}
+
+/** Clear old cache object
+ *
+ *  @param cache
+ *  The cache object to clear
+ *
+ *  @param age
+ *  Clear only objects older than the age (sec)
+ *
+ *  @return EINVAL if cache is NULL, 0 otherwise
+ */
+int
+cache_clear(struct cache *cache, ev_tstamp age)
+{
+    struct cache_entry *entry, *tmp;
+
+    if (!cache) {
+        return EINVAL;
+    }
+
+    ev_tstamp now = ev_time();
+
+    HASH_ITER(hh, cache->entries, entry, tmp){
+        if (now - entry->ts > age) {
+            HASH_DEL(cache->entries, entry);
+            if (entry->data != NULL) {
+                if (cache->free_cb) {
+                    cache->free_cb(entry->key, entry->data);
+                } else {
+                    ss_free(entry->data);
+                }
+            }
+            ss_free(entry->key);
+            ss_free(entry);
+        }
+    }
+
     return 0;
 }
 
@@ -114,7 +158,8 @@ int cache_delete(struct cache *cache, int keep_data)
  *
  *  @return EINVAL if cache is NULL, 0 otherwise
  */
-int cache_remove(struct cache *cache, char *key, size_t key_len)
+int
+cache_remove(struct cache *cache, char *key, size_t key_len)
 {
     struct cache_entry *tmp;
 
@@ -128,13 +173,13 @@ int cache_remove(struct cache *cache, char *key, size_t key_len)
         HASH_DEL(cache->entries, tmp);
         if (tmp->data != NULL) {
             if (cache->free_cb) {
-                cache->free_cb(tmp->data);
+                cache->free_cb(tmp->key, tmp->data);
             } else {
-                free(tmp->data);
+                ss_free(tmp->data);
             }
         }
-        free(tmp->key);
-        free(tmp);
+        ss_free(tmp->key);
+        ss_free(tmp);
     }
 
     return 0;
@@ -160,7 +205,8 @@ int cache_remove(struct cache *cache, char *key, size_t key_len)
  *
  *  @return EINVAL if cache is NULL, 0 otherwise
  */
-int cache_lookup(struct cache *cache, char *key, size_t key_len, void *result)
+int
+cache_lookup(struct cache *cache, char *key, size_t key_len, void *result)
 {
     struct cache_entry *tmp = NULL;
     char **dirty_hack       = result;
@@ -172,6 +218,7 @@ int cache_lookup(struct cache *cache, char *key, size_t key_len, void *result)
     HASH_FIND(hh, cache->entries, key, key_len, tmp);
     if (tmp) {
         HASH_DELETE(hh, cache->entries, tmp);
+        tmp->ts = ev_time();
         HASH_ADD_KEYPTR(hh, cache->entries, tmp->key, key_len, tmp);
         *dirty_hack = tmp->data;
     } else {
@@ -181,7 +228,8 @@ int cache_lookup(struct cache *cache, char *key, size_t key_len, void *result)
     return 0;
 }
 
-int cache_key_exist(struct cache *cache, char *key, size_t key_len)
+int
+cache_key_exist(struct cache *cache, char *key, size_t key_len)
 {
     struct cache_entry *tmp = NULL;
 
@@ -192,6 +240,7 @@ int cache_key_exist(struct cache *cache, char *key, size_t key_len)
     HASH_FIND(hh, cache->entries, key, key_len, tmp);
     if (tmp) {
         HASH_DELETE(hh, cache->entries, tmp);
+        tmp->ts = ev_time();
         HASH_ADD_KEYPTR(hh, cache->entries, tmp->key, key_len, tmp);
         return 1;
     } else {
@@ -217,7 +266,8 @@ int cache_key_exist(struct cache *cache, char *key, size_t key_len)
  *
  *  @return EINVAL if cache is NULL, ENOMEM if malloc fails, 0 otherwise
  */
-int cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
+int
+cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
 {
     struct cache_entry *entry     = NULL;
     struct cache_entry *tmp_entry = NULL;
@@ -230,9 +280,12 @@ int cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
         return ENOMEM;
     }
 
-    entry->key = malloc(key_len);
+    entry->key = ss_malloc(key_len + 1);
     memcpy(entry->key, key, key_len);
+    entry->key[key_len] = 0;
+
     entry->data = data;
+    entry->ts   = ev_time();
     HASH_ADD_KEYPTR(hh, cache->entries, entry->key, key_len, entry);
 
     if (HASH_COUNT(cache->entries) >= cache->max_entries) {
@@ -240,13 +293,13 @@ int cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
             HASH_DELETE(hh, cache->entries, entry);
             if (entry->data != NULL) {
                 if (cache->free_cb) {
-                    cache->free_cb(entry->data);
+                    cache->free_cb(entry->key, entry->data);
                 } else {
-                    free(entry->data);
+                    ss_free(entry->data);
                 }
             }
-            free(entry->key);
-            free(entry);
+            ss_free(entry->key);
+            ss_free(entry);
             break;
         }
     }

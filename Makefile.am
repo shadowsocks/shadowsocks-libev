@@ -1,12 +1,20 @@
 if USE_SYSTEM_SHARED_LIB
-SUBDIRS = libcork libipset src
+SUBDIRS = src
 else
-SUBDIRS = libsodium libcork libipset libudns libev src
+SUBDIRS = libcork libipset libbloom src
+endif
+
+if ENABLE_DOCUMENTATION
+SUBDIRS += doc
 endif
 
 ACLOCAL_AMFLAGS = -I m4
-man_MANS = man/shadowsocks-libev.8 man/ss-server.1 man/ss-local.1 man/ss-redir.1\
-	   man/ss-manager.1 man/ss-tunnel.1
 
 pkgconfiglibdir = $(libdir)/pkgconfig
 pkgconfiglib_DATA = shadowsocks-libev.pc
+
+EXTRA_DIST = acl Changes completions debian docker rpm scripts README.md
+EXTRA_DIST += libbloom
+EXTRA_DIST += libcork/include libipset/include
+EXTRA_DIST += libipset/src/libipset/map/inspection-template.c.in
+EXTRA_DIST += libipset/src/libipset/set/inspection-template.c.in

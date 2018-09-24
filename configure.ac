@@ -2,14 +2,14 @@ dnl                                               -*- Autoconf -*-
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([shadowsocks-libev], [2.4.4], [max.c.lv@gmail.com])
-AC_CONFIG_SRCDIR([src/encrypt.c])
+AC_INIT([shadowsocks-libev], [3.2.0], [max.c.lv@gmail.com])
+AC_CONFIG_SRCDIR([src/crypto.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR(auto)
 AC_CONFIG_MACRO_DIR([m4])
 AC_USE_SYSTEM_EXTENSIONS
 
-AM_INIT_AUTOMAKE([subdir-objects foreign -Wall -Werror])
+AM_INIT_AUTOMAKE([subdir-objects foreign -Wno-gnu -Werror])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_MAINTAINER_MODE
@@ -19,6 +19,12 @@ dnl Checks for lib
 AC_DISABLE_STATIC
 AC_DISABLE_SHARED
 LT_INIT([dlopen])
+
+dnl Check for pcre library
+TS_CHECK_PCRE
+if test "x${enable_pcre}" != "xyes"; then
+  AC_MSG_ERROR([Cannot find pcre library. Configure --with-pcre=DIR])
+fi
 
 dnl Checks for using shared libraries from system
 AC_ARG_ENABLE(
@@ -32,35 +38,38 @@ AC_ARG_ENABLE(
     esac], [enable_system_shared_lib=false])
 AM_CONDITIONAL([USE_SYSTEM_SHARED_LIB], [test x$enable_system_shared_lib = xtrue])
 
-dnl Checks for crypto library
-AC_ARG_WITH(
-  [crypto-library],
-  [AS_HELP_STRING([--with-crypto-library=library], [build with the given crypto library, TYPE=openssl|polarssl|mbedtls @<:@default=openssl@:>@])],
-  [
-    case "${withval}" in
-      openssl|polarssl|mbedtls) ;;
-      *) AC_MSG_ERROR([bad value ${withval} for --with-crypto-library]) ;;
-    esac
-  ],
-  [with_crypto_library="openssl"]
-)
+AC_ARG_ENABLE([documentation],
+  AS_HELP_STRING([--disable-documentation], [do not build documentation]),
+  [disable_documentation=true],
+  [disable_documentation=false])
+AM_CONDITIONAL([ENABLE_DOCUMENTATION], [test x$disable_documentation = xfalse])
+
+AM_COND_IF([ENABLE_DOCUMENTATION], [
+  AC_PATH_PROG([ASCIIDOC], [asciidoc])
+  test x"${ASCIIDOC}" != x || AC_MSG_ERROR([Cannot find `asciidoc` in PATH.])
+  AC_PATH_PROG([XMLTO], [xmlto])
+  test x"$XMLTO" != x || AC_MSG_ERROR([Cannot find `xmlto` in PATH.])
+  AC_PATH_PROG([GZIP], [gzip], [gzip])
+  AC_PATH_PROG([MV], [mv], [mv])
+  AC_PROG_SED
+])
 
 dnl Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_LN_S
-AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 AC_LANG_SOURCE
-
-dnl Checks for libev
-m4_include([libev/libev.m4])
 
 dnl Add library for mingw
 case $host in
   *-mingw*)
-    LIBS="$LIBS -ladvapi32 -lgdi32 -lws2_32 -lcrypt32"
+    CFLAGS="$CFLAGS -mno-ms-bitfields"
+    LIBS="$LIBS -lws2_32"
+    ;;
+  *-cygwin*)
+    CFLAGS="$CFLAGS -mno-ms-bitfields"
     ;;
   *)
     ;;
@@ -69,37 +78,10 @@ esac
 dnl Checks for TLS
 AX_TLS([:], [:])
 
-dnl Checks for crypto library
-case "${with_crypto_library}" in
-  openssl)
-    ss_ZLIB
-    ss_OPENSSL
-    AC_DEFINE([USE_CRYPTO_OPENSSL], [1], [Use OpenSSL library])
-    ;;
-  polarssl)
-    ss_POLARSSL
-    AC_DEFINE([USE_CRYPTO_POLARSSL], [1], [Use PolarSSL library])
-    ;;
-  mbedtls)
-    ss_MBEDTLS
-    AC_DEFINE([USE_CRYPTO_MBEDTLS], [1], [Use mbed TLS library])
-    ;;
-esac
-
-dnl Checks for Apple CommonCrypto API
-AC_ARG_ENABLE(applecc,
-  AS_HELP_STRING([--enable-applecc], [enable Apple CommonCrypto API support]),
-  [
-    AC_CHECK_HEADERS(CommonCrypto/CommonCrypto.h,
-      [],
-      [AC_MSG_ERROR([CommonCrypto header files not found.]); break]
-    )
-    AC_CHECK_FUNCS([CCCryptorCreateWithMode], ,
-      [AC_MSG_ERROR([CommonCrypto API needs OS X (>= 10.7) and iOS (>= 5.0).]); break]
-    )
-    AC_DEFINE([USE_CRYPTO_APPLECC], [1], [Use Apple CommonCrypto library])
-  ]
-)
+dnl Checks for crypto libraries
+ss_MBEDTLS
+ss_SODIUM
+ss_CARES
 
 dnl Checks for inet_ntop
 ss_FUNC_INET_NTOP
@@ -112,12 +94,6 @@ case $host in
     AC_MSG_RESULT(Linux)
     ;;
   *-mingw*)
-    dnl Add custom macros for libev
-    AC_DEFINE([FD_SETSIZE], [2048], [Reset max file descriptor size.])
-    AC_DEFINE([EV_FD_TO_WIN32_HANDLE(fd)], [(fd)], [Override libev default fd conversion macro.])
-    AC_DEFINE([EV_WIN32_HANDLE_TO_FD(handle)], [(handle)], [Override libev default handle conversion macro.])
-    AC_DEFINE([EV_WIN32_CLOSE_FD(fd)], [closesocket(fd)], [Override libev default fd close macro.])
-
     os_support=mingw
     AC_MSG_RESULT(MinGW)
     ;;
@@ -126,6 +102,12 @@ case $host in
     ;;
 esac
 
+dnl Checks for pthread
+AX_PTHREAD([LIBS="$PTHREAD_LIBS $LIBS"
+            CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+            CC="$PTHREAD_CC"], AC_MSG_ERROR(Can not find pthreads.  This is required.))
+
+dnl Checks for stack protector
 GGL_CHECK_STACK_PROTECTOR([has_stack_protector=yes], [has_stack_protector=no])
 # XXX - disable -fstack-protector due to missing libssp_nonshared
 case "$host_os" in
@@ -161,7 +143,7 @@ AM_CONDITIONAL(BUILD_REDIRECTOR, test "$os_support" = "linux")
 AM_CONDITIONAL(BUILD_WINCOMPAT, test "$os_support" = "mingw")
 
 dnl Checks for header files.
-AC_CHECK_HEADERS([limits.h stdint.h inttypes.h arpa/inet.h fcntl.h langinfo.h locale.h netdb.h netinet/in.h stdlib.h string.h strings.h unistd.h sys/ioctl.h])
+AC_CHECK_HEADERS([limits.h stdint.h inttypes.h arpa/inet.h fcntl.h langinfo.h locale.h linux/tcp.h netinet/tcp.h netdb.h netinet/in.h stdlib.h string.h strings.h unistd.h sys/ioctl.h linux/random.h])
 
 dnl A special check required for <net/if.h> on Darwin. See
 dnl http://www.gnu.org/software/autoconf/manual/html_node/Header-Portability.html.
@@ -184,9 +166,11 @@ AC_CHECK_HEADERS([net/if.h], [], [],
 
 case $host in
   *-mingw*)
-    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h], [], [AC_MSG_ERROR([Missing MinGW headers])], [])
+    AC_DEFINE([CONNECT_IN_PROGRESS], [WSAEWOULDBLOCK], [errno for incomplete non-blocking connect(2)])
+    AC_CHECK_HEADERS([winsock2.h ws2tcpip.h mswsock.h], [], [AC_MSG_ERROR([Missing MinGW headers])], [])
     ;;
   *-linux*)
+    AC_DEFINE([CONNECT_IN_PROGRESS], [EINPROGRESS], [errno for incomplete non-blocking connect(2)])
     dnl Checks for netfilter headers
     AC_CHECK_HEADERS([linux/if.h linux/netfilter_ipv4.h linux/netfilter_ipv6/ip6_tables.h],
                      [], [AC_MSG_ERROR([Missing netfilter headers])],
@@ -199,7 +183,7 @@ case $host in
     #include <netinet/in.h>
     #endif
     #if HAVE_LINUX_IF_H
-    #include <net/if.h>
+    #include <linux/if.h>
     #endif
     #if HAVE_SYS_SOCKET_H
     #include <sys/socket.h>
@@ -208,6 +192,7 @@ case $host in
     ;;
   *)
     # These are POSIX-like systems using BSD-like sockets API.
+    AC_DEFINE([CONNECT_IN_PROGRESS], [EINPROGRESS], [errno for incomplete non-blocking connect(2)])
     ;;
 esac
 
@@ -235,49 +220,60 @@ dnl Checks for library functions.
 AC_FUNC_FORK
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
-AC_CHECK_FUNCS([memset select setresuid setreuid strerror getpwnam_r setrlimit])
-
-dnl Check for select() into ws2_32 for Msys/Mingw
-if test "$ac_cv_func_select" != "yes"; then
-  AC_MSG_CHECKING([for select in ws2_32])
-  AC_TRY_LINK([
-#ifdef HAVE_WINSOCK2_H
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <winsock2.h>
-#endif
-    ],[
-      select(0,(fd_set *)NULL,(fd_set *)NULL,(fd_set *)NULL,(struct timeval *)NULL);
-    ],[
-      AC_MSG_RESULT([yes])
-      HAVE_SELECT="1"
-      AC_DEFINE_UNQUOTED(HAVE_SELECT, 1,
-        [Define to 1 if you have the 'select' function.])
-      HAVE_SYS_SELECT_H="1"
-      AC_DEFINE_UNQUOTED(HAVE_SYS_SELECT_H, 1,
-        [Define to 1 if you have the <sys/select.h> header file.])
-    ],[
-      AC_MSG_ERROR([no])
-  ])
-fi
+AC_CHECK_FUNCS([memset select setresuid setreuid strerror get_current_dir_name getpwnam_r setrlimit])
 
 AC_CHECK_LIB(socket, connect)
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS([malloc memset socket])
+AC_CHECK_FUNCS([malloc memset posix_memalign socket])
 
-AX_PTHREAD(, AC_MSG_ERROR(Can not find pthreads.  This is required.))
+AC_ARG_WITH(ev,
+  AS_HELP_STRING([--with-ev=DIR], [use a specific libev library]),
+  [CFLAGS="$CFLAGS -I$withval/include"
+   CPPFLAGS="$CPPFLAGS -I$withval/include"
+   LDFLAGS="$LDFLAGS -L$withval/lib"]
+)
+AC_CHECK_HEADERS([ev.h libev/ev.h], [], [])
+AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
+
+AC_CONFIG_FILES([shadowsocks-libev.pc
+                 Makefile
+                 doc/Makefile
+                 src/Makefile])
 
 AM_COND_IF([USE_SYSTEM_SHARED_LIB],
-  [],
-  [AC_CONFIG_SUBDIRS([libsodium])])
+		   [AC_DEFINE([USE_SYSTEM_SHARED_LIB], [1], [Define if use system shared lib.])],
+		   [AC_CONFIG_FILES([libbloom/Makefile libcork/Makefile libipset/Makefile])])
 
-AC_CONFIG_FILES([ shadowsocks-libev.pc
-                 Makefile
-                 libcork/Makefile
-                 libipset/Makefile
-                 libudns/Makefile
-                 libev/Makefile
-                 src/Makefile])
+AC_ARG_ENABLE(connmarktos,
+[AS_HELP_STRING(--enable-connmarktos, Enable saved connmark to IP TOS QoS feature)],
+[
+  enable_connmarktos="yes"
+],
+[
+  enable_connmarktos="no"
+])
+
+if test x"$enable_connmarktos" = "xyes" ; then
+	AC_MSG_NOTICE([Linux Netfilter Conntrack support requested by --enable-connmarktos: ${enable_connmarktos}])
+	if test "x$enable_connmarktos" != "xno"; then
+	    AC_SEARCH_LIBS([nfct_query], [netfilter_conntrack],,[
+	        if test x"$enable_connmarktos" = "xyes"; then
+	            AC_MSG_ERROR([--enable-connmarktos specified but libnetfilter-conntrack library not found])
+	        fi
+	        with_netfilter_conntrack=no])
+	    AC_CHECK_HEADERS([libnetfilter_conntrack/libnetfilter_conntrack.h \
+	        libnetfilter_conntrack/libnetfilter_conntrack_tcp.h],,[
+	        if test x"$enable_connmarktos" = "xyes"; then
+	            AC_MSG_ERROR([--enable-connmarktos specified but libnetfilter-conntrack headers not found])
+	        fi
+	        with_netfilter_conntrack=no])
+	  # If nothing is broken; enable the libraries usage.
+	  if test "x$with_netfilter_conntrack" != "xno"; then
+		with_netfilter_conntrack=yes
+		AC_DEFINE(USE_NFCONNTRACK_TOS, 1, [Enable support for QOS netfilter mark preservation])
+	  fi
+	fi
+fi
+
 AC_OUTPUT

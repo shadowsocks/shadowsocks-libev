@@ -1,3 +1,203 @@
+shadowsocks-libev (3.2.0-1) unstable; urgency=medium
+
+  * Add MinGW support by @linusyang.
+  * Refine c-ares integration by @xnoreq.
+  * Fix building issues with GCC8 by @FlyingheartCN.
+  * Minor bug fixes.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 28 May 2018 19:46:21 -0700
+
+shadowsocks-libev (3.1.3-1) unstable; urgency=medium
+
+  * Fix a bug in UDP relay.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 15 Jan 2018 17:19:31 -0800
+
+shadowsocks-libev (3.1.2-1) unstable; urgency=medium
+
+  * Fix a bug in DNS resolver.
+  * Add new TFO API support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 28 Dec 2017 21:01:56 -0800
+
+shadowsocks-libev (3.1.1-1) unstable; urgency=high
+
+  * Fix a security issue in ss-manager. (CVE-2017-15924)
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 20 Nov 2017 12:13:04 +0800
+
+shadowsocks-libev (3.1.0-1) unstable; urgency=low
+
+  * Replace libudns with libc-ares.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 14 Sep 2017 19:27:51 -0700
+
+shadowsocks-libev (3.0.8-1) unstable; urgency=medium
+
+  * Refine the ping-pong bloom filter.
+  * Minor bug fixes by @vfreex, @vlolteanu and @jackyyf.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 27 Jul 2017 11:01:37 +0800
+
+shadowsocks-libev (3.0.7-1) unstable; urgency=medium
+
+  * Refine manager mode by @mengxd.
+  * Fix a potential memory leak by @vlolteanu.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 27 Jun 2017 14:08:27 +0800
+
+shadowsocks-libev (3.0.6-1) unstable; urgency=medium
+
+  * Fix a bug with AEAD ciphers.
+  * Refine ACL support by @blackgear.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 26 Apr 2017 13:48:11 +0800
+
+shadowsocks-libev (3.0.5-1) unstable; urgency=medium
+
+  * Fix a bug of TCP Fast Open in ss-redir.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 21 Mar 2017 13:49:18 +0800
+
+shadowsocks-libev (3.0.4-1) unstable; urgency=medium
+
+  * Add CMake files by @wenerme.
+  * Support TCP Fast Open in ss-redir by @lqs.
+  * Support TOS/DESCP in ss-redir by @sduponch.
+  * Refine MPTCP by @sduponch.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 16 Mar 2017 14:07:57 +0800
+
+shadowsocks-libev (3.0.3-1) unstable; urgency=medium
+
+  * Replace nonce cache with a ping-pong bloom filter.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 24 Feb 2017 12:08:31 +0800
+
+shadowsocks-libev (3.0.2-1) unstable; urgency=high
+
+  * Add session key for AEAD. (SIP007)
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 13 Feb 2017 09:07:17 +0800
+
+shadowsocks-libev (3.0.1-1) unstable; urgency=medium
+
+  * Fix a crashe when using stream ciphers.
+  * Fix a protocol bug in AEAD ciphers. (SIP004)
+  * Allow setting keys directly. (SIP006)
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 07 Feb 2017 13:18:02 +0800
+
+shadowsocks-libev (3.0.0-1) unstable; urgency=medium
+
+  * Drop dependencies of OpenSSL and PolarSSL.
+  * Deprecate OTA (One-Time-Auth).
+  * Add new ciphers for SIP004: aes-128-gcm, aes-192-gcm, aes-256-gcm,
+    chacha20-poly1305 and chacha20-ietf-poly1305.
+  * Refine SIP003 to support standalone mode of obfsproxy.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 01 Feb 2017 19:10:14 +0800
+
+shadowsocks-libev (2.6.3-1) unstable; urgency=medium
+
+  * Refine the project structure.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 24 Jan 2017 19:10:45 +0800
+
+shadowsocks-libev (2.6.2-1) unstable; urgency=medium
+
+  * Refine SIP003 plugin support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 16 Jan 2017 10:16:12 +0800
+
+shadowsocks-libev (2.6.1-1) unstable; urgency=medium
+
+  * Deprecate HTTP/TLS obfuscating.
+  * Add SIP003 plugin support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 08 Jan 2017 15:14:19 +0800
+
+shadowsocks-libev (2.6.0-1) unstable; urgency=medium
+
+  * Add HTTP/TLS obfuscating.
+  * Add support of aunch_activate_socket on macOS.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 27 Dec 2016 16:37:23 +0800
+
+shadowsocks-libev (2.5.6-1) unstable; urgency=medium
+
+  * Add outbound ACL for server.
+  * Refine log format.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 01 Nov 2016 09:51:52 +0800
+
+shadowsocks-libev (2.5.5-1) unstable; urgency=medium
+
+  * Refine attack detection.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 11 Oct 2016 15:45:09 +0800
+
+shadowsocks-libev (2.5.4-1) unstable; urgency=medium
+
+  * Fix a bug of auto blocking mechanism.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 09 Oct 2016 19:36:37 +0800
+
+shadowsocks-libev (2.5.3-1) unstable; urgency=medium
+
+  * Fix TCP Fast Open on macOS.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 21 Sep 2016 19:31:57 +0800
+
+shadowsocks-libev (2.5.2-1) unstable; urgency=medium
+
+  * Fix a bug of UDP relay mode of ss-local.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 12 Sep 2016 12:54:33 +0800
+
+shadowsocks-libev (2.5.1-1) unstable; urgency=medium
+
+  * Refine ACL feature with hostname support.
+  * Add HTTP/SNI parser for ss-local/ss-redir.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 10 Sep 2016 17:06:49 +0800
+
+shadowsocks-libev (2.5.0-1) unstable; urgency=medium
+
+  * Fix several bugs of the command line interface.
+  * Add aes-128/192/256-ctr ciphers.
+  * Add option MTU for UDP relay.
+  * Add MultiPath TCP support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 29 Aug 2016 13:07:51 +0800
+
+shadowsocks-libev (2.4.8-1) unstable; urgency=low
+
+  * Update manual pages with asciidoc.
+  * Fix issues of bind_address option.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 20 Jul 2016 09:25:50 +0800
+
+shadowsocks-libev (2.4.7-1) unstable; urgency=low
+
+  * Add ss-nat, a helper script to set up NAT rules for ss-redir.
+  * Fix several issues for debian package.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 1 Jun 2016 18:21:45 +0800
+
+shadowsocks-libev (2.4.6-1) unstable; urgency=low
+
+  * Update manual pages.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 21 Apr 2016 17:33:34 +0800
+
+shadowsocks-libev (2.4.5-1) unstable; urgency=low
+
+  * Fix build issues on OpenWRT.
+  * Reduce the latency of redir mode.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 01 Feb 2016 13:22:50 +0800
+
 shadowsocks-libev (2.4.4-1) unstable; urgency=low
 
   * Fix a potential memory leak.

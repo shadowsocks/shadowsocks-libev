@@ -1,7 +1,7 @@
 /*
  * android.c - Setup IPC for shadowsocks-android
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -45,7 +45,8 @@
 #include "netutils.h"
 #include "utils.h"
 
-int protect_socket(int fd)
+int
+protect_socket(int fd)
 {
     int sock;
     struct sockaddr_un addr;
@@ -55,21 +56,20 @@ int protect_socket(int fd)
         return -1;
     }
 
-    // Set timeout to 1s
+    // Set timeout to 3s
     struct timeval tv;
-    tv.tv_sec  = 1;
+    tv.tv_sec  = 3;
     tv.tv_usec = 0;
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
 
-    const char path[] = "/data/data/com.github.shadowsocks/protect_path";
-
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+    strncpy(addr.sun_path, "protect_path", sizeof(addr.sun_path) - 1);
 
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        LOGE("[android] connect() failed: %s (socket fd = %d)\n", strerror(errno), sock);
+        LOGE("[android] connect() failed for protect_path: %s (socket fd = %d)\n",
+             strerror(errno), sock);
         close(sock);
         return -1;
     }
@@ -92,7 +92,8 @@ int protect_socket(int fd)
     return ret;
 }
 
-int send_traffic_stat(uint64_t tx, uint64_t rx)
+int
+send_traffic_stat(uint64_t tx, uint64_t rx)
 {
     int sock;
     struct sockaddr_un addr;
@@ -109,14 +110,13 @@ int send_traffic_stat(uint64_t tx, uint64_t rx)
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
 
-    const char path[] = "/data/data/com.github.shadowsocks/stat_path";
-
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+    strncpy(addr.sun_path, "stat_path", sizeof(addr.sun_path) - 1);
 
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        LOGE("[android] connect() failed: %s (socket fd = %d)\n", strerror(errno), sock);
+        LOGE("[android] connect() failed for stat_path: %s (socket fd = %d)\n",
+             strerror(errno), sock);
         close(sock);
         return -1;
     }
@@ -129,14 +129,5 @@ int send_traffic_stat(uint64_t tx, uint64_t rx)
         return -1;
     }
 
-    char ret = 0;
-
-    if (recv(sock, &ret, 1, 0) == -1) {
-        ERROR("[android] recv");
-        close(sock);
-        return -1;
-    }
-
     close(sock);
-    return ret;
 }

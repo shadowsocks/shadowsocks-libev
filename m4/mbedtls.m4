@@ -57,7 +57,7 @@ AC_DEFUN([ss_MBEDTLS],
       ]]
     )],
     [AC_MSG_RESULT([ok])],
-    [AC_MSG_ERROR([MBEDTLS_ARC4_C required])]
+    [AC_MSG_WARN([We will continue without ARC4 stream cipher support, MBEDTLS_ARC4_C required])]
   )
 
   AC_MSG_CHECKING([whether mbedtls supports the Blowfish block cipher or not])
@@ -73,7 +73,7 @@ AC_DEFUN([ss_MBEDTLS],
       ]]
     )],
     [AC_MSG_RESULT([ok])],
-    [AC_MSG_ERROR([MBEDTLS_BLOWFISH_C required])]
+    [AC_MSG_WARN([We will continue without Blowfish block cipher support, MBEDTLS_BLOWFISH_C required])]
   )
 
   AC_MSG_CHECKING([whether mbedtls supports the Camellia block cipher or not])
@@ -89,6 +89,6 @@ AC_DEFUN([ss_MBEDTLS],
       ]]
     )],
     [AC_MSG_RESULT([ok])],
-    [AC_MSG_ERROR([MBEDTLS_CAMELLIA_C required])]
+    [AC_MSG_WARN([We will continue without Camellia block cipher support, MBEDTLS_CAMELLIA_C required])]
   )
 ])
