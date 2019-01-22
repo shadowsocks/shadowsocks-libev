@@ -12,7 +12,7 @@ SYNOPSIS
  [-s <server_host>] [-p <server_port>] [-l <local_port>]
  [-k <password>] [-m <encrypt_method>] [-f <pid_file>]
  [-t <timeout>] [-c <config_file>] [-i <interface>]
- [-b <local_addr>] [-a <user_name>]
+ [-b <local_addr>] [-a <user_name>] [-D <path>]
  [--manager-address <path_to_unix_domain>]
  [--executable <path_to_server_executable>]
  [--fast-open] [--reuse-port]
@@ -116,6 +116,11 @@ Specify the executable path of ss-server.
 +
 Only available in manager mode.
 
+--executable <path_to_server_executable>::
+Specify the working directory of ss-manager.
++
+Only available in manager mode.
+
 --plugin <plugin_name>::
 Enable SIP003 plugin. (Experimental)
 
@@ -141,11 +146,13 @@ To add a port: ::::
 To remove a port: ::::
  remove: {"server_port": 8001}
 
-To receive a pong: ::::
+To receive the traffic statistics: ::::
  ping
 
-Then `ss-manager`(1) will send back the traffic statistics: ::::
+The format of the traffic statistics: ::::
  stat: {"8001":11370}
+
+There is no way to reset the traffic statistics, unless you remove the port and add it again
 
 EXAMPLE
 -------
@@ -176,4 +183,3 @@ SEE ALSO
 `shadowsocks-libev`(8),
 `iptables`(8),
 /etc/shadowsocks-libev/config.json
-

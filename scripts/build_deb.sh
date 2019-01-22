@@ -229,7 +229,7 @@ build_install_libbloom() {
 if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 	BRANCH=$1
 	if [ $BUILD_LIB -eq 1 ]; then
-		gbp_build https://anonscm.debian.org/git/collab-maint/libbloom.git $BRANCH
+		gbp_build https://salsa.debian.org/bridges-team/libbloom.git $BRANCH
 	else
 		ls libbloom-dev_*.deb libbloom1_*.deb 2>&1 > /dev/null ||
 			help_lib "libbloom-dev libbloom1"
@@ -269,7 +269,7 @@ fi
 build_install_simpleobfs() {
 if [ $BUILD_BIN -eq 1 ]; then
 	BRANCH=$1
-	git_build https://anonscm.debian.org/git/collab-maint/simple-obfs.git $BRANCH
+	git_build https://salsa.debian.org/bridges-team/simple-obfs.git $BRANCH
 	sudo dpkg -i simple-obfs_*.deb
 	sudo apt-get install -fy
 fi

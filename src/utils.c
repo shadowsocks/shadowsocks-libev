@@ -64,6 +64,7 @@ ERROR(const char *s)
     char *msg = strerror(errno);
     LOGE("%s: %s", s, msg);
 }
+
 #endif
 
 int use_tty = 1;
@@ -245,7 +246,11 @@ ss_align(size_t size)
     int err;
     void *tmp = NULL;
 #ifdef HAVE_POSIX_MEMALIGN
-    err = posix_memalign(&tmp, sizeof(void *), size);
+    /* ensure 16 byte alignment */
+    err = posix_memalign(&tmp, 16, size);
+#elif __MINGW32__
+    tmp = __mingw_aligned_malloc(size, 16);
+    err = tmp == NULL;
 #else
     err = -1;
 #endif
@@ -266,6 +271,12 @@ ss_realloc(void *ptr, size_t new_size)
         exit(EXIT_FAILURE);
     }
     return new;
+}
+
+int
+ss_is_ipv6addr(const char *addr)
+{
+    return strcmp(addr, ":") > 0;
 }
 
 void
@@ -380,6 +391,8 @@ usage()
 #ifdef MODULE_MANAGER
     printf(
         "       [--executable <path>]      Path to the executable of ss-server.\n");
+    printf(
+        "       [-D <path>]                Path to the working directory of ss-manager.\n");
 #endif
     printf(
         "       [--mtu <MTU>]              MTU of your network interface.\n");
@@ -493,7 +506,7 @@ get_default_conf(void)
 #ifndef __MINGW32__
     static char sysconf[] = "/etc/shadowsocks-libev/config.json";
     static char *userconf = NULL;
-    static int buf_size = 0;
+    static int buf_size   = 0;
     char *conf_home;
 
     conf_home = getenv("XDG_CONFIG_HOME");
@@ -506,14 +519,14 @@ get_default_conf(void)
             userconf = malloc(buf_size);
         }
         snprintf(userconf, buf_size, "%s%s", getenv("HOME"),
-            "/.config/shadowsocks-libev/config.json");
+                 "/.config/shadowsocks-libev/config.json");
     } else {
         if (buf_size == 0) {
             buf_size = 50 + strlen(conf_home);
             userconf = malloc(buf_size);
         }
         snprintf(userconf, buf_size, "%s%s", conf_home,
-            "/shadowsocks-libev/config.json");
+                 "/shadowsocks-libev/config.json");
     }
 
     // Check if the user-specific config exists.

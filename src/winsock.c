@@ -44,7 +44,7 @@
 static void
 disable_quick_edit(void)
 {
-    DWORD mode = 0;
+    DWORD mode     = 0;
     HANDLE console = GetStdHandle(STD_INPUT_HANDLE);
 
     // Get current console mode
@@ -118,7 +118,7 @@ ss_gai_strerror(int ecode)
         FORMAT_MESSAGE_IGNORE_INSERTS |
         FORMAT_MESSAGE_MAX_WIDTH_MASK,
         NULL, ecode,
-        MAKELANGID(LANG_NEUTRAL,SUBLANG_DEFAULT),
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (LPTSTR)buff, GAI_STRERROR_BUFFER_SIZE, NULL);
     return (char *)buff;
 }
@@ -126,13 +126,13 @@ ss_gai_strerror(int ecode)
 static BOOL
 get_conattr(HANDLE console, WORD *out_attr)
 {
-    static BOOL done = FALSE;
+    static BOOL done       = FALSE;
     static WORD saved_attr = 0;
     if (!done) {
         CONSOLE_SCREEN_BUFFER_INFO info;
         if (GetConsoleScreenBufferInfo(console, &info)) {
             saved_attr = info.wAttributes;
-            done = TRUE;
+            done       = TRUE;
         }
     }
     if (out_attr != NULL) {
@@ -225,12 +225,12 @@ winsock_dummybind(SOCKET fd, struct sockaddr *sa)
     memset(&ss, 0, sizeof(ss));
     if (sa->sa_family == AF_INET) {
         struct sockaddr_in *sin = (struct sockaddr_in *)&ss;
-        sin->sin_family = AF_INET;
+        sin->sin_family      = AF_INET;
         sin->sin_addr.s_addr = INADDR_ANY;
     } else if (sa->sa_family == AF_INET6) {
         struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&ss;
         sin6->sin6_family = AF_INET6;
-        sin6->sin6_addr = in6addr_any;
+        sin6->sin6_addr   = in6addr_any;
     } else {
         return -1;
     }
@@ -240,6 +240,7 @@ winsock_dummybind(SOCKET fd, struct sockaddr *sa)
     }
     return 0;
 }
+
 #endif
 
 #endif // __MINGW32__

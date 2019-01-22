@@ -1,7 +1,9 @@
 sudo: required
 language: c
 dist : trusty
-compiler: clang
+compiler:
+    - clang
+    - gcc
 os:
     - linux
     - osx

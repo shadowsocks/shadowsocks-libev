@@ -177,6 +177,7 @@ The config file equivalent of command line options is listed as example below.
 | -m "aes-256-cfb"                    | "method": "aes-256-cfb"
 | -t 60                               | "timeout": 60
 | -a nobody                           | "user": "nobody"
+| --acl "/path/to/acl"                | "acl": "/path/to/acl"
 | --fast-open                         | "fast_open": true
 | --reuse-port                        | "reuse_port": true
 | --no-delay                          | "no_delay": true

@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.2)
 
 set(PROJECT_NAME shadowsocks-libev)
-set(RELEASE_DATE 2018-5-28)
-set(PROJECT_VERSION "3.2.0")
+set(RELEASE_DATE 2018-11-28)
+set(PROJECT_VERSION "3.2.3")
 set(PROJECT_DESC "a lightweight secured socks5 proxy")
 set(PROJECT_URL "https://shadowsocks.org")
 set(PROJECT_ISSUES_URL "https://github.com/shadowsocks/shadowsocks-libev")

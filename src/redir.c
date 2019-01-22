@@ -83,9 +83,8 @@ static void close_and_free_remote(EV_P_ remote_t *remote);
 static void free_server(server_t *server);
 static void close_and_free_server(EV_P_ server_t *server);
 
-int verbose        = 0;
-int reuse_port     = 0;
-int keep_resolving = 1;
+int verbose    = 0;
+int reuse_port = 0;
 
 static crypto_t *crypto;
 
@@ -94,7 +93,7 @@ static int mode      = TCP_ONLY;
 #ifdef HAVE_SETRLIMIT
 static int nofile = 0;
 #endif
-static int fast_open = 0;
+       int fast_open = 0;
 static int no_delay  = 0;
 static int ret_val   = 0;
 
@@ -362,8 +361,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = remote_recv_ctx->remote;
     server_t *server              = remote->server;
 
-    ev_timer_again(EV_A_ & remote->recv_ctx->watcher);
-
     ssize_t r = recv(remote->fd, server->buf->data, BUF_SIZE, 0);
 
     if (r == 0) {
@@ -449,7 +446,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             ev_io_stop(EV_A_ & remote_send_ctx->io);
             ev_io_stop(EV_A_ & server->recv_ctx->io);
             ev_io_start(EV_A_ & remote->recv_ctx->io);
-            ev_timer_start(EV_A_ & remote->recv_ctx->watcher);
 
             // send destaddr
             buffer_t ss_addr_to_send;
@@ -521,8 +517,8 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         if (remote->addr != NULL) {
 #if defined(TCP_FASTOPEN_CONNECT)
             int optval = 1;
-            if(setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
-                        (void *)&optval, sizeof(optval)) < 0)
+            if (setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                           (void *)&optval, sizeof(optval)) < 0)
                 FATAL("failed to set TCP_FASTOPEN_CONNECT");
             s = connect(remote->fd, remote->addr, get_sockaddr_len(remote->addr));
             if (s == 0)
@@ -543,7 +539,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                     ev_timer_start(EV_A_ & remote_send_ctx->watcher);
                 } else {
                     if (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
-                            errno == ENOPROTOOPT) {
+                        errno == ENOPROTOOPT) {
                         fast_open = 0;
                         LOGE("fast open is not supported on this platform");
                     } else {
@@ -605,8 +601,6 @@ new_remote(int fd, int timeout)
     ev_io_init(&remote->send_ctx->io, remote_send_cb, fd, EV_WRITE);
     ev_timer_init(&remote->send_ctx->watcher, remote_timeout_cb,
                   min(MAX_CONNECT_TIMEOUT, timeout), 0);
-    ev_timer_init(&remote->recv_ctx->watcher, remote_timeout_cb,
-                  timeout, 0);
 
     return remote;
 }
@@ -631,7 +625,6 @@ close_and_free_remote(EV_P_ remote_t *remote)
 {
     if (remote != NULL) {
         ev_timer_stop(EV_A_ & remote->send_ctx->watcher);
-        ev_timer_stop(EV_A_ & remote->recv_ctx->watcher);
         ev_io_stop(EV_A_ & remote->send_ctx->io);
         ev_io_stop(EV_A_ & remote->recv_ctx->io);
         close(remote->fd);
@@ -823,8 +816,7 @@ signal_cb(EV_P_ ev_signal *w, int revents)
             if (!is_plugin_running()) {
                 LOGE("plugin service exit unexpectedly");
                 ret_val = -1;
-            }
-            else
+            } else
                 return;
         case SIGINT:
         case SIGTERM:
@@ -832,7 +824,6 @@ signal_cb(EV_P_ ev_signal *w, int revents)
             ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
             ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
 
-            keep_resolving = 0;
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
     }
@@ -1193,7 +1184,6 @@ main(int argc, char **argv)
 
     listen_ctx_t *listen_ctx_current = &listen_ctx;
     do {
-
         if (listen_ctx_current->tos) {
             LOGI("listening at %s:%s (TOS 0x%x)", local_addr, local_port, listen_ctx_current->tos);
         } else {

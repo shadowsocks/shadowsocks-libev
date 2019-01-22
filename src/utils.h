@@ -119,7 +119,6 @@ extern FILE *logfile;
     }                                                         \
     while (0)
 
-
 #else // not __MINGW32__
 
 #include <syslog.h>
@@ -230,6 +229,8 @@ int set_nofile(int nofile);
 void *ss_malloc(size_t size);
 void *ss_align(size_t size);
 void *ss_realloc(void *ptr, size_t new_size);
+
+int ss_is_ipv6addr(const char *addr);
 
 #define ss_free(ptr)     \
     do {                 \

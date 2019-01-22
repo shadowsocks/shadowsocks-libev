@@ -65,7 +65,6 @@
  * Implement DNS resolution interface using libc-ares
  */
 
-
 #define SS_NUM_IOS 6
 #define SS_INVALID_FD -1
 #define SS_TIMER_AFTER 1.0
@@ -73,7 +72,7 @@
 struct resolv_ctx {
     struct ev_io ios[SS_NUM_IOS];
     struct ev_timer timer;
-    ev_tstamp  last_tick;
+    ev_tstamp last_tick;
 
     ares_channel channel;
     struct ares_options options;
@@ -183,9 +182,8 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
         FATAL("failed to set nameservers");
     }
 
-    for (int i = 0; i < SS_NUM_IOS; i++) {
+    for (int i = 0; i < SS_NUM_IOS; i++)
         ev_io_init(&default_ctx.ios[i], resolv_sock_cb, SS_INVALID_FD, 0);
-    }
 
     default_ctx.last_tick = ev_now(default_loop);
     ev_init(&default_ctx.timer, resolv_timer_cb);
@@ -198,9 +196,8 @@ void
 resolv_shutdown(struct ev_loop *loop)
 {
     ev_timer_stop(default_loop, &default_ctx.timer);
-    for (int i = 0; i < SS_NUM_IOS; i++) {
+    for (int i = 0; i < SS_NUM_IOS; i++)
         ev_io_stop(default_loop, &default_ctx.ios[i]);
-    }
 
     ares_cancel(default_ctx.channel);
     ares_destroy(default_ctx.channel);
@@ -444,7 +441,7 @@ resolv_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
     struct resolv_ctx *ctx = cork_container_of(w, struct resolv_ctx, timer);
 
-    ev_tstamp now = ev_now(default_loop);
+    ev_tstamp now   = ev_now(default_loop);
     ev_tstamp after = ctx->last_tick - now + SS_TIMER_AFTER;
 
     if (after < 0.0) {
@@ -466,7 +463,7 @@ static void
 resolv_sock_state_cb(void *data, int s, int read, int write)
 {
     struct resolv_ctx *ctx = (struct resolv_ctx *)data;
-    int events = (read ? EV_READ : 0) | (write ? EV_WRITE : 0);
+    int events             = (read ? EV_READ : 0) | (write ? EV_WRITE : 0);
 
     int i = 0, ffi = -1;
     for (; i < SS_NUM_IOS; i++) {

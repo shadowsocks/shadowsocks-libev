@@ -24,7 +24,6 @@
 #include "config.h"
 #endif
 
-
 #include <string.h>
 #ifndef __MINGW32__
 #include <unistd.h>
@@ -53,7 +52,7 @@ static struct cork_env *env        = NULL;
 static struct cork_exec *exec      = NULL;
 static struct cork_subprocess *sub = NULL;
 #ifdef __MINGW32__
-static uint16_t sub_control_port   = 0;
+static uint16_t sub_control_port = 0;
 void cork_subprocess_set_control(struct cork_subprocess *self, uint16_t port);
 #endif
 
@@ -110,10 +109,13 @@ start_ss_plugin(const char *plugin,
     if (plugin_opts != NULL)
         cork_env_add(env, "SS_PLUGIN_OPTIONS", plugin_opts);
 
+    exec = cork_exec_new(plugin);
+    cork_exec_add_param(exec, plugin);  // argv[0]
+    extern int fast_open;
+    if (fast_open) cork_exec_add_param(exec, "--fast-open");
 #ifdef __ANDROID__
-    exec = cork_exec_new_with_params("sh", "-c", plugin, NULL);
-#else
-    exec = cork_exec_new_with_params(plugin, NULL);
+    extern int vpn;
+    if (vpn) cork_exec_add_param(exec, "-V");
 #endif
 
     cork_exec_set_env(exec, env);
@@ -122,7 +124,7 @@ start_ss_plugin(const char *plugin,
 #ifdef __MINGW32__
     cork_subprocess_set_control(sub, sub_control_port);
 #endif
-  
+
     return cork_subprocess_start(sub);
 }
 
@@ -164,7 +166,7 @@ start_obfsproxy(const char *plugin,
 {
     char *pch;
     char *opts_dump = NULL;
-    char *buf = NULL;
+    char *buf       = NULL;
     int ret, buf_size = 0;
 
     if (plugin_opts != NULL) {
@@ -342,4 +344,3 @@ is_plugin_running()
     }
     return 0;
 }
-

@@ -2,7 +2,7 @@ dnl                                               -*- Autoconf -*-
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([shadowsocks-libev], [3.2.0], [max.c.lv@gmail.com])
+AC_INIT([shadowsocks-libev], [3.2.3], [max.c.lv@gmail.com])
 AC_CONFIG_SRCDIR([src/crypto.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR(auto)
@@ -247,12 +247,7 @@ AM_COND_IF([USE_SYSTEM_SHARED_LIB],
 
 AC_ARG_ENABLE(connmarktos,
 [AS_HELP_STRING(--enable-connmarktos, Enable saved connmark to IP TOS QoS feature)],
-[
-  enable_connmarktos="yes"
-],
-[
-  enable_connmarktos="no"
-])
+[ enable_connmarktos="$enableval" ])
 
 if test x"$enable_connmarktos" = "xyes" ; then
 	AC_MSG_NOTICE([Linux Netfilter Conntrack support requested by --enable-connmarktos: ${enable_connmarktos}])
@@ -261,7 +256,7 @@ if test x"$enable_connmarktos" = "xyes" ; then
 	        if test x"$enable_connmarktos" = "xyes"; then
 	            AC_MSG_ERROR([--enable-connmarktos specified but libnetfilter-conntrack library not found])
 	        fi
-	        with_netfilter_conntrack=no])
+	        with_netfilter_conntrack=no], [-lnfnetlink])
 	    AC_CHECK_HEADERS([libnetfilter_conntrack/libnetfilter_conntrack.h \
 	        libnetfilter_conntrack/libnetfilter_conntrack_tcp.h],,[
 	        if test x"$enable_connmarktos" = "xyes"; then

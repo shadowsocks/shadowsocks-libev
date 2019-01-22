@@ -36,7 +36,10 @@
 #include <inttypes.h>
 #endif
 
-/* Definations for mbedTLS */
+/* Definitions for libsodium */
+#include <sodium.h>
+typedef crypto_aead_aes256gcm_state aes256gcm_ctx;
+/* Definitions for mbedTLS */
 #include <mbedtls/cipher.h>
 #include <mbedtls/md.h>
 typedef mbedtls_cipher_info_t cipher_kt_t;
@@ -105,6 +108,7 @@ typedef struct {
     uint32_t init;
     uint64_t counter;
     cipher_evp_t *evp;
+    aes256gcm_ctx *aes256gcm_ctx;
     cipher_t *cipher;
     buffer_t *chunk;
     uint8_t salt[MAX_KEY_LENGTH];
@@ -115,13 +119,13 @@ typedef struct {
 typedef struct crypto {
     cipher_t *cipher;
 
-    int(*const encrypt_all)(buffer_t *, cipher_t *, size_t);
-    int(*const decrypt_all)(buffer_t *, cipher_t *, size_t);
-    int(*const encrypt)(buffer_t *, cipher_ctx_t *, size_t);
-    int(*const decrypt)(buffer_t *, cipher_ctx_t *, size_t);
+    int(*const encrypt_all) (buffer_t *, cipher_t *, size_t);
+    int(*const decrypt_all) (buffer_t *, cipher_t *, size_t);
+    int(*const encrypt) (buffer_t *, cipher_ctx_t *, size_t);
+    int(*const decrypt) (buffer_t *, cipher_ctx_t *, size_t);
 
-    void(*const ctx_init)(cipher_t *, cipher_ctx_t *, int);
-    void(*const ctx_release)(cipher_ctx_t *);
+    void(*const ctx_init) (cipher_t *, cipher_ctx_t *, int);
+    void(*const ctx_release) (cipher_ctx_t *);
 } crypto_t;
 
 int balloc(buffer_t *, size_t);
