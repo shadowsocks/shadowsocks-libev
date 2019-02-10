@@ -28,10 +28,12 @@
 #include "config.h"
 #endif
 
+#ifndef __MINGW32__
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#endif
 
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
 #include <net/if.h>
@@ -50,10 +52,6 @@ extern int verbose;
 
 static const char valid_label_bytes[] =
     "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
-
-#if defined(MODULE_LOCAL)
-extern int keep_resolving;
-#endif
 
 int
 set_reuseport(int socket)
@@ -79,7 +77,7 @@ setinterface(int socket_fd, const char *interface_name)
 {
     struct ifreq interface;
     memset(&interface, 0, sizeof(struct ifreq));
-    strncpy(interface.ifr_name, interface_name, IFNAMSIZ);
+    strncpy(interface.ifr_name, interface_name, IFNAMSIZ - 1);
     int res = setsockopt(socket_fd, SOL_SOCKET, SO_BINDTODEVICE, &interface,
                          sizeof(struct ifreq));
     return res;
@@ -90,11 +88,10 @@ setinterface(int socket_fd, const char *interface_name)
 int
 bind_to_address(int socket_fd, const char *host)
 {
-    static struct sockaddr_storage storage = {0};
+    static struct sockaddr_storage storage = { 0 };
     if (storage.ss_family == AF_INET) {
         return bind(socket_fd, (struct sockaddr *)&storage, sizeof(struct sockaddr_in));
-    }
-    else if (storage.ss_family == AF_INET6) {
+    } else if (storage.ss_family == AF_INET6) {
         return bind(socket_fd, (struct sockaddr *)&storage, sizeof(struct sockaddr_in6));
     } else if (host != NULL) {
         struct cork_ip ip;
@@ -139,6 +136,10 @@ get_sockaddr(char *host, char *port,
         }
         return 0;
     } else {
+#ifdef __ANDROID__
+        extern int vpn;
+        assert(!vpn);   // protecting DNS packets isn't supported yet
+#endif
         struct addrinfo hints;
         struct addrinfo *result, *rp;
 
@@ -146,21 +147,7 @@ get_sockaddr(char *host, char *port,
         hints.ai_family   = AF_UNSPEC;   /* Return IPv4 and IPv6 choices */
         hints.ai_socktype = SOCK_STREAM; /* We want a TCP socket */
 
-        int err, i;
-
-        for (i = 1; i < 8; i++) {
-            err = getaddrinfo(host, port, &hints, &result);
-#if defined(MODULE_LOCAL)
-            if (!keep_resolving)
-                break;
-#endif
-            if ((!block || !err)) {
-                break;
-            } else {
-                sleep(pow(2, i));
-                LOGE("failed to resolve server name, wait %.0f seconds", pow(2, i));
-            }
-        }
+        int err = getaddrinfo(host, port, &hints, &result);
 
         if (err != 0) {
             LOGE("getaddrinfo: %s", gai_strerror(err));

@@ -64,7 +64,7 @@ typedef struct {
 extern "C" {
 #endif
 
-typedef void (*ss_local_callback) (int socks_fd, int udp_fd, void *data);
+typedef void (*ss_local_callback)(int socks_fd, int udp_fd, void *data);
 
 /*
  * Create and start a shadowsocks local server.

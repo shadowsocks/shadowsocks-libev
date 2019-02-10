@@ -26,9 +26,11 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
+#define MAX_HOSTNAME_LEN 256
+
 typedef struct protocol {
     const int default_port;
-    int(*const parse_packet)(const char *, size_t, char **);
+    int(*const parse_packet) (const char *, size_t, char **);
 } protocol_t;
 
 #endif

@@ -17,6 +17,7 @@ After=network.target
 [Service]
 Type=simple
 CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
 ExecStart=/usr/bin/ss-redir -c /etc/shadowsocks-libev/%i.json
 
 [Install]

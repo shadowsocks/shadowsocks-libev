@@ -1,5 +1,7 @@
 # General
 .dockerignore
+.git
+.gitmodules
 .gitignore
 .github
 AUTHORS

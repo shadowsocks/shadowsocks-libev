@@ -25,23 +25,36 @@
 #endif
 
 #include <string.h>
+#ifndef __MINGW32__
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <netinet/in.h>
+#endif
 
 #include <libcork/core.h>
 #include <libcork/os.h>
 
 #include "utils.h"
 #include "plugin.h"
+#include "winsock.h"
 
 #define CMD_RESRV_LEN 128
+
+#ifndef __MINGW32__
+#define TEMPDIR "/tmp/"
+#else
+#define TEMPDIR
+#endif
 
 static int exit_code;
 static struct cork_env *env        = NULL;
 static struct cork_exec *exec      = NULL;
 static struct cork_subprocess *sub = NULL;
+#ifdef __MINGW32__
+static uint16_t sub_control_port = 0;
+void cork_subprocess_set_control(struct cork_subprocess *self, uint16_t port);
+#endif
 
 static int
 plugin_log__data(struct cork_stream_consumer *vself,
@@ -97,11 +110,21 @@ start_ss_plugin(const char *plugin,
         cork_env_add(env, "SS_PLUGIN_OPTIONS", plugin_opts);
 
     exec = cork_exec_new(plugin);
+    cork_exec_add_param(exec, plugin);  // argv[0]
+    extern int fast_open;
+    if (fast_open) cork_exec_add_param(exec, "--fast-open");
+#ifdef __ANDROID__
+    extern int vpn;
+    if (vpn) cork_exec_add_param(exec, "-V");
+#endif
 
     cork_exec_set_env(exec, env);
 
     sub = cork_subprocess_new_exec(exec, NULL, NULL, &exit_code);
-  
+#ifdef __MINGW32__
+    cork_subprocess_set_control(sub, sub_control_port);
+#endif
+
     return cork_subprocess_start(sub);
 }
 
@@ -142,14 +165,19 @@ start_obfsproxy(const char *plugin,
                 enum plugin_mode mode)
 {
     char *pch;
-    char *opts_dump;
-    char *buf = NULL;
+    char *opts_dump = NULL;
+    char *buf       = NULL;
     int ret, buf_size = 0;
 
-    opts_dump = strndup(plugin_opts, OBFSPROXY_OPTS_MAX);
-    if (!opts_dump) {
-        ERROR("start_obfsproxy strndup failed");
-        return -ENOMEM;
+    if (plugin_opts != NULL) {
+        opts_dump = strndup(plugin_opts, OBFSPROXY_OPTS_MAX);
+        if (!opts_dump) {
+            ERROR("start_obfsproxy strndup failed");
+            if (env != NULL) {
+                cork_env_free(env);
+            }
+            return -ENOMEM;
+        }
     }
     exec = cork_exec_new(plugin);
 
@@ -160,17 +188,19 @@ start_obfsproxy(const char *plugin,
     buf_size = 20 + strlen(plugin) + strlen(remote_host)
                + strlen(remote_port) + strlen(local_host) + strlen(local_port);
     buf = ss_malloc(buf_size);
-    snprintf(buf, buf_size, "/tmp/%s_%s:%s_%s:%s", plugin,
+    snprintf(buf, buf_size, TEMPDIR "%s_%s:%s_%s:%s", plugin,
              remote_host, remote_port, local_host, local_port);
     cork_exec_add_param(exec, buf);
 
     /*
      * Iterate @plugin_opts by space
      */
-    pch = strtok(opts_dump, " ");
-    while (pch) {
-        cork_exec_add_param(exec, pch);
-        pch = strtok(NULL, " ");
+    if (opts_dump != NULL) {
+        pch = strtok(opts_dump, " ");
+        while (pch) {
+            cork_exec_add_param(exec, pch);
+            pch = strtok(NULL, " ");
+        }
     }
 
     /* The rest options */
@@ -191,8 +221,12 @@ start_obfsproxy(const char *plugin,
         snprintf(buf, buf_size, "%s:%s", remote_host, remote_port);
         cork_exec_add_param(exec, buf);
     }
+
     cork_exec_set_env(exec, env);
     sub = cork_subprocess_new_exec(exec, NULL, NULL, &exit_code);
+#ifdef __MINGW32__
+    cork_subprocess_set_control(sub, sub_control_port);
+#endif
     ret = cork_subprocess_start(sub);
     ss_free(opts_dump);
     free(buf);
@@ -206,11 +240,16 @@ start_plugin(const char *plugin,
              const char *remote_port,
              const char *local_host,
              const char *local_port,
+#ifdef __MINGW32__
+             uint16_t control_port,
+#endif
              enum plugin_mode mode)
 {
+#ifndef __MINGW32__
     char *new_path = NULL;
     const char *current_path;
     size_t new_path_len;
+#endif
     int ret;
 
     if (plugin == NULL)
@@ -219,6 +258,7 @@ start_plugin(const char *plugin,
     if (strlen(plugin) == 0)
         return 0;
 
+#ifndef __MINGW32__
     /*
      * Add current dir to PATH, so we can search plugin in current dir
      */
@@ -242,6 +282,9 @@ start_plugin(const char *plugin,
     }
     if (new_path != NULL)
         cork_env_add(env, "PATH", new_path);
+#else
+    sub_control_port = control_port;
+#endif
 
     if (!strncmp(plugin, "obfsproxy", strlen("obfsproxy")))
         ret = start_obfsproxy(plugin, plugin_opts, remote_host, remote_port,
@@ -249,7 +292,9 @@ start_plugin(const char *plugin,
     else
         ret = start_ss_plugin(plugin, plugin_opts, remote_host, remote_port,
                               local_host, local_port, mode);
+#ifndef __MINGW32__
     ss_free(new_path);
+#endif
     env = NULL;
     return ret;
 }

@@ -1,87 +1,95 @@
 #!/usr/bin/env bash
 set -e
 
+NAME=shadowsocks-libev
+
 SELF=$(readlink -f -- "$0")
 HERE=$(dirname -- "$SELF")
 
+SOURCES="${HERE}"/SOURCES
+SPEC_TEMPLATE="${HERE}"/SPECS/${NAME}.spec.in
+SPEC_FILE="${SPEC_TEMPLATE%%.in}"
+
+GIT_VERSION=$("${HERE}"/../scripts/git_version.sh)
+
+OPT_OUTDIR="${HERE}/SRPMS"
+OPT_USE_SYSTEM_LIB=0
+OUT_BUILD_RPM=0
+
+version=$(echo ${GIT_VERSION} | cut -d' ' -f1)
+release=$(echo ${GIT_VERSION} | cut -d' ' -f2)
+
+name_version=${NAME}-${version}-${release}
+source_name=${name_version}.tar.gz
+
+archive()
+{
+    "${HERE}"/../scripts/git_archive.sh -o "${SOURCES}" -n ${name_version}
+}
+
+build_src_rpm()
+{
+    rpmbuild -bs "${SPEC_FILE}" \
+       --undefine "dist" \
+       --define "%_topdir ${HERE}" \
+       --define "%_srcrpmdir ${OPT_OUTDIR}"
+}
+
+build_rpm()
+{
+    rpmbuild --rebuild "${OPT_OUTDIR}"/${name_version}.src.rpm \
+       --define "%_topdir ${HERE}" \
+       --define "%use_system_lib ${OPT_USE_SYSTEM_LIB}"
+}
+
+create_spec()
+{
+    sed -e "s/@NAME@/${NAME}/g" \
+        -e "s/@VERSION@/${version}/g" \
+        -e "s/@RELEASE@/${release}/g" \
+        -e "s/@SOURCE@/${source_name}/g" \
+        -e "s/@NAME_VERSION@/${name_version}/g" \
+        "${SPEC_TEMPLATE}" > "${SPEC_FILE}"
+}
+
 show_help()
 {
-    echo -e "`basename $0` [OPTION...]"
+    echo -e "$(basename $0) [OPTION...]"
+    echo -e "Create and build shadowsocks-libev SRPM"
     echo
     echo -e "Options:"
     echo -e "  -h    show this help."
-    echo -e "  -s    use system shared libraries"
+    echo -e "  -b    use rpmbuld to build resulting SRPM"
+    echo -e "  -s    use system shared libraries (RPM only)"
+    echo -e "  -o    output directory"
 }
 
-OPT_USE_SYSTEM_LIB=0
-
-while getopts "hs" opt
+while getopts "hbso:" opt
 do
     case ${opt} in
         h)
             show_help
             exit 0
             ;;
-
-		s)
+        b)
+            OPT_BUILD_RPM=1
+            ;;
+        s)
             OPT_USE_SYSTEM_LIB=1
-			;;
+            ;;
+        o)
+            OPT_OUTDIR=$(readlink -f -- $OPTARG)
+            ;;
         *)
-			show_help
+            show_help
             exit 1
             ;;
     esac
 done
 
-# determine version and release number
-GIT_DESCRIBE=$(git describe --tags --match 'v*' --long)
-# GIT_DESCRIBE is like v3.0.3-11-g1e3f35c-dirty
-
-if [[ ! "$GIT_DESCRIBE" =~ ^v([^-]+)-([0-9]+)-g([0-9a-f]+)$ ]]; then
-    >&2 echo 'ERROR - unrecognized `git describe` output: '"$GIT_DESCRIBE"
-    exit 1
+create_spec
+archive
+build_src_rpm
+if [ "${OPT_BUILD_RPM}" = "1" ] ; then
+    build_rpm
 fi
-
-TARGET_VERSION=${BASH_REMATCH[1]}
-TARGET_COMMITS=${BASH_REMATCH[2]}
-TARGET_SHA1=${BASH_REMATCH[3]}
-
-TARGET_RELEASE=1
-if [ "$TARGET_COMMITS" -gt 0 ]; then
-    TARGET_RELEASE+=".$TARGET_COMMITS.git$TARGET_SHA1"
-fi
-
-TARGET_VERREL=$TARGET_VERSION-$TARGET_RELEASE
->&2 echo "INFO - RPM version-release is $TARGET_VERREL."
-
-# archive tarball from Git workspace
-export TARGET_TARBALL_NAME=shadowsocks-libev-$TARGET_VERSION
-export TARGET_TARBALL_DIR=$HERE/SOURCES
-mkdir -p -- "$TARGET_TARBALL_DIR"
-pushd "$HERE"/..
-# archive this repo
-git archive HEAD --format=tar --prefix="$TARGET_TARBALL_NAME/" \
-    -o "$TARGET_TARBALL_DIR/$TARGET_TARBALL_NAME.tar"
-# archive submodules
-git submodule update --init
-git submodule foreach 'git archive HEAD --format=tar \
-        --prefix="$TARGET_TARBALL_NAME/$path/" \
-        -o "$TARGET_TARBALL_DIR/$TARGET_TARBALL_NAME-submodule-$path-$sha1.tar"
-    tar -n --concatenate --file="$TARGET_TARBALL_DIR/$TARGET_TARBALL_NAME.tar" \
-        "$TARGET_TARBALL_DIR/$TARGET_TARBALL_NAME-submodule-$path-$sha1.tar"'
-gzip -c "$TARGET_TARBALL_DIR/$TARGET_TARBALL_NAME.tar" > "$TARGET_TARBALL_DIR/$TARGET_TARBALL_NAME.tar.gz"
-popd
-
-# generate spec file
-TARGET_SPEC_DIR=$HERE/SPECS
-mkdir -p -- "$TARGET_SPEC_DIR"
-TARGET_SPEC_PATH=$TARGET_SPEC_DIR/shadowsocks-libev.spec
-sed -e "s/^\(Version:\).*$/\1       ${TARGET_VERSION}/" \
-    -e "s/^\(Release:\).*$/\1       ${TARGET_RELEASE}%{?dist}/" \
-    -e "s/^\(Source0:\).*$/\1       ${TARGET_TARBALL_NAME}.tar.gz/" \
-    "${TARGET_SPEC_PATH}".in > "${TARGET_SPEC_PATH}"
-
-# build rpms
-rpmbuild -ba "$TARGET_SPEC_PATH" \
-         --define "%_topdir $HERE" \
-         --define "%use_system_lib $OPT_USE_SYSTEM_LIB"

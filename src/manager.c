@@ -208,9 +208,14 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --plugin-opts \"%s\"", manager->plugin_opts);
     }
-    for (i = 0; i < manager->nameserver_num; i++) {
+    if (manager->nameservers) {
         int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -d %s", manager->nameservers[i]);
+        snprintf(cmd + len, BUF_SIZE - len, " -d \"%s\"", manager->nameservers);
+    }
+    if (manager->workdir)
+    {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " -D \"%s\"", manager->workdir);
     }
     for (i = 0; i < manager->host_num; i++) {
         int len = strlen(cmd);
@@ -288,13 +293,13 @@ get_server(char *buf, int len)
             json_value *value = obj->u.object.values[i].value;
             if (strcmp(name, "server_port") == 0) {
                 if (value->type == json_string) {
-                    strncpy(server->port, value->u.string.ptr, 8);
+                    strncpy(server->port, value->u.string.ptr, 7);
                 } else if (value->type == json_integer) {
                     snprintf(server->port, 8, "%" PRIu64 "", value->u.integer);
                 }
             } else if (strcmp(name, "password") == 0) {
                 if (value->type == json_string) {
-                    strncpy(server->password, value->u.string.ptr, 128);
+                    strncpy(server->password, value->u.string.ptr, 127);
                 }
             } else if (strcmp(name, "method") == 0) {
                 if (value->type == json_string) {
@@ -355,7 +360,7 @@ parse_traffic(char *buf, int len, char *port, uint64_t *traffic)
             char *name        = obj->u.object.values[i].name;
             json_value *value = obj->u.object.values[i].value;
             if (value->type == json_integer) {
-                strncpy(port, name, 8);
+                strncpy(port, name, 7);
                 *traffic = value->u.integer;
             }
         }
@@ -856,6 +861,7 @@ main(int argc, char **argv)
     char *manager_address = NULL;
     char *plugin          = NULL;
     char *plugin_opts     = NULL;
+    char *workdir         = NULL;
 
     int fast_open  = 0;
     int no_delay   = 0;
@@ -871,8 +877,7 @@ main(int argc, char **argv)
     int server_num = 0;
     char *server_host[MAX_REMOTE_NUM];
 
-    char *nameservers[MAX_DNS_NUM + 1];
-    int nameserver_num = 0;
+    char *nameservers = NULL;
 
     jconf_t *conf = NULL;
 
@@ -889,6 +894,7 @@ main(int argc, char **argv)
         { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN      },
         { "plugin-opts",     required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
         { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD    },
+        { "workdir",         required_argument, NULL, GETOPT_VAL_WORKDIR     },
         { "help",            no_argument,       NULL, GETOPT_VAL_HELP        },
         { NULL,                              0, NULL,                      0 }
     };
@@ -897,7 +903,7 @@ main(int argc, char **argv)
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:l:k:t:m:c:i:d:a:n:6huUvA",
+    while ((c = getopt_long(argc, argv, "f:s:l:k:t:m:c:i:d:a:n:D:6huUvA",
                             long_options, NULL)) != -1)
         switch (c) {
         case GETOPT_VAL_REUSE_PORT:
@@ -953,9 +959,7 @@ main(int argc, char **argv)
             iface = optarg;
             break;
         case 'd':
-            if (nameserver_num < MAX_DNS_NUM) {
-                nameservers[nameserver_num++] = optarg;
-            }
+            nameservers = optarg;
             break;
         case 'a':
             user = optarg;
@@ -968,6 +972,10 @@ main(int argc, char **argv)
             break;
         case '6':
             ipv6first = 1;
+            break;
+        case GETOPT_VAL_WORKDIR:
+        case 'D':
+            workdir = optarg;
             break;
         case 'v':
             verbose = 1;
@@ -1024,8 +1032,8 @@ main(int argc, char **argv)
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
-        if (conf->nameserver != NULL) {
-            nameservers[nameserver_num++] = conf->nameserver;
+        if (nameservers == NULL) {
+            nameservers = conf->nameserver;
         }
         if (mode == TCP_ONLY) {
             mode = conf->mode;
@@ -1041,6 +1049,13 @@ main(int argc, char **argv)
         }
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
+        }
+        if (workdir == NULL)
+        {
+            workdir = conf->workdir;
+        }
+        if (acl == NULL) {
+            acl = conf->acl;
         }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
@@ -1118,11 +1133,11 @@ main(int argc, char **argv)
     manager.hosts           = server_host;
     manager.host_num        = server_num;
     manager.nameservers     = nameservers;
-    manager.nameserver_num  = nameserver_num;
     manager.mtu             = mtu;
     manager.plugin          = plugin;
     manager.plugin_opts     = plugin_opts;
     manager.ipv6first       = ipv6first;
+    manager.workdir         = workdir;
 #ifdef HAVE_SETRLIMIT
     manager.nofile = nofile;
 #endif
@@ -1130,15 +1145,35 @@ main(int argc, char **argv)
     // initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
 
+#ifndef __MINGW32__
+    // setuid
+    if (user != NULL && !run_as(user)) {
+        FATAL("failed to switch user");
+    }
+
     if (geteuid() == 0) {
         LOGI("running from root user");
     }
+#endif
 
     struct passwd *pw   = getpwuid(getuid());
-    const char *homedir = pw->pw_dir;
-    working_dir_size = strlen(homedir) + 15;
-    working_dir      = ss_malloc(working_dir_size);
-    snprintf(working_dir, working_dir_size, "%s/.shadowsocks", homedir);
+
+    if (workdir == NULL || strlen(workdir) == 0) {
+        workdir = pw->pw_dir;
+        // If home dir is still not defined or set to nologin/nonexistent, fall back to /tmp
+        if (strstr(workdir, "nologin") || strstr(workdir, "nonexistent") || workdir == NULL || strlen(workdir) == 0) {
+            workdir = "/tmp";
+        }
+
+        working_dir_size = strlen(workdir) + 15;
+        working_dir = ss_malloc(working_dir_size);
+        snprintf(working_dir, working_dir_size, "%s/.shadowsocks", workdir);
+    } else {
+        working_dir_size = strlen(workdir) + 2;
+        working_dir = ss_malloc(working_dir_size);
+        snprintf(working_dir, working_dir_size, "%s", workdir);
+    }
+    LOGI("working directory points to %s", working_dir);
 
     int err = mkdir(working_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (err != 0 && errno != EEXIST) {
@@ -1172,8 +1207,8 @@ main(int argc, char **argv)
         for (i = 0; i < conf->port_password_num; i++) {
             struct server *server = ss_malloc(sizeof(struct server));
             memset(server, 0, sizeof(struct server));
-            strncpy(server->port, conf->port_password[i].port, 8);
-            strncpy(server->password, conf->port_password[i].password, 128);
+            strncpy(server->port, conf->port_password[i].port, 7);
+            strncpy(server->password, conf->port_password[i].password, 127);
             add_server(&manager, server);
         }
     }

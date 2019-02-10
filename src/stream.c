@@ -345,6 +345,10 @@ stream_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
     cipher_ctx_set_nonce(&cipher_ctx, nonce, nonce_len, 1);
     memcpy(ciphertext->data, nonce, nonce_len);
 
+#ifdef MODULE_REMOTE
+    ppbloom_add((void *)nonce, nonce_len);
+#endif
+
     if (cipher->method >= SALSA20) {
         crypto_stream_xor_ic((uint8_t *)(ciphertext->data + nonce_len),
                              (const uint8_t *)plaintext->data, (uint64_t)(plaintext->len),
@@ -399,6 +403,10 @@ stream_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
         memcpy(ciphertext->data, cipher_ctx->nonce, nonce_len);
         cipher_ctx->counter = 0;
         cipher_ctx->init    = 1;
+
+#ifdef MODULE_REMOTE
+        ppbloom_add((void *)cipher_ctx->nonce, nonce_len);
+#endif
     }
 
     if (cipher->method >= SALSA20) {
@@ -677,8 +685,8 @@ stream_init(const char *pass, const char *key, const char *method)
                 break;
             }
         if (m >= STREAM_CIPHER_NUM) {
-            LOGE("Invalid cipher name: %s, use rc4-md5 instead", method);
-            m = RC4_MD5;
+            LOGE("Invalid cipher name: %s, use chacha20-ietf instead", method);
+            m = CHACHA20IETF;
         }
     }
     if (m == TABLE) {

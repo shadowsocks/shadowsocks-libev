@@ -37,8 +37,6 @@
 #include "http.h"
 #include "protocol.h"
 
-#define SERVER_NAME_LEN 256
-
 static int parse_http_header(const char *, size_t, char **);
 static int get_header(const char *, const char *, int, char **);
 static int next_header(const char **, int *);

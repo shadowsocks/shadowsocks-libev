@@ -372,7 +372,7 @@ crypto_parse_key(const char *base64, uint8_t *key, size_t key_len)
     rand_bytes(key, key_len);
     base64_encode(out_key, out_len, key, key_len);
     LOGE("Invalid key for your chosen cipher!");
-    LOGE("It requires a %zu-byte key encoded with URL-safe Base64", key_len);
+    LOGE("It requires a " SIZE_FMT "-byte key encoded with URL-safe Base64", key_len);
     LOGE("Generating a new random key: %s", out_key);
     FATAL("Please use the key above or input a valid key");
     return key_len;

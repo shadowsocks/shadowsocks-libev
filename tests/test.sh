@@ -27,6 +27,11 @@ function run_test {
 [ -d src -a -x src/ss-local ] &&
     BIN="--bin src/"
 
+if [ "$http_proxy" ]; then
+    echo "SKIP: shadowsocks-libev does not support an upstream HTTP proxy"
+    exit 0
+fi
+
 run_test python tests/test.py $BIN -c tests/aes.json
 run_test python tests/test.py $BIN -c tests/aes-gcm.json
 run_test python tests/test.py $BIN -c tests/aes-ctr.json

@@ -31,6 +31,10 @@
 #include <ev.h>
 #endif
 
+#ifdef __MINGW32__
+#include "winsock.h"
+#endif
+
 #include "crypto.h"
 #include "jconf.h"
 #include "protocol.h"
@@ -85,6 +89,10 @@ typedef struct remote {
     int direct;
     int addr_len;
     uint32_t counter;
+#ifdef TCP_FASTOPEN_WINSOCK
+    OVERLAPPED olap;
+    int connect_ex_done;
+#endif
 
     buffer_t *buf;
 

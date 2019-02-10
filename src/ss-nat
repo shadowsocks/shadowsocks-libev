@@ -10,6 +10,7 @@
 TAG="SS_SPEC"          # iptables tag
 IPT="iptables -t nat"  # alias of iptables
 FWI=$(uci get firewall.shadowsocks.path 2>/dev/null)  # firewall include file
+IP_REGEX="^([0-9]{1,3}\.){3}[0-9]{1,3}"		      # used to check if input is a valid IP
 
 usage() {
 	cat <<-EOF
@@ -21,9 +22,9 @@ usage() {
 
     Valid options are:
 
-        -s <server_ip>          ip address of shadowsocks remote server
+        -s <server_ip>          hostname (requires dig) or ip address of shadowsocks remote server
         -l <local_port>         port number of shadowsocks local server
-        -S <server_ip>          ip address of shadowsocks remote UDP server
+        -S <server_ip>          hostname (requires dig) or ip address of shadowsocks remote UDP server
         -L <local_port>         port number of shadowsocks local UDP server
         -i <ip_list_file>       a file content is bypassed ip list
         -I <interface>          lan interface of nat, default: eth0
@@ -126,7 +127,7 @@ tp_rule() {
 }
 
 get_wan_ip() {
-	cat <<-EOF | grep -E "^([0-9]{1,3}\.){3}[0-9]{1,3}"
+	cat <<-EOF | grep -E $IP_REGEX
 		$server
 		$SERVER
 		$WAN_BP_IP
@@ -170,13 +171,29 @@ EOF
 while getopts ":s:l:S:L:i:I:e:a:b:w:ouUfh" arg; do
 	case "$arg" in
 		s)
-			server=$OPTARG
+			command -v dig > /dev/null &&
+				server=$(dig +short $OPTARG) ||
+				if ! [[ $OPTARG =~ $IP_REGEX ]]
+				then
+					loger 3 "Hostname detected for server but no dig present to resolve!"
+					exit 1
+				else
+					server=$OPTARG
+				fi
 			;;
 		l)
 			local_port=$OPTARG
 			;;
 		S)
-			SERVER=$OPTARG
+			command -v dig > /dev/null &&
+				SERVER=$(dig +short $OPTARG) ||
+				if ! [[ $OPTARG =~ $IP_REGEX ]]
+				then
+					loger 3 "Hostname detected for UDP server but no dig present to resolve!"
+					exit 1
+				else
+					SERVER=$OPTARG
+				fi
 			;;
 		L)
 			LOCAL_PORT=$OPTARG

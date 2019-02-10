@@ -29,6 +29,10 @@
 #include <ev.h>
 #endif
 
+#ifdef __MINGW32__
+#include "winsock.h"
+#endif
+
 #include "crypto.h"
 #include "jconf.h"
 
@@ -55,15 +59,12 @@ typedef struct server {
     int fd;
 
     buffer_t *buf;
-    buffer_t *abuf;
     cipher_ctx_t *e_ctx;
     cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
     ss_addr_t destaddr;
-
-    ev_timer delayed_connect_watcher;
 } server_t;
 
 typedef struct remote_ctx {
@@ -75,10 +76,15 @@ typedef struct remote_ctx {
 
 typedef struct remote {
     int fd;
+#ifdef TCP_FASTOPEN_WINSOCK
+    OVERLAPPED olap;
+    int connect_ex_done;
+#endif
     buffer_t *buf;
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
+    struct sockaddr *addr;
     uint32_t counter;
 } remote_t;
 

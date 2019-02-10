@@ -92,9 +92,12 @@ protect_socket(int fd)
     return ret;
 }
 
+extern char *stat_path;
+
 int
 send_traffic_stat(uint64_t tx, uint64_t rx)
 {
+    if (!stat_path) return 0;
     int sock;
     struct sockaddr_un addr;
 
@@ -112,7 +115,7 @@ send_traffic_stat(uint64_t tx, uint64_t rx)
 
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, "stat_path", sizeof(addr.sun_path) - 1);
+    strncpy(addr.sun_path, stat_path, sizeof(addr.sun_path) - 1);
 
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         LOGE("[android] connect() failed for stat_path: %s (socket fd = %d)\n",
@@ -130,4 +133,5 @@ send_traffic_stat(uint64_t tx, uint64_t rx)
     }
 
     close(sock);
+    return 0;
 }

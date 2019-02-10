@@ -2,18 +2,17 @@ find_program(XMLTO_EXECUTABLE NAMES xmlto)
 find_program(ASCIIDOC_EXECUTABLE NAMES asciidoc asciidoc.py)
 
 # Opt-in doc build option
-if (XMLTO_EXECUTABLE-NOTFOUND OR ASCIIDOC_EXECUTABLE-NOTFOUND)
+if (NOT XMLTO_EXECUTABLE OR NOT ASCIIDOC_EXECUTABLE)
     option(WITH_DOC_MAN "Build manpage doc" OFF)
 else ()
     option(WITH_DOC_MAN "Build manpage doc" ON)
 endif ()
 
-if (ASCIIDOC_EXECUTABLE-NOTFOUND)
+if (NOT ASCIIDOC_EXECUTABLE)
     option(WITH_DOC_HTML "Build html doc" OFF)
 else ()
     option(WITH_DOC_HTML "Build html doc" ON)
 endif ()
-
 
 # NOTE For brew user, we have to setup this env var. see `brew info asciidoc'
 set(XMLTO_ENV)

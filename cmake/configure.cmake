@@ -114,7 +114,7 @@ set(SELECT_TYPE_ARG5 "(struct timeval *)")
 set(STDC_HEADERS 1)
 
 
-check_include_files(sys/time.h time.h TIME_WITH_SYS_TIME)
+check_include_files("sys/time.h;time.h" TIME_WITH_SYS_TIME)
 
 
 # If the compiler supports a TLS storage class define it to that here

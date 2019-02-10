@@ -6,7 +6,7 @@
 %if 0%{?suse_version}
 %global requires   %{?requires} libcap-progs
 %endif
-%global project_desc shadowsocks-libev is a lightweight secured scoks5 proxy for embedded devices and low end boxes.
+%global project_desc shadowsocks-libev is a lightweight secured socks5 proxy for embedded devices and low end boxes.
 
 %if 0%{?fedora} >= 15 || 0%{?rhel} >=7 || 0%{?suse_version} >= 1210
 %global use_systemd 1
@@ -14,15 +14,15 @@
 %global use_systemd 0
 %endif
 
-Name:	    	shadowsocks-libev
-Version:	    VERSION
-Release:	    1%{?dist}
+Name:		    @NAME@
+Version:	    @VERSION@
+Release:	    @RELEASE@%{?dist}
 Summary:	    A lightweight and secure socks5 proxy
 
 Group:		    Applications/Internet
 License:	    GPLv3+
 URL:		    https://github.com/shadowsocks/%{name}
-Source0:	    %{url}/archive/v%{version}.tar.gz
+Source0:	    @SOURCE@
 
 BuildRequires:	make gcc pcre-devel asciidoc xmlto automake libtool mbedtls-devel libsodium-devel >= 1.0.4 libev-devel c-ares-devel
 %if 0%{?suse_version}
@@ -48,7 +48,7 @@ BuildRequires:   systemd
 %{?project_desc}
 
 %prep
-%setup -q
+%setup -q -n @NAME_VERSION@
 
 %build
 ./autogen.sh

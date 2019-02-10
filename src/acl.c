@@ -164,6 +164,11 @@ trimwhitespace(char *str)
 int
 init_acl(const char *path)
 {
+    if (path == NULL)
+    {
+        return -1;
+    }
+
     // initialize ipset
     ipset_init_library();
 

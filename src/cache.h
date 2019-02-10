@@ -52,7 +52,7 @@ struct cache_entry {
 struct cache {
     size_t max_entries;              /**<Amount of entries this cache object can hold */
     struct cache_entry *entries;     /**<Head pointer for uthash */
-    void (*free_cb) (void *key, void *element); /**<Callback function to free cache entries */
+    void (*free_cb)(void *key, void *element);  /**<Callback function to free cache entries */
 };
 
 int cache_create(struct cache **dst, const size_t capacity,

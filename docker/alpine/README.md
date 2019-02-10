@@ -29,11 +29,11 @@ $ docker pull shadowsocks/shadowsocks-libev:edge
 ## Start a container
 
 ```bash
-$ docker run -p8388:8388 -p8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev:latest
+$ docker run -p 8388:8388 -p 8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev:latest
 ```
 This starts a container of the latest release with all the default settings, which is equivalent to
 ```bash
-$ ss-server -s 0.0.0.0 -p 8388 -k "$(hostname)" -m aes-256-cfb -t 300 --fast-open -d 8.8.8.8 -d 8.8.4.4 -u
+$ ss-server -s 0.0.0.0 -p 8388 -k "$(hostname)" -m aes-256-gcm -t 300 --fast-open -d "8.8.8.8,8.8.4.4" -u
 ```
 > **Note**: It's the hostname in the container that is used as the password, not that of the host.
 
@@ -43,7 +43,7 @@ In most cases you'll want to change a thing or two, for instance the port which 
 
 Here's an example to start a container that listens on `28388` (both TCP and UDP):
 ```bash
-$ docker run -p28388:8388 -p28388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
+$ docker run -p 28388:8388 -p 28388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
 ```
 
 ### With custom password
@@ -52,20 +52,21 @@ Another thing you may want to change is the password. To change that, you can pa
 
 Here's an example to start a container with `9MLSpPmNt` as the password:
 ```bash
-$ docker run -e PASSWORD=9MLSpPmNt -p8388:8388 -p8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
+$ docker run -e PASSWORD=9MLSpPmNt -p 8388:8388 -p 8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
 ```
 > :warning: Click [here][6] to generate a strong password to protect your server.
 
 ### With other customizations
 Besides `PASSWORD`, the image also defines the following environment variables that you can customize:
 * `SERVER_ADDR`: the IP/domain to bind to, defaults to `0.0.0.0`
-* `METHOD`: encryption method to use, defaults to `aes-256-cfb`
+* `SERVER_ADDR_IPV6`: the IPv6 address to bind to, defaults to `::0`
+* `METHOD`: encryption method to use, defaults to `aes-256-gcm`
 * `TIMEOUT`: defaults to `300`
-* `DNS_ADDR`, `DNS_ADDR_2`: DNS servers to redirect NS lookup requests to, defaults to `8.8.8.8` and `8.8.4.4`
+* `DNS_ADDRS`: DNS servers to redirect NS lookup requests to, defaults to `8.8.8.8,8.8.4.4`
 
 Additional arguments supported by `ss-server` can be passed with the environment variable `ARGS`, for instance to start in verbose mode:
 ```bash
-$ docker run -e ARGS=-v -p8388:8388 -p8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev:latest
+$ docker run -e ARGS=-v -p 8388:8388 -p 8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev:latest
 ```
 
 ## Use docker-compose to manage (optional)
@@ -81,7 +82,7 @@ shadowsocks:
   ports:
     - "8388:8388"
   environment:
-    - METHOD=aes-256-cfb
+    - METHOD=aes-256-gcm
     - PASSWORD=9MLSpPmNt
   restart: always
 ```
@@ -109,7 +110,7 @@ Don't forget to share internet with your friends.
     "local_port": 1080,
     "password": "9MLSpPmNt",
     "timeout": 600,
-    "method": "aes-256-cfb"
+    "method": "aes-256-gcm"
 }
 ```
 
