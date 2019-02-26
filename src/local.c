@@ -92,7 +92,7 @@ uint64_t tx    = 0;
 uint64_t rx    = 0;
 ev_tstamp last = 0;
 
-int is_remote_dns = 0;
+int is_remote_dns = 1; // resolve hostname remotely
 char *stat_path = NULL;
 #endif
 
@@ -580,7 +580,7 @@ not_bypass:
 
         if (sni_detected && acl
 #ifdef __ANDROID__
-            && !is_remote_dns
+            && is_remote_dns
 #endif
             ) {
             // Reconstruct address buffer
@@ -1531,8 +1531,7 @@ main(int argc, char **argv)
             break;
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
-                remote_addr[remote_num].host   = optarg;
-                remote_addr[remote_num++].port = NULL;
+                parse_addr(optarg, &remote_addr[remote_num++]);
             }
             break;
         case 'p':
@@ -1593,7 +1592,7 @@ main(int argc, char **argv)
             stat_path = optarg;
             break;
         case 'D':
-            is_remote_dns = 1;
+            is_remote_dns = 0;
             break;
         case 'V':
             vpn = 1;
@@ -1683,7 +1682,7 @@ main(int argc, char **argv)
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
         }
-        if (acl == 0) {
+        if (acl == 0 && conf->acl != NULL) {
             LOGI("initializing acl...");
             acl = !init_acl(conf->acl);
         }

@@ -440,6 +440,7 @@ create_and_bind(const char *host, const char *port, int mptcp)
             break;
         } else {
             ERROR("bind");
+            FATAL("failed to bind address");
         }
 
         close(listen_sock);
@@ -1610,7 +1611,7 @@ main(int argc, char **argv)
     char tmp_port[8];
 
     int server_num = 0;
-    const char *server_host[MAX_REMOTE_NUM];
+    ss_addr_t server_addr[MAX_REMOTE_NUM];
 
     char *nameservers = NULL;
 
@@ -1676,7 +1677,7 @@ main(int argc, char **argv)
             break;
         case 's':
             if (server_num < MAX_REMOTE_NUM) {
-                server_host[server_num++] = optarg;
+                parse_addr(optarg, &server_addr[server_num++]);
             }
             break;
         case 'b':
@@ -1759,7 +1760,7 @@ main(int argc, char **argv)
         if (server_num == 0) {
             server_num = conf->remote_num;
             for (i = 0; i < server_num; i++)
-                server_host[i] = conf->remote_addr[i].host;
+                server_addr[i] = conf->remote_addr[i];
         }
         if (server_port == NULL) {
             server_port = conf->remote_port;
@@ -1817,14 +1818,14 @@ main(int argc, char **argv)
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
         }
-        if (acl == 0) {
+        if (acl == 0 && conf->acl != NULL) {
             LOGI("initializing acl...");
             acl = !init_acl(conf->acl);
         }
     }
 
     if (server_num == 0) {
-        server_host[server_num++] = "0.0.0.0";
+        server_addr[server_num++].host = "0.0.0.0";
     }
 
     if (server_num == 0 || server_port == NULL
@@ -1982,10 +1983,10 @@ main(int argc, char **argv)
         size_t buf_size  = 256 * server_num;
         char *server_str = ss_malloc(buf_size);
 
-        snprintf(server_str, buf_size, "%s", server_host[0]);
+        snprintf(server_str, buf_size, "%s", server_addr[0].host);
         len = strlen(server_str);
         for (int i = 1; i < server_num; i++) {
-            snprintf(server_str + len, buf_size - len, "|%s", server_host[i]);
+            snprintf(server_str + len, buf_size - len, "|%s", server_addr[i].host);
             len = strlen(server_str);
         }
 
@@ -2008,16 +2009,17 @@ main(int argc, char **argv)
     if (mode != UDP_ONLY) {
         int num_listen_ctx = 0;
         for (int i = 0; i < server_num; i++) {
-            const char *host = server_host[i];
+            const char *host = server_addr[i].host;
+            const char *port = server_addr[i].port ? server_addr[i].port : server_port;
 
             if (plugin != NULL) {
                 host = "127.0.0.1";
             }
 
             if (host && ss_is_ipv6addr(host))
-                LOGI("tcp server listening at [%s]:%s", host, server_port);
+                LOGI("tcp server listening at [%s]:%s", host, port);
             else
-                LOGI("tcp server listening at %s:%s", host ? host : "0.0.0.0", server_port);
+                LOGI("tcp server listening at %s:%s", host ? host : "0.0.0.0", port);
 
             // Bind to port
             int listenfd;
@@ -2056,8 +2058,8 @@ main(int argc, char **argv)
     if (mode != TCP_ONLY) {
         int num_listen_ctx = 0;
         for (int i = 0; i < server_num; i++) {
-            const char *host = server_host[i];
-            const char *port = server_port;
+            const char *host = server_addr[i].host;
+            const char *port = server_addr[i].port ? server_addr[i].port : server_port;
             if (plugin != NULL) {
                 port = plugin_port;
             }

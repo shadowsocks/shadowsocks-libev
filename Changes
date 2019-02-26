@@ -1,3 +1,11 @@
+shadowsocks-libev (3.2.4-1) unstable; urgency=medium
+
+  * Fix a crash with MinGW.
+  * Refine SIP003 plugin interface.
+  * Remove connection timeout from all clients.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 26 Feb 2019 09:40:18 +0800
+
 shadowsocks-libev (3.2.3-1) unstable; urgency=medium
 
   * Fix the alignment issue again.
