@@ -314,7 +314,7 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
     if (port != NULL) {
         uint16_t port_int;
         memcpy(&port_int, (uint8_t*)(buf + offset), sizeof(uint16_t));
-        sprintf(port, "%d", ntohs(port_int);
+        sprintf(port, "%d", ntohs(port_int));
     }
     offset += 2;
 
