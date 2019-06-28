@@ -803,7 +803,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             size_t in_addr_len       = sizeof(struct in_addr);
             addr->sin_family = AF_INET;
             if (server->buf->len >= in_addr_len + 3) {
-                addr->sin_addr = *(struct in_addr *)(server->buf->data + offset);
+                memcpy(&(addr->sin_addr), (uint8_t*)(server->buf->data + offset), sizeof(struct in_addr));
                 inet_ntop(AF_INET, (const void *)(server->buf->data + offset),
                           host, INET_ADDRSTRLEN);
                 offset += in_addr_len;
@@ -812,7 +812,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 stop_server(EV_A_ server);
                 return;
             }
-            addr->sin_port   = *(uint16_t *)(server->buf->data + offset);
+            memcpy(&(addr->sin_port), (uint8_t *)(server->buf->data + offset), sizeof(uint16_t));
             info.ai_family   = AF_INET;
             info.ai_socktype = SOCK_STREAM;
             info.ai_protocol = IPPROTO_TCP;
@@ -842,7 +842,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (ip.version == 4) {
                     struct sockaddr_in *addr = (struct sockaddr_in *)&storage;
                     inet_pton(AF_INET, host, &(addr->sin_addr));
-                    addr->sin_port   = *(uint16_t *)(server->buf->data + offset);
+                    memcpy(&(addr->sin_port), (uint8_t *)(server->buf->data + offset), sizeof(uint16_t));
                     addr->sin_family = AF_INET;
                     info.ai_family   = AF_INET;
                     info.ai_addrlen  = sizeof(struct sockaddr_in);
@@ -850,7 +850,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 } else if (ip.version == 6) {
                     struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&storage;
                     inet_pton(AF_INET6, host, &(addr->sin6_addr));
-                    addr->sin6_port   = *(uint16_t *)(server->buf->data + offset);
+                    memcpy(&(addr->sin6_port), (uint8_t *)(server->buf->data + offset), sizeof(uint16_t));
                     addr->sin6_family = AF_INET6;
                     info.ai_family    = AF_INET6;
                     info.ai_addrlen   = sizeof(struct sockaddr_in6);
@@ -870,7 +870,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             size_t in6_addr_len       = sizeof(struct in6_addr);
             addr->sin6_family = AF_INET6;
             if (server->buf->len >= in6_addr_len + 3) {
-                addr->sin6_addr = *(struct in6_addr *)(server->buf->data + offset);
+                memcpy(&(addr->sin6_addr), (uint8_t*)(server->buf->data + offset), sizeof(struct in6_addr));
                 inet_ntop(AF_INET6, (const void *)(server->buf->data + offset),
                           host, INET6_ADDRSTRLEN);
                 offset += in6_addr_len;
@@ -880,7 +880,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 stop_server(EV_A_ server);
                 return;
             }
-            addr->sin6_port  = *(uint16_t *)(server->buf->data + offset);
+            memcpy(&(addr->sin6_port), (uint8_t *)(server->buf->data + offset), sizeof(uint16_t));
             info.ai_family   = AF_INET6;
             info.ai_socktype = SOCK_STREAM;
             info.ai_protocol = IPPROTO_TCP;
@@ -894,7 +894,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             return;
         }
 
-        port = (*(uint16_t *)(server->buf->data + offset));
+        memcpy(&port, (uint8_t*)(server->buf->data + offset), sizeof(uint16_t));
 
         offset += 2;
 
