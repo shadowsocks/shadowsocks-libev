@@ -31,16 +31,6 @@
 #include "crypto.h"
 #include "jconf.h"
 
-typedef struct listen_ctx {
-    ev_io io;
-    int remote_num;
-    int timeout;
-    int fd;
-    int mptcp;
-    int tos;
-    struct sockaddr **remote_addr;
-} listen_ctx_t;
-
 typedef struct server_ctx {
     ev_io io;
     int connected;
@@ -51,14 +41,14 @@ typedef struct server {
     int fd;
 
     buffer_t *buf;
+    buffer_t *abuf;
 
-    cipher_ctx_t *e_ctx;
-    cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
+    struct listen_ctx *listen_ctx;
     struct remote *remote;
 
-    struct sockaddr_storage destaddr;
+    ssocks_addr_t destaddr;
     ev_timer delayed_connect_watcher;
 } server_t;
 
@@ -72,6 +62,10 @@ typedef struct remote_ctx {
 typedef struct remote {
     int fd;
     buffer_t *buf;
+
+    crypto_t *crypto;
+    cipher_ctx_t *e_ctx;
+    cipher_ctx_t *d_ctx;
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;

@@ -32,9 +32,6 @@
 #include <netinet/in.h>
 #endif
 
-#include <libcork/core.h>
-#include <libcork/os.h>
-
 #include "utils.h"
 #include "plugin.h"
 #include "winsock.h"
@@ -48,12 +45,41 @@
 #endif
 
 static int exit_code;
+enum plugin_mode mode;
+
 static struct cork_env *env        = NULL;
 static struct cork_exec *exec      = NULL;
-static struct cork_subprocess *sub = NULL;
+
 #ifdef __MINGW32__
-static uint16_t sub_control_port = 0;
+extern struct ev_signal sigint_watcher;
+extern struct ev_signal sigterm_watcher;
+
+typedef struct plugin_watcher {
+    ev_io io;
+    SOCKET fd;
+} plugin_watcher_t;
+
 void cork_subprocess_set_control(struct cork_subprocess *self, uint16_t port);
+
+static void
+plugin_watcher_cb(EV_P_ ev_io *w, int revents)
+{
+    plugin_watcher_t *plugin_watcher = (plugin_watcher_t *)w;
+    char buf[1];
+    SOCKET fd = accept(plugin_watcher->fd, NULL, NULL);
+    if (fd == INVALID_SOCKET) {
+        return;
+    }
+    recv(fd, buf, 1, 0);
+    closesocket(fd);
+    LOGE("plugin service exit unexpectedly");
+    ret_val = -1;
+    ev_signal_stop(EV_DEFAULT, &sigint_watcher);
+    ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+    ev_io_stop(EV_DEFAULT, &plugin_watcher->io);
+    ev_unloop(EV_A_ EVUNLOOP_ALL);
+}
+
 #endif
 
 static int
@@ -92,13 +118,16 @@ struct cork_stream_consumer plugin_log = {
 };
 
 static int
-start_ss_plugin(const char *plugin,
+start_ss_plugin(plugin_t *plugin,
+                const char *plugin_name,
                 const char *plugin_opts,
+#ifdef __MINGW32__
+                uint16_t control_port,
+#endif
                 const char *remote_host,
                 const char *remote_port,
                 const char *local_host,
-                const char *local_port,
-                enum plugin_mode mode)
+                const char *local_port)
 {
     cork_env_add(env, "SS_REMOTE_HOST", remote_host);
     cork_env_add(env, "SS_REMOTE_PORT", remote_port);
@@ -109,8 +138,8 @@ start_ss_plugin(const char *plugin,
     if (plugin_opts != NULL)
         cork_env_add(env, "SS_PLUGIN_OPTIONS", plugin_opts);
 
-    exec = cork_exec_new(plugin);
-    cork_exec_add_param(exec, plugin);  // argv[0]
+    exec = cork_exec_new(plugin_name);
+    cork_exec_add_param(exec, plugin_name);  // argv[0]
     extern int fast_open;
     if (fast_open) cork_exec_add_param(exec, "--fast-open");
 #ifdef __ANDROID__
@@ -120,11 +149,13 @@ start_ss_plugin(const char *plugin,
 
     cork_exec_set_env(exec, env);
 
-    sub = cork_subprocess_new_exec(exec, NULL, NULL, &exit_code);
+    struct cork_subprocess *sub
+        = cork_subprocess_new_exec(exec, NULL, NULL, &exit_code);
 #ifdef __MINGW32__
-    cork_subprocess_set_control(sub, sub_control_port);
+    cork_subprocess_set_control(sub, control_port);
 #endif
-
+    plugin->proc = sub;
+    cork_dllist_add(&plugins, &plugin->entries);
     return cork_subprocess_start(sub);
 }
 
@@ -156,13 +187,16 @@ start_ss_plugin(const char *plugin,
  * "--data-dir" option
  */
 static int
-start_obfsproxy(const char *plugin,
+start_obfsproxy(plugin_t *plugin,
+                const char *plugin_name,
                 const char *plugin_opts,
+#ifdef __MINGW32__
+                uint16_t control_port,
+#endif
                 const char *remote_host,
                 const char *remote_port,
                 const char *local_host,
-                const char *local_port,
-                enum plugin_mode mode)
+                const char *local_port)
 {
     char *pch;
     char *opts_dump = NULL;
@@ -179,16 +213,16 @@ start_obfsproxy(const char *plugin,
             return -ENOMEM;
         }
     }
-    exec = cork_exec_new(plugin);
+    exec = cork_exec_new(plugin_name);
 
     /* The first parameter will be skipped, so pass @plugin again */
-    cork_exec_add_param(exec, plugin);
+    cork_exec_add_param(exec, plugin_name);
 
     cork_exec_add_param(exec, "--data-dir");
-    buf_size = 20 + strlen(plugin) + strlen(remote_host)
+    buf_size = 20 + strlen(plugin_name) + strlen(remote_host)
                + strlen(remote_port) + strlen(local_host) + strlen(local_port);
     buf = ss_malloc(buf_size);
-    snprintf(buf, buf_size, TEMPDIR "%s_%s:%s_%s:%s", plugin,
+    snprintf(buf, buf_size, TEMPDIR "%s_%s:%s_%s:%s", plugin_name,
              remote_host, remote_port, local_host, local_port);
     cork_exec_add_param(exec, buf);
 
@@ -223,45 +257,76 @@ start_obfsproxy(const char *plugin,
     }
 
     cork_exec_set_env(exec, env);
-    sub = cork_subprocess_new_exec(exec, NULL, NULL, &exit_code);
+    struct cork_subprocess *sub
+        = cork_subprocess_new_exec(exec, NULL, NULL, &exit_code);
 #ifdef __MINGW32__
-    cork_subprocess_set_control(sub, sub_control_port);
+    cork_subprocess_set_control(sub, control_port);
 #endif
+    plugin->proc = sub;
+    cork_dllist_add(&plugins, &plugin->entries);
     ret = cork_subprocess_start(sub);
     ss_free(opts_dump);
     free(buf);
     return ret;
 }
 
+void
+init_plugin(enum plugin_mode plugin_mode)
+{
+    mode = plugin_mode;
+    cork_dllist_init(&plugins);
+}
+
 int
-start_plugin(const char *plugin,
+start_plugin(const char *plugin_name,
              const char *plugin_opts,
              const char *remote_host,
              const char *remote_port,
              const char *local_host,
-             const char *local_port,
-#ifdef __MINGW32__
-             uint16_t control_port,
-#endif
-             enum plugin_mode mode)
+             const char *local_port)
 {
-#ifndef __MINGW32__
-    char *new_path = NULL;
-    const char *current_path;
-    size_t new_path_len;
-#endif
     int ret;
 
-    if (plugin == NULL)
+    if (plugin_name == NULL)
         return -1;
 
-    if (strlen(plugin) == 0)
+    if (strlen(plugin_name) == 0)
         return 0;
 
-#ifndef __MINGW32__
+    plugin_t plugin;
+#ifdef __MINGW32__
+    uint16_t control_port = get_local_port();
+
+    if (control_port == 0) {
+        LOGE("failed to assign a control port for plugin");
+    } else {
+        SOCKET fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (fd != INVALID_SOCKET) {
+            struct sockaddr_in addr = {
+                .sin_family = AF_INET;
+                .sin_addr   = (in_addr_t) { htonl(INADDR_LOOPBACK) };
+                .sin_port   = htons(control_port);
+            };
+            if (bind(fd, (struct sockaddr *)&addr, sizeof(addr))) {
+                LOGE("failed to bind plugin control port");
+                closesocket(fd);
+            }
+            if (listen(fd, 1)) {
+                LOGE("failed to listen on plugin control port");
+                closesocket(fd);
+            }
+            plugin.plugin_watcher.fd = fd;
+            ev_io_init(&plugin.plugin_watcher.io, plugin_watcher_cb, fd, EV_READ);
+            ev_io_start(EV_DEFAULT, &plugin.plugin_watcher.io);
+        }
+    }
+#else
     /*
      * Add current dir to PATH, so we can search plugin in current dir
      */
+    char *new_path = NULL;
+    const char *current_path;
+    size_t new_path_len;
     env          = cork_env_clone_current();
     current_path = cork_env_get(env, "PATH");
     if (current_path != NULL) {
@@ -282,16 +347,24 @@ start_plugin(const char *plugin,
     }
     if (new_path != NULL)
         cork_env_add(env, "PATH", new_path);
-#else
-    sub_control_port = control_port;
 #endif
 
-    if (!strncmp(plugin, "obfsproxy", strlen("obfsproxy")))
-        ret = start_obfsproxy(plugin, plugin_opts, remote_host, remote_port,
-                              local_host, local_port, mode);
+    if (!strncmp(plugin_name, "obfsproxy", strlen("obfsproxy")))
+        ret = start_obfsproxy(&plugin,
+                              plugin_name, plugin_opts,
+#ifdef __MINGW32__
+                              control_port,
+#endif
+                              remote_host, remote_port,
+                              local_host, local_port);
     else
-        ret = start_ss_plugin(plugin, plugin_opts, remote_host, remote_port,
-                              local_host, local_port, mode);
+        ret = start_ss_plugin(&plugin,
+                              plugin_name, plugin_opts,
+#ifdef __MINGW32__
+                              control_port,
+#endif
+                              remote_host, remote_port,
+                              local_host, local_port);
 #ifndef __MINGW32__
     ss_free(new_path);
 #endif
@@ -330,17 +403,34 @@ get_local_port()
 void
 stop_plugin()
 {
-    if (sub != NULL) {
-        cork_subprocess_abort(sub);
-        cork_subprocess_free(sub);
+    plugin_t *plugin = NULL;
+    struct cork_dllist_item *curr, *next;
+    cork_dllist_foreach(&plugins, curr, next,
+                        plugin_t, plugin, entries) {
+        if (plugin != NULL) {
+            if (plugin->proc != NULL) {
+                cork_subprocess_abort(plugin->proc);
+                cork_subprocess_free(plugin->proc);
+            }
+#ifdef __MINGW32__
+            closesocket(plugin->watcher->fd);
+            ev_io_stop(EV_DEFAULT, &plugin->watcher->io);
+#endif
+        }
     }
 }
 
 int
 is_plugin_running()
 {
-    if (sub != NULL) {
-        return cork_subprocess_is_finished(sub);
+    plugin_t *plugin;
+    struct cork_dllist_item *curr, *next;
+    cork_dllist_foreach(&plugins, curr, next,
+                        plugin_t, plugin, entries) {
+        if (plugin != NULL && plugin->proc != NULL
+            && !cork_subprocess_is_finished(plugin->proc)) {
+            return 1;
+        }
     }
     return 0;
 }

@@ -43,14 +43,6 @@
 
 #include "common.h"
 
-typedef struct listen_ctx {
-    ev_io io;
-    int fd;
-    int timeout;
-    char *iface;
-    struct ev_loop *loop;
-} listen_ctx_t;
-
 typedef struct server_ctx {
     ev_io io;
     ev_timer watcher;
@@ -81,6 +73,7 @@ typedef struct server {
 
     buffer_t *buf;
 
+    crypto_t *crypto;
     cipher_ctx_t *e_ctx;
     cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;

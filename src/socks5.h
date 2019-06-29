@@ -47,29 +47,35 @@
 #define SOCKS5_REP_ADDRTYPE_NOT_SUPPORTED 0x08
 #define SOCKS5_REP_FF_UNASSIGNED 0x09
 
-struct method_select_request {
-    unsigned char ver;
-    unsigned char nmethods;
-    unsigned char methods[0];
-} __attribute__((packed, aligned(1)));
+typedef struct method_select_request {
+    uint8_t ver;
+    uint8_t nmethods;
+    uint8_t methods[0];
+} PACKED method_select_request_t;
 
-struct method_select_response {
-    unsigned char ver;
-    unsigned char method;
-} __attribute__((packed, aligned(1)));
+typedef struct method_select_response {
+    uint8_t ver;
+    uint8_t method;
+} PACKED method_select_response_t;
 
-struct socks5_request {
-    unsigned char ver;
-    unsigned char cmd;
-    unsigned char rsv;
-    unsigned char atyp;
-} __attribute__((packed, aligned(1)));
+typedef struct socks5_request {
+    uint8_t ver;
+    uint8_t cmd;
+    uint8_t rsv;
+    uint8_t atyp;
+} PACKED socks5_request_t;
 
-struct socks5_response {
-    unsigned char ver;
-    unsigned char rep;
-    unsigned char rsv;
-    unsigned char atyp;
-} __attribute__((packed, aligned(1)));
+typedef struct socks5_response {
+    uint8_t ver;
+    uint8_t rep;
+    uint8_t rsv;
+    uint8_t atyp;
+} PACKED socks5_response_t;
+
+typedef struct socks5_dgram {
+	uint16_t rsv;
+	uint8_t frag;
+	uint8_t atyp;
+} PACKED socks5_dgram_t;
 
 #endif // _SOCKS5_H

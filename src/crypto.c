@@ -43,6 +43,21 @@
 #include "utils.h"
 #include "ppbloom.h"
 
+buffer_t *
+new_buffer(size_t capacity)
+{
+    buffer_t *buf = ss_malloc(sizeof(buffer_t));
+    balloc(buf, capacity);
+    return buf;
+}
+
+void
+free_buffer(buffer_t *buf)
+{
+    bfree(buf);
+    ss_free(buf);
+}
+
 int
 balloc(buffer_t *ptr, size_t capacity)
 {

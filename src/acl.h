@@ -23,31 +23,54 @@
 #ifndef _ACL_H
 #define _ACL_H
 
-#define BLACK_LIST 0
-#define WHITE_LIST 1
+#ifdef USE_SYSTEM_SHARED_LIB
+#include <libcorkipset/ipset.h>
+#else
+#include <ipset/ipset.h>
+#endif
 
-#define MAX_TRIES  256
-#define MALICIOUS  8
-#define SUSPICIOUS 4
-#define BAD        2
-#define MALFORMED  1
+#include "jconf.h"
 
-int init_acl(const char *path);
+enum {
+    ACL_UNSPCLIST  = -1,
+    ACL_ALLISTS    = 0,
+    ACL_BLACKLIST  = 1,
+    ACL_WHITELIST  = 2,
+    ACL_BLOCKLIST  = 4,
+    ACL_DELEGATION = 5
+} acl_lists;
+
+enum {
+    ACL_ATYP_ANY = -1,
+    ACL_ATYP_IP,
+    ACL_ATYP_IPV4,
+    ACL_ATYP_IPV6,
+    ACL_ATYP_DOMAIN
+} acl_types;
+
+typedef struct {
+    struct ip_set ipv4, ipv6;
+    struct cork_dllist domain;
+} addrlist;
+
+typedef struct {
+    int remote_num;     // number of remote servers
+    int *remote_idxs;   // a list of indexes of remote servers
+    addrlist _;         // the delegation list for load-balancing
+} delglist;
+
+typedef struct acl {
+    int mode;
+    addrlist blocklist;
+    addrlist blacklist, whitelist;
+    delglist **deleglist;
+    //addrlist **deleglist;
+} acl_t;
+
+int init_acl(jconf_t *conf);
 void free_acl(void);
-void clear_block_list(void);
-
-int acl_match_host(const char *ip);
-int acl_add_ip(const char *ip);
-int acl_remove_ip(const char *ip);
-
-int get_acl_mode(void);
-
-void init_block_list();
-void free_block_list();
-int check_block_list(char *addr);
-int update_block_list(char *addr, int err_level);
-int remove_from_block_list(char *addr);
-
-int outbound_block_match_host(const char *host);
+void update_addrlist(addrlist *list, int atyp, const void *host);
+bool search_addrlist(addrlist *list, int atyp, const void *host);
+int search_acl(int atyp, const void *host, int type);
 
 #endif // _ACL_H

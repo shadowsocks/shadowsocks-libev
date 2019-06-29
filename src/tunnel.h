@@ -38,17 +38,6 @@
 
 #include "common.h"
 
-typedef struct listen_ctx {
-    ev_io io;
-    ss_addr_t tunnel_addr;
-    char *iface;
-    int remote_num;
-    int timeout;
-    int fd;
-    int mptcp;
-    struct sockaddr **remote_addr;
-} listen_ctx_t;
-
 typedef struct server_ctx {
     ev_io io;
     int connected;
@@ -59,12 +48,12 @@ typedef struct server {
     int fd;
 
     buffer_t *buf;
-    cipher_ctx_t *e_ctx;
-    cipher_ctx_t *d_ctx;
+
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
-    ss_addr_t destaddr;
+
+    struct listen_ctx *listener;
 } server_t;
 
 typedef struct remote_ctx {
@@ -85,7 +74,6 @@ typedef struct remote {
     struct remote_ctx *send_ctx;
     struct server *server;
     struct sockaddr *addr;
-    uint32_t counter;
 } remote_t;
 
 #endif // _TUNNEL_H

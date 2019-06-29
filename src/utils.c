@@ -29,7 +29,6 @@
 #include <ctype.h>
 #ifndef __MINGW32__
 #include <unistd.h>
-#include <errno.h>
 #include <pwd.h>
 #include <grp.h>
 #else
@@ -52,25 +51,9 @@
 
 #define INT_DIGITS 19           /* enough for 64 bit integer */
 
-#ifdef LIB_ONLY
-FILE *logfile;
-#endif
-
-#ifdef HAS_SYSLOG
+int use_tty = 0;
 int use_syslog = 0;
-#endif
-
-#ifndef __MINGW32__
-void
-ERROR(const char *s)
-{
-    char *msg = strerror(errno);
-    LOGE("%s: %s", s, msg);
-}
-
-#endif
-
-int use_tty = 1;
+FILE *logfile = NULL;
 
 char *
 ss_itoa(int i)
@@ -227,13 +210,6 @@ ss_strndup(const char *s, size_t n)
     return ret;
 }
 
-void
-FATAL(const char *msg)
-{
-    LOGE("%s", msg);
-    exit(-1);
-}
-
 void *
 ss_malloc(size_t size)
 {
@@ -276,10 +252,42 @@ ss_realloc(void *ptr, size_t new_size)
     return new;
 }
 
+void *
+ss_calloc(size_t num, size_t size)
+{
+    void *tmp = calloc(num, size);
+    if (tmp == NULL)
+        exit(EXIT_FAILURE);
+    return tmp;
+}
+
 int
 ss_is_ipv6addr(const char *addr)
 {
     return strcmp(addr, ":") > 0;
+}
+
+char *
+trim_whitespace(char *str)
+{
+    char *end;
+
+    // Trim leading space
+    while (isspace((unsigned char)*str))
+        str++;
+
+    if (*str == 0)   // All spaces?
+        return str;
+
+    // Trim trailing space
+    end = str + strlen(str) - 1;
+    while (end > str && isspace((unsigned char)*end))
+        end--;
+
+    // Write new null terminator
+    *(end + 1) = 0;
+
+    return str;
 }
 
 void
@@ -511,6 +519,34 @@ set_nofile(int nofile)
 }
 
 #endif
+
+size_t
+readoff_from(char **content, const char *file)
+{
+    FILE *f = strcmp(file, "-") == 0 ?
+              stdin : fopen(file, "r");
+    if (f == NULL) {
+        FATAL("Invalid file path %s", file);
+    }
+
+    size_t pos = 0;
+    char buf[1024] = { 0 };
+
+    while (fgets(buf, sizeof(buf), f)) {
+        size_t len = strlen(buf);
+        *content = ss_realloc(*content, pos + len);
+        strncpy(*content + pos, buf, len);
+        pos += len;
+    }
+
+    if (ferror(f)) {
+        FATAL("Failed to read the file.")
+    }
+
+    fclose(f);
+
+    return pos;
+}
 
 char *
 get_default_conf(void)

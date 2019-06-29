@@ -1,4 +1,5 @@
-# All IPs listed here will be blocked while the ss-server try to outbound.
+# All IPs listed here will be blocked 
+# while ss-server tries to initiate outbound connections.
 # Only IP is allowed, *NOT* domain name.
 #
 # The IPs bellow are all IPs in CHN. It'll block ss-server to access all

@@ -38,56 +38,47 @@
 #include "resolv.h"
 #endif
 
-#include "cache.h"
-
 #include "common.h"
 
-#define MAX_UDP_PACKET_SIZE (65507)
+#ifdef MODULE_REMOTE
+typedef struct query {
+    buffer_t *buf;
+    struct server *server;
+    struct sockaddr_storage *src_addr;
+} query_t;
+#endif
 
-#define PACKET_HEADER_SIZE (1 + 28 + 2 + 64)
-#define DEFAULT_PACKET_SIZE 1397 // 1492 - PACKET_HEADER_SIZE = 1397, the default MTU for UDP relay
-#define MAX_ADDR_HEADER_SIZE (1 + 256 + 2) // 1-byte atyp + 256-byte hostname + 2-byte port
-
-typedef struct server_ctx {
+typedef struct server {
     ev_io io;
     int fd;
-    crypto_t *crypto;
-    int timeout;
-    const char *iface;
-    struct cache *conn_cache;
-#ifdef MODULE_LOCAL
-    const struct sockaddr *remote_addr;
-    int remote_addr_len;
-#ifdef MODULE_TUNNEL
-    ss_addr_t tunnel_addr;
-#endif
-#endif
-#ifdef MODULE_REMOTE
-    struct ev_loop *loop;
-#endif
-} server_ctx_t;
 
-#ifdef MODULE_REMOTE
-typedef struct query_ctx {
-    struct sockaddr_storage src_addr;
-    buffer_t *buf;
-    int addr_header_len;
-    char addr_header[MAX_ADDR_HEADER_SIZE];
-    struct server_ctx *server_ctx;
-    struct remote_ctx *remote_ctx;
-} query_ctx_t;
-#endif
+    struct remote *remote;
+    struct listen_ctx *listen_ctx;
 
-typedef struct remote_ctx {
+    // socket pool/cache
+    struct cork_dllist remotes;
+} server_t;
+
+typedef struct remote {
     ev_io io;
     ev_timer watcher;
-    int af;
     int fd;
-    struct sockaddr_storage src_addr;
-#ifdef MODULE_REMOTE
-    struct sockaddr_storage dst_addr;
+    int direct;
+
+#ifdef MODULE_LOCAL
+    crypto_t *crypto;
+#ifdef MODULE_SOCKS
+    buffer_t *abuf;
 #endif
-    struct server_ctx *server_ctx;
-} remote_ctx_t;
+#endif
+
+    struct server *server;
+    struct cork_dllist_item entries;
+
+    struct sockaddr_storage *src_addr;
+#ifdef MODULE_REDIR
+    struct sockaddr_storage *destaddr;
+#endif
+} remote_t;
 
 #endif // _UDPRELAY_H

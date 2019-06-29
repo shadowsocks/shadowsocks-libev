@@ -23,6 +23,10 @@
 #ifndef _PLUGIN_H
 #define _PLUGIN_H
 
+#include <libcork/ds.h>
+#include <libcork/core.h>
+#include <libcork/os.h>
+
 #define PLUGIN_EXIT_ERROR  -2
 #define PLUGIN_EXIT_NORMAL -1
 #define PLUGIN_RUNNING      0
@@ -31,6 +35,16 @@ enum plugin_mode {
     MODE_CLIENT,
     MODE_SERVER
 };
+
+typedef struct plugin {
+    struct cork_subprocess *proc;
+#ifdef __MINGW32__
+    plugin_watcher_t watcher;
+#endif
+    struct cork_dllist_item entries;
+} plugin_t;
+
+struct cork_dllist plugins;
 
 /*
  * XXX: Since we have SS plugins and obfsproxy support, for now we will
@@ -68,11 +82,8 @@ int start_plugin(const char *plugin,
                  const char *remote_host,
                  const char *remote_port,
                  const char *local_host,
-                 const char *local_port,
-#ifdef __MINGW32__
-                 uint16_t control_port,
-#endif
-                 enum plugin_mode mode);
+                 const char *local_port);
+void init_plugin(enum plugin_mode plugin_mode);
 uint16_t get_local_port();
 void stop_plugin();
 int is_plugin_running();

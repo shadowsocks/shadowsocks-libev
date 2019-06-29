@@ -22,55 +22,88 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include <libcork/ds.h>
+
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
+#include <ev.h>
+#endif
+
+#ifdef __MINGW32__
+#include "winsock.h"
+#endif
+
+#include "crypto.h"
+#include "jconf.h"
+#include "protocol.h"
+#include "shadowsocks.h"
+
 #ifndef SOL_TCP
 #define SOL_TCP IPPROTO_TCP
+#endif
+
+#ifndef EAGAIN
+#define EAGAIN EWOULDBLOCK
+#endif
+
+#ifndef EWOULDBLOCK
+#define EWOULDBLOCK EAGAIN
+#endif
+
+#ifdef MODULE_REMOTE
+#ifdef MODULE_
+#error "MODULE_REMOTE and MODULE_LOCAL should not be both defined"
+#endif
+#endif
+
+#ifdef MODULE_LOCAL
+#define MODULE_SOCKS
 #endif
 
 #if defined(MODULE_TUNNEL) || defined(MODULE_REDIR)
 #define MODULE_LOCAL
 #endif
 
-#include "crypto.h"
+typedef struct remote_cnf {
+    char *iface;
+    crypto_t *crypto;
+    struct sockaddr_storage *addr;
+} remote_cnf_t;
 
-int init_udprelay(const char *server_host, const char *server_port,
+typedef struct listen_ctx {
+    ev_io io;
+    int fd;
+    int timeout;
+    int tos;
+    int mptcp;
+    int reuse_port;
+    int mtu;
+    char *iface;
+
 #ifdef MODULE_LOCAL
-                  const struct sockaddr *remote_addr, const int remote_addr_len,
+    int remote_num;
+    struct remote_cnf **remotes;
 #ifdef MODULE_TUNNEL
-                  const ss_addr_t tunnel_addr,
+    struct ssocks_addr destaddr;
 #endif
+#elif MODULE_REMOTE
+    crypto_t *crypto;
+#ifndef __MINGW32__
+    ev_timer stat_watcher;
 #endif
-                  int mtu, crypto_t *crypto, int timeout, const char *iface);
-
-void free_udprelay(void);
+    struct cork_dllist_item entries;
+#endif
+    struct ev_loop *loop;
+    struct sockaddr_storage *addr;
+} listen_ctx_t;
 
 #ifdef __ANDROID__
 int protect_socket(int fd);
 int send_traffic_stat(uint64_t tx, uint64_t rx);
 #endif
 
-#define STAGE_ERROR     -1  /* Error detected                   */
-#define STAGE_INIT       0  /* Initial stage                    */
-#define STAGE_HANDSHAKE  1  /* Handshake with client            */
-#define STAGE_SNI        3  /* Parse HTTP/SNI header            */
-#define STAGE_RESOLVE    4  /* Resolve the hostname             */
-#define STAGE_STREAM     5  /* Stream between client and server */
-
-/* Vals for long options */
-enum {
-    GETOPT_VAL_HELP = 257,
-    GETOPT_VAL_REUSE_PORT,
-    GETOPT_VAL_FAST_OPEN,
-    GETOPT_VAL_NODELAY,
-    GETOPT_VAL_ACL,
-    GETOPT_VAL_MTU,
-    GETOPT_VAL_MPTCP,
-    GETOPT_VAL_PLUGIN,
-    GETOPT_VAL_PLUGIN_OPTS,
-    GETOPT_VAL_PASSWORD,
-    GETOPT_VAL_KEY,
-    GETOPT_VAL_MANAGER_ADDRESS,
-    GETOPT_VAL_EXECUTABLE,
-    GETOPT_VAL_WORKDIR,
-};
+void init_udprelay(listen_ctx_t *listener);
+void free_udprelay(struct ev_loop *loop);
 
 #endif // _COMMON_H

@@ -42,6 +42,7 @@ common_src = utils.c \
              jconf.c \
              json.c \
              udprelay.c \
+             relay.c \
              cache.c \
              netutils.c
 
@@ -59,7 +60,8 @@ ss_local_SOURCES = local.c \
 ss_tunnel_SOURCES = tunnel.c \
                     $(common_src) \
                     $(crypto_src) \
-                    $(plugin_src)
+                    $(plugin_src) \
+                    $(acl_src)
 
 ss_server_SOURCES = resolv.c \
                     server.c \
@@ -67,13 +69,14 @@ ss_server_SOURCES = resolv.c \
                     $(crypto_src) \
                     $(plugin_src) \
                     $(sni_src) \
-                    ${acl_src}
+                    $(acl_src)
 
-ss_manager_SOURCES = utils.c \
+ss_manager_SOURCES = manager.c \
+                     utils.c \
                      jconf.c \
                      json.c \
-                     netutils.c \
-                     manager.c
+                     cache.c \
+                     netutils.c
 
 ss_local_LDADD = $(SS_COMMON_LIBS)
 ss_tunnel_LDADD = $(SS_COMMON_LIBS)
@@ -98,9 +101,12 @@ ss_redir_SOURCES = utils.c \
                    netutils.c \
                    cache.c \
                    udprelay.c \
+                   relay.c \
                    redir.c \
                    $(crypto_src) \
-                   $(plugin_src)
+                   $(plugin_src) \
+                   $(sni_src) \
+                   $(acl_src)
 
 ss_redir_CFLAGS = $(AM_CFLAGS) -DMODULE_REDIR
 ss_redir_LDADD = $(SS_COMMON_LIBS)
@@ -114,7 +120,7 @@ libshadowsocks_libev_la_LDFLAGS = -version-info $(VERSION_INFO)
 libshadowsocks_libev_la_LIBADD = $(ss_local_LDADD)
 include_HEADERS = shadowsocks.h
 
-noinst_HEADERS = acl.h crypto.h stream.h aead.h json.h netutils.h redir.h server.h tls.h uthash.h \
-                 cache.h http.h local.h plugin.h resolv.h tunnel.h utils.h base64.h ppbloom.h \
-                 common.h jconf.h manager.h protocol.h rule.h socks5.h udprelay.h winsock.h
+noinst_HEADERS = acl.h crypto.h stream.h aead.h json.h netutils.h tls.h uthash.h \
+                 cache.h http.h plugin.h resolv.h tunnel.h utils.h base64.h ppbloom.h \
+                 common.h jconf.h manager.h protocol.h rule.h socks5.h udprelay.h relay.h winsock.h
 EXTRA_DIST = ss-nat

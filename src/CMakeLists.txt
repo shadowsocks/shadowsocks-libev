@@ -32,7 +32,9 @@ set(SS_SHARED_SOURCES
         utils.c
         jconf.c
         json.c
+        cache.c
         netutils.c
+        relay.c
         )
 
 set(LIBSHADOWSOCKS_LIBEV_SOURCE

@@ -159,7 +159,7 @@ cache_clear(struct cache *cache, ev_tstamp age)
  *  @return EINVAL if cache is NULL, 0 otherwise
  */
 int
-cache_remove(struct cache *cache, char *key, size_t key_len)
+cache_remove(struct cache *cache, void *key, size_t key_len)
 {
     struct cache_entry *tmp;
 
@@ -206,10 +206,9 @@ cache_remove(struct cache *cache, char *key, size_t key_len)
  *  @return EINVAL if cache is NULL, 0 otherwise
  */
 int
-cache_lookup(struct cache *cache, char *key, size_t key_len, void *result)
+cache_lookup(struct cache *cache, void *key, size_t key_len, void *result)
 {
     struct cache_entry *tmp = NULL;
-    char **dirty_hack       = result;
 
     if (!cache || !key || !result) {
         return EINVAL;
@@ -220,16 +219,16 @@ cache_lookup(struct cache *cache, char *key, size_t key_len, void *result)
         HASH_DELETE(hh, cache->entries, tmp);
         tmp->ts = ev_time();
         HASH_ADD_KEYPTR(hh, cache->entries, tmp->key, key_len, tmp);
-        *dirty_hack = tmp->data;
+        *(void **)result = tmp->data;    // okay no memcpy here sweetie
     } else {
-        *dirty_hack = result = NULL;
+        *(void **)result = NULL;
     }
 
     return 0;
 }
 
 int
-cache_key_exist(struct cache *cache, char *key, size_t key_len)
+cache_key_exist(struct cache *cache, void *key, size_t key_len)
 {
     struct cache_entry *tmp = NULL;
 
@@ -267,7 +266,7 @@ cache_key_exist(struct cache *cache, char *key, size_t key_len)
  *  @return EINVAL if cache is NULL, ENOMEM if malloc fails, 0 otherwise
  */
 int
-cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
+cache_insert(struct cache *cache, void *key, size_t key_len, void *data)
 {
     struct cache_entry *entry     = NULL;
     struct cache_entry *tmp_entry = NULL;
@@ -280,16 +279,16 @@ cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
         return ENOMEM;
     }
 
-    entry->key = ss_malloc(key_len + 1);
+    entry->key = ss_malloc(key_len);
     memcpy(entry->key, key, key_len);
-    entry->key[key_len] = 0;
 
     entry->data = data;
     entry->ts   = ev_time();
     HASH_ADD_KEYPTR(hh, cache->entries, entry->key, key_len, entry);
 
-    if (HASH_COUNT(cache->entries) >= cache->max_entries) {
-        HASH_ITER(hh, cache->entries, entry, tmp_entry){
+    if (cache->max_entries > 0
+        && HASH_COUNT(cache->entries) >= cache->max_entries) {
+        HASH_ITER(hh, cache->entries, entry, tmp_entry) {
             HASH_DELETE(hh, cache->entries, entry);
             if (entry->data != NULL) {
                 if (cache->free_cb) {

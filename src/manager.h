@@ -36,45 +36,22 @@
 
 #include "common.h"
 
-struct manager_ctx {
+typedef struct manager_ctx {
     ev_io io;
     int fd;
-    int fast_open;
-    int no_delay;
-    int reuse_port;
-    int verbose;
-    int mode;
-    char *password;
-    char *key;
-    char *timeout;
-    char *method;
-    char *iface;
-    char *acl;
-    char *user;
-    char *plugin;
-    char *plugin_opts;
-    char *manager_address;
-    char **hosts;
-    int host_num;
-    char *nameservers;
-    int mtu;
-    int ipv6first;
-    char *workdir;
-#ifdef HAVE_SETRLIMIT
-    int nofile;
-#endif
-};
+    jconf_t *conf;
+} manager_ctx_t;
 
-struct server {
-    char port[8];
-    char password[128];
-    char fast_open[8];
-    char no_delay[8];
+typedef struct server {
+    char *port;
+    char *password;
+    char *fast_open;
+    char *no_delay;
     char *mode;
     char *method;
     char *plugin;
     char *plugin_opts;
     uint64_t traffic;
-};
+} server_t;
 
 #endif // _MANAGER_H
