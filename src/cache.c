@@ -220,11 +220,10 @@ cache_lookup(struct cache *cache, void *key, size_t key_len, void *result)
         tmp->ts = ev_time();
         HASH_ADD_KEYPTR(hh, cache->entries, tmp->key, key_len, tmp);
         *(void **)result = tmp->data;    // okay no memcpy here sweetie
-    } else {
-        *(void **)result = NULL;
+        return 0;
     }
 
-    return 0;
+    return -1;
 }
 
 int

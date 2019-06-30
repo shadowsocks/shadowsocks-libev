@@ -129,7 +129,7 @@ getdestaddr(int fd, struct sockaddr_storage *destaddr)
     }
     if (!getsockopt(fd, SOL_IP, SO_ORIGINAL_DST, destaddr, &socklen)) {
         return 0;
-    }    
+    }
 #else
     FATAL("transparent proxy not supported in this build");
 #endif
@@ -184,33 +184,6 @@ setnonblocking(int fd)
 }
 
 #endif
-
-int
-bind_to_address(int socket_fd, const char *host)
-{
-    static struct sockaddr_storage storage = { 0 };
-    if (storage.ss_family == AF_INET) {
-        return bind(socket_fd, (struct sockaddr *)&storage, sizeof(struct sockaddr_in));
-    } else if (storage.ss_family == AF_INET6) {
-        return bind(socket_fd, (struct sockaddr *)&storage, sizeof(struct sockaddr_in6));
-    } else if (host != NULL) {
-        struct cork_ip ip;
-        if (cork_ip_init(&ip, host) != -1) {
-            if (ip.version == 4) {
-                struct sockaddr_in *addr = (struct sockaddr_in *)&storage;
-                inet_pton(AF_INET, host, &addr->sin_addr);
-                addr->sin_family = AF_INET;
-                return bind(socket_fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in));
-            } else if (ip.version == 6) {
-                struct sockaddr_in6 *addr = (struct sockaddr_in6 *)&storage;
-                inet_pton(AF_INET6, host, &addr->sin6_addr);
-                addr->sin6_family = AF_INET6;
-                return bind(socket_fd, (struct sockaddr *)addr, sizeof(struct sockaddr_in6));
-            }
-        }
-    }
-    return -1;
-}
 
 int
 create_and_bind(struct sockaddr_storage *storage,
@@ -713,14 +686,15 @@ parse_addr_cidr(const char *str, char *host, int *cidr)
     }
 }
 
-ss_service
+int
 port_service(uint16_t port)
 {
-    ss_service *service = NULL;
-    if (port > 0)
-        cache_lookup(port_cache, &port, sizeof(port), &service);
-    else return PORT_SERVICE_UNKNOWN;
-    return elvis(*service, PORT_SERVICE_UNKNOWN);
+    int *service = NULL;
+    if (cache_lookup(port_cache,
+                     &port, sizeof(port), &service) == 0) {
+        return *service;
+    }
+    return PORT_SERVICE_UNKNOWN;
 }
 
 int
@@ -752,7 +726,7 @@ port_service_init(void)
                     } break;
                 }
                 if (!cache_key_exist(port_cache, &port, sizeof(port))) {
-                    ss_service *service_type = ss_malloc(sizeof(ss_service));
+                    int *service_type = ss_malloc(sizeof(*service_type));
                     *service_type = service_port->service;
                     cache_insert(port_cache, &port, sizeof(port), service_type);
                 }

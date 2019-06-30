@@ -136,6 +136,7 @@ enum {
     STAGE_STOP          /* Server stop to respond           */
 };
 
+void accept_cb(EV_P_ ev_io *, int);
 void server_recv_cb(EV_P_ ev_io *, int);
 void server_send_cb(EV_P_ ev_io *, int);
 void remote_recv_cb(EV_P_ ev_io *, int);
@@ -159,7 +160,7 @@ int create_remote(EV_P_ remote_t *remote, buffer_t *buf,
                   ssocks_addr_t *destaddr, int acl_enabled);
 #endif
 
-struct cork_dllist connections;
-void free_connections(struct ev_loop *loop);
+int start_relay(jconf_t *conf,
+                ss_callback_t callback, void *data);
 
 #endif // _RELAY_H

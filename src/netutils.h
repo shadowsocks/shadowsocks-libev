@@ -217,7 +217,6 @@ int setnonblocking(int fd);
 #endif
 
 typedef struct listen_ctx listen_ctx_t;
-int bind_to_address(int socket_fd, const char *address);
 int create_and_bind(struct sockaddr_storage *storage,
                     int protocol, listen_ctx_t *listen_ctx);
 int bind_and_listen(struct sockaddr_storage *storage,
@@ -263,7 +262,7 @@ int is_addr_loopback(const struct sockaddr *addr);
 
 void parse_addr_cidr(const char *str, char *host, int *cidr);
 
-ss_service port_service(uint16_t port);
+int port_service(uint16_t port);
 int port_service_init(void);
 
 #endif

@@ -410,6 +410,9 @@ stop_plugin()
         if (plugin != NULL) {
             if (plugin->proc != NULL) {
                 cork_subprocess_abort(plugin->proc);
+                if (cork_subprocess_wait(plugin->proc) == -1) {
+                    LOGI("error terminating plugin");
+                }
                 cork_subprocess_free(plugin->proc);
             }
 #ifdef __MINGW32__

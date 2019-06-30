@@ -37,9 +37,6 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <limits.h>
-//#include <linux/if.h>
-//#include <linux/netfilter_ipv4.h>
-//#include <linux/netfilter_ipv6/ip6_tables.h>
 
 #include <libcork/core.h>
 
@@ -54,8 +51,6 @@
 #include "acl.h"
 #include "relay.h"
 
-static void accept_cb(EV_P_ ev_io *w, int revents);
-
 int verbose    = 0;
 int ipv6first  = 0;
 int remote_dns = 1; // resolve hostname remotely
@@ -63,11 +58,6 @@ int fast_open  = 0;
 int acl = 0;
 
 static int no_delay  = 0;
-static int ret_val   = 0;
-
-struct ev_signal sigint_watcher;
-struct ev_signal sigterm_watcher;
-struct ev_signal sigchld_watcher;
 
 void
 server_recv_cb(EV_P_ ev_io *w, int revents)
@@ -103,17 +93,28 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         if (create_remote(EV_A_ remote, remote->buf,
                           server->destaddr, acl) == -1)
         {
+            if (server->stage != STAGE_SNI
+                && server->destaddr->dname_len == -1)
+            {
+                if (verbose)
+                    LOGE("partial HTTP/s request detected");
+                server->stage = STAGE_SNI;
+                return;
+            }
             ERROR("create_remote");
             close_and_free_remote(EV_A_ remote);
             close_and_free_server(EV_A_ server);
         } else {
-            int r = connect(remote->fd, (struct sockaddr *)remote->addr, sizeof(*remote->addr));
+            if (!fast_open) {
+                int r = connect(remote->fd, (struct sockaddr *)remote->addr,
+                                get_sockaddr_len((struct sockaddr *)remote->addr));
 
-            if (r == -1 && errno != CONNECT_IN_PROGRESS) {
-                ERROR("connect");
-                close_and_free_remote(EV_A_ remote);
-                close_and_free_server(EV_A_ server);
-                return;
+                if (r == -1 && errno != CONNECT_IN_PROGRESS) {
+                    ERROR("connect");
+                    close_and_free_remote(EV_A_ remote);
+                    close_and_free_server(EV_A_ server);
+                    return;
+                }
             }
 
             ev_io_stop(EV_A_ & server_recv_ctx->io);
@@ -205,7 +206,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     remote_ctx_t *remote_recv_ctx = (remote_ctx_t *)w;
     remote_t *remote              = remote_recv_ctx->remote;
     server_t *server              = remote->server;
-    crypto_t *crypto              = remote->crypto;
 
     ssize_t r = recv(remote->fd, server->buf->data, SOCKET_BUF_SIZE, 0);
 
@@ -230,6 +230,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     server->buf->len = r;
 
     if (!remote->direct) {
+        crypto_t *crypto = remote->crypto;
         int err = crypto->decrypt(server->buf, remote->d_ctx, SOCKET_BUF_SIZE);
         if (err == CRYPTO_ERROR) {
             LOGE("invalid password or cipher");
@@ -277,29 +278,26 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     remote_ctx_t *remote_send_ctx = (remote_ctx_t *)w;
     remote_t *remote              = remote_send_ctx->remote;
     server_t *server              = remote->server;
-    crypto_t *crypto              = remote->crypto;
 
     ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
 
     if (!remote_send_ctx->connected) {
         int r = 0;
+
         if (remote->addr == NULL) {
-            struct sockaddr_storage addr;
-            memset(&addr, 0, sizeof(struct sockaddr_storage));
+            struct sockaddr_storage addr = { 0 };
             socklen_t len = sizeof addr;
             r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
         }
+
         if (r == 0) {
             remote_send_ctx->connected = 1;
 
-            ev_io_stop(EV_A_ & remote_send_ctx->io);
-            ev_io_stop(EV_A_ & server->recv_ctx->io);
-            ev_io_start(EV_A_ & remote->recv_ctx->io);
-
-            if (server->abuf)
-                bprepend(remote->buf, server->abuf, SOCKET_BUF_SIZE);
-
             if (!remote->direct) {
+                crypto_t *crypto = remote->crypto;
+                if (server->abuf)
+                    bprepend(remote->buf, server->abuf, SOCKET_BUF_SIZE);
+
                 if (crypto->encrypt(remote->buf, remote->e_ctx, SOCKET_BUF_SIZE)) {
                     LOGE("invalid password or cipher");
                     close_and_free_remote(EV_A_ remote);
@@ -307,6 +305,10 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                     return;
                 }
             }
+
+            ev_io_stop(EV_A_ & remote_send_ctx->io);
+            ev_io_stop(EV_A_ & server->recv_ctx->io);
+            ev_io_start(EV_A_ & remote->recv_ctx->io);
         } else {
             ERROR("getpeername");
             // not connected
@@ -377,7 +379,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     }
 }
 
-static void
+void
 accept_cb(EV_P_ ev_io *w, int revents)
 {
     listen_ctx_t *listener = (listen_ctx_t *)w;
@@ -423,36 +425,12 @@ accept_cb(EV_P_ ev_io *w, int revents)
     ev_io_start(EV_A_ & server->recv_ctx->io);
 }
 
-static void
-signal_cb(EV_P_ ev_signal *w, int revents)
-{
-    if (revents & EV_SIGNAL) {
-        switch (w->signum) {
-        case SIGCHLD:
-            if (!is_plugin_running()) {
-                LOGE("plugin service exit unexpectedly");
-                ret_val = -1;
-            } else
-                return;
-        case SIGINT:
-        case SIGTERM:
-            ev_signal_stop(EV_DEFAULT, &sigint_watcher);
-            ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
-            ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
-
-            ev_unloop(EV_A_ EVUNLOOP_ALL);
-        }
-    }
-}
-
 int
 main(int argc, char **argv)
 {
     USE_TTY();
     srand(time(NULL));
 
-    int i;
-    int plugin_enabled = 0;
     int pid_flags = 0;
     jconf_t conf  = jconf_default;
 
@@ -461,247 +439,27 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    if (!(conf.remotes != NULL &&
-        conf.remote_num > 0)) {
-        FATAL("at least one server should be specified");
-    }
-
-    if (conf.local_port == NULL) {
-        conf.local_port = "0";
-        LOGE("warning: random local port will be assigned");
-    }
-
-    if (conf.log) {
-        USE_LOGFILE(conf.log);
-        LOGI("enabled %slogging %s", conf.verbose ? "verbose " : "", conf.log);
-    }
-
-    if (conf.mtu > 0) {
-        LOGI("setting MTU to %d", conf.mtu);
-    }
-
-    if (conf.mptcp) {
-        LOGI("enabled multipath TCP");
-    }
-
-    if (conf.no_delay) {
-        LOGI("enabled TCP no-delay");
-    }
-
-    if (conf.ipv6_first) {
-        LOGI("prioritized IPv6 addresses in domain resolution");
-    }
-
-    if (conf.acl != NULL) {
-        LOGI("initializing acl...");
-        acl = !init_acl(&conf);
-    }
-
-#ifdef HAVE_SETRLIMIT
-    /*
-     * No need to check the return value here.
-     * We will show users an error message if setrlimit(2) fails.
-     */
-    if (conf.nofile > 1024) {
-        if (conf.verbose) {
-            LOGI("setting NOFILE to %d", conf.nofile);
-        }
-        set_nofile(conf.nofile);
-    }
-#endif
-
-    if (conf.fast_open) {
-#ifdef TCP_FASTOPEN
-        LOGI("using tcp fast open");
-#else
-        LOGE("tcp fast open is not supported by this environment");
-        conf.fast_open = 0;
-#endif
-    }
-
     pid_flags = conf.pid_path != NULL;
     USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
         daemonize(conf.pid_path);
     }
 
+#ifndef __MINGW32__
+    // setuid
+    if (conf.user && !run_as(conf.user)) {
+        FATAL("failed to switch user");
+    }
+
+    if (geteuid() == 0) {
+        LOGI("running from root user");
+    }
+#endif
+
     no_delay   = conf.no_delay;
     fast_open  = conf.fast_open;
     verbose    = conf.verbose;
     ipv6first  = conf.ipv6_first;
     remote_dns = conf.remote_dns;
-
-    // ignore SIGPIPE
-    signal(SIGPIPE, SIG_IGN);
-    signal(SIGABRT, SIG_IGN);
-
-    ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
-    ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
-    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
-    ev_signal_start(EV_DEFAULT, &sigint_watcher);
-    ev_signal_start(EV_DEFAULT, &sigterm_watcher);
-    ev_signal_start(EV_DEFAULT, &sigchld_watcher);
-
-    // Setup proxy context
-    struct ev_loop *loop = EV_DEFAULT;
-    struct listen_ctx listen_ctx = {
-        .mtu        = conf.mtu,
-        .mptcp      = conf.mptcp,
-        .reuse_port = conf.reuse_port,
-        .remote_num = conf.remote_num,
-        .remotes    = ss_calloc(conf.remote_num, sizeof(struct remote_cnf *)),
-        .timeout    = atoi(conf.timeout),
-        .loop       = loop
-    };
-    port_service_init();
-
-    for (i = 0; i < conf.remote_num; i++) {
-        ss_remote_t *r = conf.remotes[i];
-
-        char *host     = r->addr,
-             *port     = elvis(r->port, conf.remote_port),
-             *password = elvis(r->password, conf.password),
-             *key      = elvis(r->key, conf.key),
-             *method   = elvis(r->method, conf.method),
-             *iface    = elvis(r->iface, conf.iface),
-             *plugin   = elvis(r->plugin, conf.plugin),
-             *plugin_opts
-                       = elvis(r->plugin_opts, conf.plugin_opts);
-
-        if (host == NULL || port == NULL ||
-            (password == NULL && key == NULL))
-        {
-            usage();
-            exit(EXIT_FAILURE);
-        }
-
-        LOGI("[%d/%d] server %s:%s", i + 1, conf.remote_num, host, port);
-
-        LOGI("initializing ciphers... %s", method);
-        crypto_t *crypto = crypto_init(password, key, method);
-        if (crypto == NULL)
-            FATAL("failed to initialize ciphers");
-
-        struct sockaddr_storage *storage
-            = ss_calloc(1, sizeof(struct sockaddr_storage));
-        if (get_sockaddr(host, port, storage, 1, conf.ipv6_first) == -1) {
-            FATAL("failed to resolve %s", host);
-        }
-
-        if (plugin != NULL) {
-            if (!plugin_enabled) {
-                init_plugin(MODE_CLIENT);
-                plugin_enabled = 1;
-            }
-
-            uint16_t plugin_port = get_local_port();
-            switch (storage->ss_family) {
-                case AF_INET: {
-                    *(struct sockaddr_in *)storage = (struct sockaddr_in) {
-                        .sin_addr =
-                            (struct in_addr) { htonl(INADDR_LOOPBACK) },
-                        .sin_port = plugin_port
-                    };
-                } break;
-                case AF_INET6: {
-                    *(struct sockaddr_in6 *)storage = (struct sockaddr_in6) {
-                        .sin6_addr = in6addr_loopback,
-                        .sin6_port = plugin_port
-                    };
-                } break;
-            }
-
-            if (plugin_port == 0)
-                FATAL("failed to find a free port");
-
-            LOGI("plugin \"%s\" enabled", plugin);
-
-            int err = start_plugin(plugin, plugin_opts,                 // user-defined plugin options
-                                   host, port,                          // user-defined destination address
-                                   sockaddr_readable("%a", storage),
-                                   sockaddr_readable("%p", storage));
-            if (err)
-                FATAL("failed to start plugin");
-        }
-
-        listen_ctx.remotes[i] = &(remote_cnf_t) {
-            .iface  = iface,
-            .addr   = storage,
-            .crypto = crypto
-        };
-    }
-
-    ss_dscp_t **dscp = conf.dscp;
-    char *local_addr = conf.local_addr,
-         *local_port = conf.local_port;
-
-    listen_ctx_t listen_ctx_current = listen_ctx;
-    do {
-        struct sockaddr_storage *storage = &(struct sockaddr_storage) {};
-        if (get_sockaddr(local_addr, local_port,
-                         storage, 1, conf.ipv6_first) == -1)
-        {
-            FATAL("failed to resolve %s", local_addr);
-        }
-
-        if (listen_ctx_current.tos) {
-            LOGI("listening on %s (TOS 0x%x)",
-                 sockaddr_readable("%a:%p", storage), listen_ctx_current.tos);
-        } else {
-            LOGI("listening on %s",
-                 sockaddr_readable("%a:%p", storage));
-        }
-
-        if (conf.mode != UDP_ONLY) {
-            // Setup socket
-            int listenfd = bind_and_listen(storage, IPPROTO_TCP, &listen_ctx_current);
-            if (listenfd != -1) {
-                if (fast_open)
-                    set_fastopen_passive(listenfd);
-                ev_io_init(&listen_ctx_current.io, accept_cb, listen_ctx_current.fd, EV_READ);
-                ev_io_start(loop, &listen_ctx_current.io);
-            }
-        }
-
-        // Setup UDP
-        if (conf.mode != TCP_ONLY) {
-            listen_ctx_t listen_ctx_dgram = listen_ctx;
-            int listenfd = bind_and_listen(storage, IPPROTO_UDP, &listen_ctx_dgram);
-            if ((listen_ctx_dgram.fd = listenfd) != -1) {
-                init_udprelay(&listen_ctx_dgram);
-            }
-        }
-
-        if (conf.mode == UDP_ONLY) {
-            LOGI("TCP relay disabled");
-        }
-
-        // Handle additional TOS/DSCP listening ports
-        if (*dscp != NULL) {
-            listen_ctx_current      = listen_ctx;
-            local_port              = (*dscp)->port;
-            listen_ctx_current.tos  = (*dscp)->dscp << 2;
-        }
-    } while (*(dscp++) != NULL);
-
-    // setuid
-    if (conf.user && !run_as(conf.user))
-        FATAL("failed to switch user");
-
-    if (geteuid() == 0)
-        LOGI("running from root user");
-
-    // Init connections
-    cork_dllist_init(&connections);
-
-    ev_run(loop, 0);
-
-    if (plugin_enabled)
-        stop_plugin();
-
-    if (conf.mode != TCP_ONLY) {
-        free_udprelay(loop);
-    }
-
-    return ret_val;
+    return start_relay(&conf, NULL, NULL);
 }

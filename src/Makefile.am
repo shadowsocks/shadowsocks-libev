@@ -121,6 +121,6 @@ libshadowsocks_libev_la_LIBADD = $(ss_local_LDADD)
 include_HEADERS = shadowsocks.h
 
 noinst_HEADERS = acl.h crypto.h stream.h aead.h json.h netutils.h tls.h uthash.h \
-                 cache.h http.h plugin.h resolv.h tunnel.h utils.h base64.h ppbloom.h \
+                 cache.h http.h plugin.h resolv.h utils.h base64.h ppbloom.h \
                  common.h jconf.h manager.h protocol.h rule.h socks5.h udprelay.h relay.h winsock.h
 EXTRA_DIST = ss-nat

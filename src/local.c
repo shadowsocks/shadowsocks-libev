@@ -85,17 +85,6 @@ char *stat_path = NULL;
 #endif
 
 static int no_delay  = 0;
-static int ret_val   = 0;
-
-struct ev_signal sigint_watcher;
-struct ev_signal sigterm_watcher;
-#ifndef __MINGW32__
-struct ev_signal sigchld_watcher;
-struct ev_signal sigusr1_watcher;
-#endif
-
-static void accept_cb(EV_P_ ev_io *w, int revents);
-static void signal_cb(EV_P_ ev_signal *w, int revents);
 
 static int
 server_handshake_reply(EV_P_ ev_io *w, int udp_assc, struct socks5_response *response)
@@ -684,33 +673,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     }
 }
 
-static void
-signal_cb(EV_P_ ev_signal *w, int revents)
-{
-    if (revents & EV_SIGNAL) {
-        switch (w->signum) {
-#ifndef __MINGW32__
-        case SIGCHLD:
-            if (!is_plugin_running()) {
-                LOGE("plugin service exit unexpectedly");
-                ret_val = -1;
-            } else
-                return;
-        case SIGUSR1:
-#endif
-        case SIGINT:
-        case SIGTERM:
-            ev_signal_stop(EV_DEFAULT, &sigint_watcher);
-            ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
-#ifndef __MINGW32__
-            ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
-            ev_signal_stop(EV_DEFAULT, &sigusr1_watcher);
-#endif
-            ev_unloop(EV_A_ EVUNLOOP_ALL);
-        }
-    }
-}
-
 void
 accept_cb(EV_P_ ev_io *w, int revents)
 {
@@ -738,293 +700,10 @@ int
 new_shadowsocks_(ssocks_module_t module,
                  jconf_t *conf, ss_callback_t callback, void *data)
 {
-    int i;
-    int plugin_enabled = 0;
-
-    if (!(conf->remotes != NULL &&
-        conf->remote_num > 0)) {
-        LOGE("at least one server should be specified");
-        return -1;
-    }
-
-#ifndef HAVE_LAUNCHD
-    if (conf->local_port == NULL) {
-        conf->local_port = "0";
-        LOGE("warning: random local port will be assigned");
-    }
-#endif
-
-    if (conf->log) {
-        USE_LOGFILE(conf->log);
-        LOGI("enabled %slogging %s", conf->verbose ? "verbose " : "", conf->log);
-    }
-
-    if (conf->mtu > 0) {
-        LOGI("setting MTU to %d", conf->mtu);
-    }
-
-    if (conf->mptcp) {
-        LOGI("enabled multipath TCP");
-    }
-
-    if (conf->no_delay) {
-        LOGI("enabled TCP no-delay");
-    }
-
-    if (conf->ipv6_first) {
-        LOGI("prioritized IPv6 addresses in domain resolution");
-    }
-
-    if (!conf->remote_dns) {
-        LOGI("disabled remote domain resolution");
-    }
-
-    if (conf->acl != NULL) {
-        LOGI("initializing acl...");
-        acl = !init_acl(conf);
-    }
-
-#ifdef HAVE_SETRLIMIT
-    /*
-     * No need to check the return value here.
-     * We will show users an error message if setrlimit(2) fails.
-     */
-    if (conf->nofile > 1024) {
-        if (conf->verbose) {
-            LOGI("setting NOFILE to %d", conf->nofile);
-        }
-        set_nofile(conf->nofile);
-    }
-#endif
-
-    if (conf->fast_open) {
-#ifdef TCP_FASTOPEN
-        LOGI("using tcp fast open");
-#else
-        LOGE("tcp fast open is not supported by this environment");
-        conf->fast_open = 0;
-#endif
-    }
-
-    no_delay   = conf->no_delay;
-    fast_open  = conf->fast_open;
-    verbose    = conf->verbose;
-    ipv6first  = conf->ipv6_first;
-    remote_dns = conf->remote_dns;
 #ifdef __ANDROID__
-    stat_path  = conf->stat_path;
+    stat_path = conf->stat_path;
 #endif
-
-#ifdef __MINGW32__
-    winsock_init();
-#endif
-
-#ifndef __MINGW32__
-    // ignore SIGPIPE
-    signal(SIGPIPE, SIG_IGN);
-    signal(SIGABRT, SIG_IGN);
-#endif
-
-    // Setup signal handler
-    ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
-    ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
-    ev_signal_start(EV_DEFAULT, &sigint_watcher);
-    ev_signal_start(EV_DEFAULT, &sigterm_watcher);
-#ifndef __MINGW32__
-    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
-    ev_signal_start(EV_DEFAULT, &sigchld_watcher);
-#endif
-
-    // Setup proxy context
-    struct ev_loop *loop = EV_DEFAULT;
-    listen_ctx_t listen_ctx = {
-        .mtu        = conf->mtu,
-        .mptcp      = conf->mptcp,
-        .reuse_port = conf->reuse_port,
-        .remote_num = conf->remote_num,
-        .remotes    = ss_calloc(conf->remote_num, sizeof(remote_cnf_t *)),
-        .timeout    = atoi(conf->timeout),
-        .loop       = loop
-    };
-    port_service_init();
-
-    for (i = 0; i < conf->remote_num; i++) {
-        ss_remote_t *r = conf->remotes[i];
-
-        char *host     = r->addr,
-             *port     = elvis(r->port, conf->remote_port),
-             *password = elvis(r->password, conf->password),
-             *key      = elvis(r->key, conf->key),
-             *method   = elvis(r->method, conf->method),
-             *iface    = elvis(r->iface, conf->iface),
-             *plugin   = elvis(r->plugin, conf->plugin),
-             *plugin_opts
-                       = elvis(r->plugin_opts, conf->plugin_opts);
-
-        if (host == NULL || port == NULL ||
-            (password == NULL && key == NULL))
-        {
-            usage();
-            exit(EXIT_FAILURE);
-        }
-
-        // Setup keys
-        LOGI("[%d/%d] server %s %s:%s", i + 1, conf->remote_num,
-             elvis(r->tag, "-"), host, port);
-        LOGI("initializing ciphers... %s", method);
-        crypto_t *crypto = crypto_init(password, key, method);
-        if (crypto == NULL)
-            FATAL("failed to initialize ciphers");
-
-        struct sockaddr_storage *storage
-            = ss_calloc(1, sizeof(struct sockaddr_storage));
-        if (get_sockaddr(host, port, storage, 1, conf->ipv6_first) == -1) {
-            FATAL("failed to resolve %s", host);
-        }
-
-        if (plugin != NULL) {
-            if (!plugin_enabled) {
-                init_plugin(MODE_CLIENT);
-                plugin_enabled = 1;
-            }
-
-            uint16_t plugin_port = get_local_port();
-            switch (storage->ss_family) {
-                case AF_INET: {
-                    *(struct sockaddr_in *)storage = (struct sockaddr_in) {
-                        .sin_addr =
-                            (struct in_addr) { htonl(INADDR_LOOPBACK) },
-                        .sin_port = plugin_port
-                    };
-                } break;
-                case AF_INET6: {
-                    *(struct sockaddr_in6 *)storage = (struct sockaddr_in6) {
-                        .sin6_addr = in6addr_loopback,
-                        .sin6_port = plugin_port
-                    };
-                } break;
-            }
-
-            if (plugin_port == 0)
-                FATAL("failed to find a free port");
-
-            LOGI("plugin \"%s\" enabled", plugin);
-
-            int err = start_plugin(plugin, plugin_opts,                 // user-defined plugin options
-                                   host, port,                          // user-defined destination address
-                                   sockaddr_readable("%a", storage),
-                                   sockaddr_readable("%p", storage));
-            if (err)
-                FATAL("failed to start plugin %s", plugin);
-        }
-
-        remote_cnf_t *remote_cnf
-            = ss_calloc(1, sizeof(*remote_cnf));
-        remote_cnf->iface  = iface;
-        remote_cnf->addr   = storage;
-        remote_cnf->crypto = crypto;
-
-        listen_ctx.remotes[i] = remote_cnf;
-    }
-
-    ss_dscp_t **dscp = conf->dscp;
-    char *local_addr = conf->local_addr,
-         *local_port = conf->local_port;
-
-    listen_ctx_t listen_ctx_current = listen_ctx;
-    do {
-        struct sockaddr_storage *storage = &(struct sockaddr_storage) {};
-        if (get_sockaddr(local_addr, local_port,
-                         storage, 1, conf->ipv6_first) == -1)
-        {
-            FATAL("failed to resolve %s", local_addr);
-        }
-
-        if (listen_ctx_current.tos) {
-            LOGI("listening on %s (TOS 0x%x)",
-                 sockaddr_readable("%a:%p", storage), listen_ctx_current.tos);
-        } else {
-            LOGI("listening on %s",
-                 sockaddr_readable("%a:%p", storage));
-        }
-
-        int socket = -1, socket_u = -1;
-        if (conf->mode != UDP_ONLY) {
-            // Setup socket
-            socket =
-#ifdef HAVE_LAUNCHD
-                launch_or_create(storage, &listen_ctx_current);
-#else
-                bind_and_listen(storage, IPPROTO_TCP, &listen_ctx_current);
-#endif
-            if (socket != -1) {
-                if (fast_open)
-                    set_fastopen_passive(socket);
-                ev_io_init(&listen_ctx_current.io, accept_cb, listen_ctx_current.fd, EV_READ);
-                ev_io_start(loop, &listen_ctx_current.io);
-            }
-        }
-
-        // Setup UDP
-        if (conf->mode != TCP_ONLY) {
-            listen_ctx_t listen_ctx_dgram = listen_ctx_current;
-            int socket_u = bind_and_listen(storage, IPPROTO_UDP, &listen_ctx_dgram);
-            if ((listen_ctx_dgram.fd = socket_u) != -1) {
-                init_udprelay(&listen_ctx_dgram);
-            }
-        }
-
-        if (callback != NULL) {
-            callback(socket, socket_u, data);
-        }
-
-        if (conf->mode == UDP_ONLY) {
-            LOGI("TCP relay disabled");
-        }
-
-        // Handle additional TOS/DSCP listening ports
-        if (*dscp != NULL) {
-            listen_ctx_current      = listen_ctx;
-            local_port              = (*dscp)->port;
-            listen_ctx_current.tos  = (*dscp)->dscp << 2;
-        }
-    } while (*(dscp++) != NULL);
-
-    // Init connections
-    cork_dllist_init(&connections);
-
-    // start ev loop
-    ev_run(loop, 0);
-
-    if (verbose) {
-        LOGI("closed gracefully");
-    }
-
-    if (plugin_enabled)
-        stop_plugin();
-
-    if (conf->mode != UDP_ONLY) {
-        ev_io_stop(loop, &listen_ctx.io);
-        free_connections(loop);
-
-        for (i = 0; i < listen_ctx.remote_num; i++) {
-            remote_cnf_t *remote_cnf = listen_ctx.remotes[i];
-            if (remote_cnf != NULL) {
-                ss_free(listen_ctx.remotes[i]);
-            }
-        }
-        ss_free(listen_ctx.remotes);
-    }
-
-    if (conf->mode != TCP_ONLY) {
-        free_udprelay(loop);
-    }
-
-#ifdef __MINGW32__
-    winsock_cleanup();
-#endif
-
-    return ret_val;
+    return start_relay(conf, NULL, NULL);
 }
 
 #ifndef LIB_ONLY
@@ -1059,9 +738,15 @@ main(int argc, char **argv)
     }
 #endif
 
-    ret_val = new_shadowsocks(module_local, &conf);
-
-    return ret_val;
+    no_delay   = conf.no_delay;
+    fast_open  = conf.fast_open;
+    verbose    = conf.verbose;
+    ipv6first  = conf.ipv6_first;
+    remote_dns = conf.remote_dns;
+#ifdef __ANDROID__
+    stat_path  = conf.stat_path;
+#endif
+    return new_shadowsocks(module_local, &conf);
 }
 
 #endif
