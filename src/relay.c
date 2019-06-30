@@ -689,10 +689,12 @@ start_relay(jconf_t *conf,
         LOGI("disabled remote domain resolution");
     }
 
+#ifndef MODULE_TUNNEL
     if (conf->acl != NULL) {
         LOGI("initializing acl...");
         acl = !init_acl(conf);
     }
+#endif
 
 #ifdef HAVE_SETRLIMIT
     /*
