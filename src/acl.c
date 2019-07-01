@@ -161,8 +161,9 @@ init_acl(jconf_t *conf)
                             char *tag = NULL;
                             while ((tag = strtok(NULL, sep))) {
                                 for (int i = 0; i < conf->remote_num; i++) {
+                                    char *tag_ = trim_whitespace(tag);
                                     char *rtag = trim_whitespace(conf->remotes[i]->tag);
-                                    if (rtag != NULL && strcmp(trim_whitespace(tag), rtag) == 0) {
+                                    if (rtag != NULL && strcmp(tag_, rtag) == 0) {
                                         remote_idxs = ss_realloc(remote_idxs,
                                                       (remote_num + 1) * sizeof(*remote_idxs));
                                         remote_idxs[remote_num++] = i;

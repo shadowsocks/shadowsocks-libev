@@ -376,94 +376,63 @@ get_sockaddr_r(const char *node,
 {
     if (storage == NULL)
         return -1;
-    struct cork_ip ip;
-    uint16_t _port = elvis(port, service ? htons(atoi(service)) : 0);
-    if (cork_ip_init(&ip, node) != -1) {
-        switch (ip.version) {
-            case 4: {
-                struct sockaddr_in *addr
-                                 = (struct sockaddr_in *)storage;
-                addr->sin_family = AF_INET;
-                memcpy(&addr->sin_addr, &ip.ip.v4, sizeof(ip.ip.v4));
-                addr->sin_port   = _port;
-            } break;
-            case 6: {
-                struct sockaddr_in6 *addr
-                                  = (struct sockaddr_in6 *)storage;
-                addr->sin6_family = AF_INET;
-                memcpy(&addr->sin6_addr, &ip.ip.v6, sizeof(ip.ip.v6));
-                addr->sin6_port   = _port;
-            } break;
-            default:
-                return -1;
-        }
-        return 0;
-    } else if (resolv) {
+
 #ifdef __ANDROID__
-        extern int vpn;
-        assert(!vpn);   // DNS packet protection isn't supported yet
+    extern int vpn;
+    assert(!vpn);   // DNS packet protection isn't supported yet
 #endif
-        struct addrinfo hints = {
-            .ai_family = AF_UNSPEC,                 /* Return IPv4 and IPv6 choices */
-            .ai_flags  = AI_PASSIVE | AI_ADDRCONFIG /* For wildcard IP address */
-        };
-        struct addrinfo *result, *rp;
+    struct addrinfo hints = {
+        .ai_family = AF_UNSPEC,                 /* Return IPv4 and IPv6 choices */
+        .ai_flags  = AI_PASSIVE | AI_ADDRCONFIG /* For wildcard IP address */
+    };
 
-        int err = getaddrinfo(node, service, &hints, &result);
+    if (!resolv)
+        hints.ai_flags |= AI_NUMERICHOST | AI_NUMERICSERV;
 
-        if (err != 0) {
-            LOGE("getaddrinfo: %s", gai_strerror(err));
-            return -1;
-        }
+    struct addrinfo *result, *rp;
 
-        int prefer_af = ipv6first ? AF_INET6 : AF_INET;
+    int err = getaddrinfo(node, service, &hints, &result);
+
+    if (err != 0) {
+        LOGE("getaddrinfo: %s", gai_strerror(err));
+        return -1;
+    }
+
+    int prefer_af = ipv6first ? AF_INET6 : AF_INET;
 again:
-        for (rp = result; rp != NULL; rp = rp->ai_next) {
-            if (prefer_af ? rp->ai_family == prefer_af : true) {
-                storage->ss_family = rp->ai_family;
-                switch (rp->ai_family) {
-                    case AF_INET: {
-                        struct sockaddr_in *dst = (struct sockaddr_in *)storage;
-                        struct sockaddr_in *src = (struct sockaddr_in *)rp->ai_addr;
-                        dst->sin_addr = src->sin_addr;
-                        dst->sin_port = elvis(src->sin_port, _port);
-                    } break;
-                    case AF_INET6: {
-                        struct sockaddr_in6 *dst = (struct sockaddr_in6 *)storage;
-                        struct sockaddr_in6 *src = (struct sockaddr_in6 *)rp->ai_addr;
-                        dst->sin6_addr = src->sin6_addr;
-                        dst->sin6_port = elvis(src->sin6_port, _port);
-                    } break;
-                }
-                break;
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        if (prefer_af ? rp->ai_family == prefer_af : true) {
+            storage->ss_family = rp->ai_family;
+            switch (rp->ai_family) {
+                case AF_INET: {
+                    struct sockaddr_in *dst = (struct sockaddr_in *)storage;
+                    struct sockaddr_in *src = (struct sockaddr_in *)rp->ai_addr;
+                    dst->sin_addr = src->sin_addr;
+                    dst->sin_port = elvis(src->sin_port, port);
+                } break;
+                case AF_INET6: {
+                    struct sockaddr_in6 *dst = (struct sockaddr_in6 *)storage;
+                    struct sockaddr_in6 *src = (struct sockaddr_in6 *)rp->ai_addr;
+                    dst->sin6_addr = src->sin6_addr;
+                    dst->sin6_port = elvis(src->sin6_port, port);
+                } break;
             }
-        }
-
-        if (prefer_af && rp == NULL) {
-            prefer_af = 0;
-            goto again;
-        }
-
-        if (rp == NULL) {
-            LOGE("failed to resolve remote addr");
-            return -1;
-        }
-
-        freeaddrinfo(result);
-        return 0;
-    } else {
-        switch (storage->ss_family) {
-            default:
-            case AF_INET:
-                ((struct sockaddr_in *)storage)->sin_port = _port;
-                break;
-            case AF_INET6:
-                ((struct sockaddr_in6 *)storage)->sin6_port = _port;
             break;
         }
     }
 
-    return -1;
+    if (prefer_af && rp == NULL) {
+        prefer_af = 0;
+        goto again;
+    }
+
+    if (rp == NULL) {
+        LOGE("failed to resolve remote addr");
+        return -1;
+    }
+
+    freeaddrinfo(result);
+    return 0;
 }
 
 int

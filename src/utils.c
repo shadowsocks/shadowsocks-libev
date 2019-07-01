@@ -270,6 +270,9 @@ ss_is_ipv6addr(const char *addr)
 char *
 trim_whitespace(char *str)
 {
+    if (str == NULL)
+        return str;
+
     char *end;
 
     // Trim leading space

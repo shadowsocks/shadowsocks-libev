@@ -93,8 +93,8 @@ typedef struct listen_ctx {
     ev_timer stat_watcher;
 #endif
     struct cork_dllist_item entries;
-#endif
     struct ev_loop *loop;
+#endif
     struct sockaddr_storage *addr;
 } listen_ctx_t;
 
@@ -103,7 +103,7 @@ int protect_socket(int fd);
 int send_traffic_stat(uint64_t tx, uint64_t rx);
 #endif
 
-void init_udprelay(listen_ctx_t *listener);
+void init_udprelay(EV_P_ listen_ctx_t *listener);
 void free_udprelay(struct ev_loop *loop);
 
 #endif // _COMMON_H

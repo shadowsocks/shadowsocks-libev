@@ -764,7 +764,7 @@ CLEAN_UP:
 }
 
 void
-init_udprelay(listen_ctx_t *listener)
+init_udprelay(EV_P_ listen_ctx_t *listener)
 {
     if (listener->mtu > 0) {
         packet_size = listener->mtu - DGRAM_PKT_HDR_SIZE;
@@ -772,7 +772,7 @@ init_udprelay(listen_ctx_t *listener)
     }
 
     server_t *server = new_server(listener->fd, listener);
-    ev_io_start(listener->loop, &server->io);
+    ev_io_start(EV_A_ & server->io);
 }
 
 void

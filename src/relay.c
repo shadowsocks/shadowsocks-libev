@@ -748,7 +748,6 @@ start_relay(jconf_t *conf,
         .remote_num = conf->remote_num,
         .remotes    = ss_calloc(conf->remote_num, sizeof(remote_cnf_t *)),
         .timeout    = atoi(conf->timeout),
-        .loop       = loop
     };
 
 #ifdef MODULE_TUNNEL
@@ -883,7 +882,7 @@ start_relay(jconf_t *conf,
                 if (conf->fast_open)
                     set_fastopen_passive(socket);
                 ev_io_init(&listen_ctx_current.io, accept_cb, listen_ctx_current.fd, EV_READ);
-                ev_io_start(EV_A_ &listen_ctx_current.io);
+                ev_io_start(EV_A_ & listen_ctx_current.io);
             }
         }
 
@@ -892,7 +891,7 @@ start_relay(jconf_t *conf,
             listen_ctx_t listen_ctx_dgram = listen_ctx_current;
             int socket_u = bind_and_listen(storage, IPPROTO_UDP, &listen_ctx_dgram);
             if ((listen_ctx_dgram.fd = socket_u) != -1) {
-                init_udprelay(&listen_ctx_dgram);
+                init_udprelay(EV_A_ & listen_ctx_dgram);
             }
         }
 
@@ -913,7 +912,7 @@ start_relay(jconf_t *conf,
     } while (*(dscp++) != NULL);
 
 #elif MODULE_REMOTE
-    resolv_init(loop, conf->nameserver, conf->ipv6_first);
+    resolv_init(EV_A_ conf->nameserver, conf->ipv6_first);
     if (conf->nameserver != NULL)
         LOGI("using nameserver: %s", conf->nameserver);
     port_service_init();
@@ -1023,7 +1022,7 @@ start_relay(jconf_t *conf,
                 if (conf->fast_open)
                     set_fastopen_passive(socket);
                 ev_io_init(&listen_ctx.io, accept_cb, listen_ctx.fd, EV_READ);
-                ev_io_start(loop, &listen_ctx.io);
+                ev_io_start(EV_A_ & listen_ctx.io);
                 cork_dllist_add(&listeners, &listen_ctx.entries);
             }
         }
@@ -1033,7 +1032,7 @@ start_relay(jconf_t *conf,
             listen_ctx_t listen_ctx_dgram = listen_ctx;
             int socket_u = bind_and_listen(storage, IPPROTO_UDP, &listen_ctx_dgram);
             if ((listen_ctx_dgram.fd = socket_u) != -1) {
-                init_udprelay(&listen_ctx_dgram);
+                init_udprelay(EV_A_ & listen_ctx_dgram);
             }
         }
 

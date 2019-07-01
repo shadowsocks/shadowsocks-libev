@@ -467,7 +467,7 @@ parse_argopts(jconf_t *conf, int argc, char **argv)
         { GETOPT_VAL_PASSWORD,      jconf_type_string,
                                             required_argument,    &conf->password     },
         { GETOPT_VAL_HELP,          jconf_type_help,     no_argument,           NULL  },
-        { '?',                      jconf_type_unknown,  no_argument,           NULL  },
+        { '?',                      jconf_type_unknown,  -1,                    NULL  },
         { 0,                                         0,  no_argument,           NULL  }
     };
 
@@ -484,10 +484,11 @@ parse_argopts(jconf_t *conf, int argc, char **argv)
 
     opterr = 0;
 
-    int c;
+    int c, curind;
     int conf_parsed = 0;
 
 again:
+    curind = optind;
     while ((c = getopt_long(argc, argv,
                             short_options, long_options, NULL)) != -1)
     {
@@ -548,7 +549,8 @@ again:
                         default:
                         case jconf_type_unknown: {
                             // The option character is not recognized.
-                            LOGE("Unrecognized option: %s", optarg);
+                            LOGE("Unrecognized option: %s",
+                                 optopt ? (char []) { optopt } : argv[curind]);
                             opterr = 1;
                         } break;
                     }
