@@ -44,15 +44,16 @@
 #define AES128GCM               0
 #define AES192GCM               1
 #define AES256GCM               2
+#define SM4128GCM               3
 /*
  * methods above requires gcm context
  * methods below doesn't require it,
  * then we need to fake one
  */
-#define CHACHA20POLY1305IETF    3
+#define CHACHA20POLY1305IETF    4
 
 #ifdef FS_HAVE_XCHACHA20IETF
-#define XCHACHA20POLY1305IETF   4
+#define XCHACHA20POLY1305IETF   5
 #endif
 
 #define CHUNK_SIZE_LEN          2
@@ -108,6 +109,7 @@ const char *supported_aead_ciphers[AEAD_CIPHER_NUM] = {
     "aes-128-gcm",
     "aes-192-gcm",
     "aes-256-gcm",
+    "sm4-128-gcm",
     "chacha20-ietf-poly1305",
 #ifdef FS_HAVE_XCHACHA20IETF
     "xchacha20-ietf-poly1305"
@@ -121,6 +123,7 @@ static const char *supported_aead_ciphers_mbedtls[AEAD_CIPHER_NUM] = {
     "AES-128-GCM",
     "AES-192-GCM",
     "AES-256-GCM",
+    "SM4-128-GCM",
     CIPHER_UNSUPPORTED,
 #ifdef FS_HAVE_XCHACHA20IETF
     CIPHER_UNSUPPORTED
@@ -128,14 +131,14 @@ static const char *supported_aead_ciphers_mbedtls[AEAD_CIPHER_NUM] = {
 };
 
 static const int supported_aead_ciphers_nonce_size[AEAD_CIPHER_NUM] = {
-    12, 12, 12, 12,
+    12, 12, 12, 12, 12,
 #ifdef FS_HAVE_XCHACHA20IETF
     24
 #endif
 };
 
 static const int supported_aead_ciphers_key_size[AEAD_CIPHER_NUM] = {
-    16, 24, 32, 32,
+    16, 24, 32, 16, 32,
 #ifdef FS_HAVE_XCHACHA20IETF
     32
 #endif
@@ -177,7 +180,7 @@ aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
         // Otherwise, just use the mbedTLS one with crappy AES-NI.
     case AES192GCM:
     case AES128GCM:
-
+    case SM4128GCM:
         err = mbedtls_cipher_auth_encrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen, c, clen, c + mlen, tlen);
         *clen += tlen;
@@ -226,6 +229,7 @@ aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
         // Otherwise, just use the mbedTLS one with crappy AES-NI.
     case AES192GCM:
     case AES128GCM:
+    case SM4128GCM:
         err = mbedtls_cipher_auth_decrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen - tlen, p, plen, m + mlen - tlen, tlen);
         break;
