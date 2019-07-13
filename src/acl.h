@@ -29,6 +29,12 @@
 #include <ipset/ipset.h>
 #endif
 
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
+#include <ev.h>
+#endif
+
 #include "jconf.h"
 
 enum {
@@ -49,28 +55,39 @@ enum {
 } acl_types;
 
 typedef struct {
-    struct ip_set ipv4, ipv6;
+    struct ip_set ip;
     struct cork_dllist domain;
 } addrlist;
 
 typedef struct {
-    int remote_num;     // number of remote servers
-    int *remote_idxs;   // a list of indexes of remote servers
-    addrlist _;         // the delegation list for load-balancing
+    addrlist _;           // delegation list for load-balancing
+    cork_array(int) idxs; // a list of indexes of remote servers
 } delglist;
+
+typedef struct aclconf {
+    int mode, algo;
+    time_t interval;
+    struct cache *lists;
+    const char *path;
+    jconf_t *conf;
+} aclconf_t;
 
 typedef struct acl {
     int mode;
+    aclconf_t conf;
     addrlist blocklist;
     addrlist blacklist, whitelist;
     delglist **deleglist;
-    //addrlist **deleglist;
+    ev_timer watcher;
 } acl_t;
 
 int init_acl(jconf_t *conf);
-void free_acl(void);
+int search_acl(int atyp, const void *host, int type);
+
+void init_addrlist(addrlist *addrlist);
+void free_addrlist(addrlist *addrlist);
+void merge_addrlist(addrlist *dst, addrlist *src);
 void update_addrlist(addrlist *list, int atyp, const void *host);
 bool search_addrlist(addrlist *list, int atyp, const void *host);
-int search_acl(int atyp, const void *host, int type);
 
 #endif // _ACL_H

@@ -318,9 +318,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         case STAGE_STREAM: {
             remote = server->remote;
             buf    = remote->buf;
-
-            // Only timer the watcher if a valid connection is established
-            ev_timer_again(EV_A_ & server->recv_ctx->watcher);
         } break;
     }
 
@@ -387,7 +384,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             }
 
             if (destaddr.dname != NULL) {
-                if (acl && search_acl(ACL_ATYP_DOMAIN, destaddr.dname, ACL_BLOCKLIST)) {
+                if (destaddr.dname[destaddr.dname_len - 1] != 0) {
+                    destaddr.dname = ss_realloc(destaddr.dname, destaddr.dname_len + 1);
+                    destaddr.dname[destaddr.dname_len] = 0;
+                }
+
+                if (acl && search_acl(ACL_ATYP_DOMAIN, &(dname_t){ destaddr.dname_len, destaddr.dname }, ACL_BLOCKLIST)) {
                     if (verbose)
                         LOGI("blocking access to %s", destaddr.dname);
                     close_and_free_server(EV_A_ server);
@@ -399,7 +401,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
                 ev_io_stop(EV_A_ & server_recv_ctx->io);
 
-                query_t *query  = ss_calloc(1, sizeof(query_t));
+                query_t *query  = ss_malloc(sizeof(query_t));
                 query->server   = server;
                 query->hostname = destaddr.dname;
 
@@ -594,8 +596,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    ev_timer_again(EV_A_ & server->recv_ctx->watcher);
-
     ssize_t r = recv(remote->fd, server->buf->data, SOCKET_BUF_SIZE, 0);
 
     if (r == 0) {
@@ -714,9 +714,9 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         memset(&addr, 0, len);
         int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
         if (r == 0) {
-            if (verbose) {
-                LOGI("remote connected");
-            }
+            // connection connected, stop the request timeout timer
+            ev_timer_stop(EV_A_ & server->recv_ctx->watcher);
+
             remote_send_ctx->connected = 1;
 
             if (remote->buf->len == 0) {

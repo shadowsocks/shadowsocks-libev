@@ -55,6 +55,13 @@ struct cache {
     void (*free_cb)(void *key, void *element);  /**<Callback function to free cache entries */
 };
 
+#define cache_foreach(cache, entry, tmp)    \
+    if (HASH_COUNT((cache)->entries) > 0)   \
+        HASH_ITER(hh, (cache)->entries, (entry), (tmp))
+
+struct cache *
+new_cache(const size_t capacity,
+          void (*free_cb)(void *key, void *element));
 int cache_create(struct cache **dst, const size_t capacity,
                  void (*free_cb)(void *key, void *element));
 int cache_delete(struct cache *cache, int keep_data);

@@ -164,21 +164,21 @@ resolv_cb(struct sockaddr *addr, void *data)
 
 #elif defined MODULE_REDIR
 static int
-create_tproxy(struct sockaddr_storage *addr, struct sockaddr_storage *destaddr)
+create_tproxy(struct sockaddr_storage *destaddr)
 {
-    int sourcefd = socket(addr->ss_family, SOCK_DGRAM, 0);
+    int sourcefd = socket(destaddr->ss_family, SOCK_DGRAM, 0);
     if (sourcefd < 0) {
         return -1;
     }
 
     int opt = 1;
-    if (setsockopt(sourcefd,
-                   addr->ss_family == AF_INET6 ? SOL_IPV6 : SOL_IP,
+    if (setsockopt(sourcefd, destaddr->ss_family == AF_INET6 ? SOL_IPV6 : SOL_IP,
                    IP_TRANSPARENT, &opt, sizeof(opt)))
     {
         close(sourcefd);
         return -1;
     }
+
     if (setsockopt(sourcefd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
         close(sourcefd);
         return -1;
@@ -187,12 +187,12 @@ create_tproxy(struct sockaddr_storage *addr, struct sockaddr_storage *destaddr)
     // Set QoS flag
     int tos = 46;
     setsockopt(sourcefd,
-               addr->ss_family == AF_INET6 ? IPPROTO_IP: IPPROTO_IPV6,
+               destaddr->ss_family == AF_INET6 ? IPPROTO_IP: IPPROTO_IPV6,
                IP_TOS, &tos, sizeof(tos));
 #endif
 
     if (bind(sourcefd, (struct sockaddr *)destaddr,
-             get_sockaddr_len((struct sockaddr *)&destaddr)) != 0)
+             get_sockaddr_len((struct sockaddr *)destaddr)) != 0)
     {
         ERROR("[udp] remote_recv_bind");
         close(sourcefd);
@@ -422,7 +422,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #endif
 
 #ifdef MODULE_REDIR
-    int sourcefd = create_tproxy(remote->src_addr, remote->destaddr);
+    int sourcefd = create_tproxy(remote->destaddr);
     if (sourcefd < 0) {
         ERROR("[udp] remote_recv_socket");
         goto CLEAN_UP;
@@ -502,8 +502,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     };
 
     struct msghdr msg = {
-        .msg_name       = destaddr->addr,
-        .msg_namelen    = sizeof(*destaddr->addr),
+        .msg_name       = src_addr,
+        .msg_namelen    = sizeof(*src_addr),
         .msg_control    = control_buffer,
         .msg_controllen = sizeof(control_buffer),
         .msg_iov        = iov,
@@ -516,13 +516,14 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     }
 
+    destaddr->addr = ss_calloc(1, sizeof(*destaddr->addr));
     if (getdestaddr_dgram(&msg, destaddr->addr)) {
         LOGE("[udp] unable to determine destination address");
         goto CLEAN_UP;
     }
 
 #else
-    socklen_t src_addr_len = sizeof(&src_addr);
+    socklen_t src_addr_len = sizeof(*src_addr);
     ssize_t r = recvfrom(server->fd, buf->data, buf_size,
                          0, (struct sockaddr *)src_addr, &src_addr_len);
 
@@ -575,6 +576,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     if (destaddr->dname != NULL) {
+        if (destaddr->dname[destaddr->dname_len - 1] != 0) {
+            destaddr->dname = ss_realloc(destaddr->dname, destaddr->dname_len + 1);
+            destaddr->dname[destaddr->dname_len] = 0;
+        }
+
         if (acl && search_acl(ACL_ATYP_DOMAIN,
                               &(dname_t) { destaddr->dname_len, destaddr->dname }, ACL_BLOCKLIST))
         {
@@ -738,8 +744,9 @@ bailed: {
         remote->crypto = crypto;
         remote_addr = remote_cnf->addr;
     } else {
-        remote_addr = elvis(destaddr->addr, ss_calloc(1, sizeof(*remote_addr)));
-        if (destaddr->dname &&
+        remote_addr = destaddr->addr;
+        if (destaddr->dname && !remote_addr &&
+            (remote_addr = ss_calloc(1, sizeof(*remote_addr))) &&
             get_sockaddr_r(destaddr->dname, NULL,
                            destaddr->port, remote_addr, 1, ipv6first) == -1)
         {

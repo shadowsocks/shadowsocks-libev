@@ -477,18 +477,16 @@ parse_argopts(jconf_t *conf, int argc, char **argv)
         {
             char optstr[3] = { [0] = option->name,
                                [1] = option->has_arg == required_argument ? ':' : 0 };
-            short_options = ss_realloc(short_options, strlen(short_options) + strlen(optstr));
+            short_options = ss_realloc(short_options, strlen(short_options) + strlen(optstr) + 1);
             strcat(short_options, optstr);
         }
     }
 
-    opterr = 0;
-
-    int c, curind;
+    int c;
     int conf_parsed = 0;
 
 again:
-    curind = optind;
+    opterr = 0;
     while ((c = getopt_long(argc, argv,
                             short_options, long_options, NULL)) != -1)
     {
@@ -547,17 +545,15 @@ again:
                         } break;
                         case jconf_type_config: break;
                         default:
-                        case jconf_type_unknown: {
+                        case jconf_type_unknown:
                             // The option character is not recognized.
-                            LOGE("Unrecognized option: %s",
-                                 optopt ? (char []) { optopt } : argv[curind]);
-                            opterr = 1;
-                        } break;
+                            LOGE("Unrecognized option: %s", argv[optind - 1]);
+                            return -1;
                     }
                 }
                 break;
             }
         }
     }
-    return opterr;
+    return 0;
 }

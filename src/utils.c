@@ -49,7 +49,7 @@
 #include <sys/resource.h>
 #endif
 
-#define INT_DIGITS 19           /* enough for 64 bit integer */
+#define INT_DIGITS 19 /* enough for 64 bit integer */
 
 int use_tty = 0;
 int use_syslog = 0;
@@ -60,25 +60,29 @@ ss_itoa(int i)
 {
     /* Room for INT_DIGITS digits, - and '\0' */
     static char buf[INT_DIGITS + 2];
-    char *p = buf + INT_DIGITS + 1;     /* points to terminating '\0' */
-    if (i >= 0) {
-        do {
+    char *p = buf + INT_DIGITS + 1; /* points to terminating '\0' */
+    if (i >= 0)
+    {
+        do
+        {
             *--p = '0' + (i % 10);
-            i   /= 10;
+            i /= 10;
         } while (i != 0);
         return p;
-    } else {                     /* i < 0 */
-        do {
+    }
+    else
+    { /* i < 0 */
+        do
+        {
             *--p = '0' - (i % 10);
-            i   /= 10;
+            i /= 10;
         } while (i != 0);
         *--p = '-';
     }
     return p;
 }
 
-int
-ss_isnumeric(const char *s)
+int ss_isnumeric(const char *s)
 {
     if (!s || !*s)
         return 0;
@@ -90,15 +94,16 @@ ss_isnumeric(const char *s)
 /*
  * setuid() and setgid() for a specified user.
  */
-int
-run_as(const char *user)
+int run_as(const char *user)
 {
 #ifndef __MINGW32__
-    if (user[0]) {
+    if (user[0])
+    {
         /* Convert user to a long integer if it is a non-negative number.
          * -1 means it is a user name. */
         long uid = -1;
-        if (ss_isnumeric(user)) {
+        if (ss_isnumeric(user))
+        {
             errno = 0;
             char *endptr;
             uid = strtol(user, &endptr, 10);
@@ -112,18 +117,21 @@ run_as(const char *user)
         size_t buflen;
         int err;
 
-        for (buflen = 128;; buflen *= 2) {
-            char buf[buflen];  /* variable length array */
+        for (buflen = 128;; buflen *= 2)
+        {
+            char buf[buflen]; /* variable length array */
 
             /* Note that we use getpwnam_r() instead of getpwnam(),
              * which returns its result in a statically allocated buffer and
              * cannot be considered thread safe. */
             err = uid >= 0 ? getpwuid_r((uid_t)uid, &pwdbuf, buf, buflen, &pwd)
-                  : getpwnam_r(user, &pwdbuf, buf, buflen, &pwd);
+                           : getpwnam_r(user, &pwdbuf, buf, buflen, &pwd);
 
-            if (err == 0 && pwd) {
+            if (err == 0 && pwd)
+            {
                 /* setgid first, because we may not be allowed to do it anymore after setuid */
-                if (setgid(pwd->pw_gid) != 0) {
+                if (setgid(pwd->pw_gid) != 0)
+                {
                     LOGE(
                         "Could not change group id to that of run_as user '%s': %s",
                         pwd->pw_name, strerror(errno));
@@ -131,28 +139,37 @@ run_as(const char *user)
                 }
 
 #ifndef __CYGWIN__
-                if (initgroups(pwd->pw_name, pwd->pw_gid) == -1) {
+                if (initgroups(pwd->pw_name, pwd->pw_gid) == -1)
+                {
                     LOGE("Could not change supplementary groups for user '%s'.", pwd->pw_name);
                     return 0;
                 }
 #endif
 
-                if (setuid(pwd->pw_uid) != 0) {
+                if (setuid(pwd->pw_uid) != 0)
+                {
                     LOGE(
                         "Could not change user id to that of run_as user '%s': %s",
                         pwd->pw_name, strerror(errno));
                     return 0;
                 }
                 break;
-            } else if (err != ERANGE) {
-                if (err) {
+            }
+            else if (err != ERANGE)
+            {
+                if (err)
+                {
                     LOGE("run_as user '%s' could not be found: %s", user,
                          strerror(err));
-                } else {
+                }
+                else
+                {
                     LOGE("run_as user '%s' could not be found.", user);
                 }
                 return 0;
-            } else if (buflen >= 16 * 1024) {
+            }
+            else if (buflen >= 16 * 1024)
+            {
                 /* If getpwnam_r() seems defective, call it quits rather than
                  * keep on allocating ever larger buffers until we crash. */
                 LOGE(
@@ -166,21 +183,25 @@ run_as(const char *user)
         /* No getpwnam_r() :-(  We'll use getpwnam() and hope for the best. */
         struct passwd *pwd;
 
-        if (!(pwd = uid >= 0 ? getpwuid((uid_t)uid) : getpwnam(user))) {
+        if (!(pwd = uid >= 0 ? getpwuid((uid_t)uid) : getpwnam(user)))
+        {
             LOGE("run_as user %s could not be found.", user);
             return 0;
         }
         /* setgid first, because we may not allowed to do it anymore after setuid */
-        if (setgid(pwd->pw_gid) != 0) {
+        if (setgid(pwd->pw_gid) != 0)
+        {
             LOGE("Could not change group id to that of run_as user '%s': %s",
                  pwd->pw_name, strerror(errno));
             return 0;
         }
-        if (initgroups(pwd->pw_name, pwd->pw_gid) == -1) {
+        if (initgroups(pwd->pw_name, pwd->pw_gid) == -1)
+        {
             LOGE("Could not change supplementary groups for user '%s'.", pwd->pw_name);
             return 0;
         }
-        if (setuid(pwd->pw_uid) != 0) {
+        if (setuid(pwd->pw_uid) != 0)
+        {
             LOGE("Could not change user id to that of run_as user '%s': %s",
                  pwd->pw_name, strerror(errno));
             return 0;
@@ -200,7 +221,8 @@ ss_strndup(const char *s, size_t n)
     size_t len = strlen(s);
     char *ret;
 
-    if (len <= n) {
+    if (len <= n)
+    {
         return strdup(s);
     }
 
@@ -210,59 +232,7 @@ ss_strndup(const char *s, size_t n)
     return ret;
 }
 
-void *
-ss_malloc(size_t size)
-{
-    void *tmp = malloc(size);
-    if (tmp == NULL)
-        exit(EXIT_FAILURE);
-    return tmp;
-}
-
-void *
-ss_aligned_malloc(size_t size)
-{
-    int err;
-    void *tmp = NULL;
-#ifdef HAVE_POSIX_MEMALIGN
-    /* ensure 16 byte alignment */
-    err = posix_memalign(&tmp, 16, size);
-#elif __MINGW32__
-    tmp = _aligned_malloc(size, 16);
-    err = tmp == NULL;
-#else
-    err = -1;
-#endif
-    if (err) {
-        return ss_malloc(size);
-    } else {
-        return tmp;
-    }
-}
-
-void *
-ss_realloc(void *ptr, size_t new_size)
-{
-    void *new = realloc(ptr, new_size);
-    if (new == NULL) {
-        free(ptr);
-        ptr = NULL;
-        exit(EXIT_FAILURE);
-    }
-    return new;
-}
-
-void *
-ss_calloc(size_t num, size_t size)
-{
-    void *tmp = calloc(num, size);
-    if (tmp == NULL)
-        exit(EXIT_FAILURE);
-    return tmp;
-}
-
-int
-ss_is_ipv6addr(const char *addr)
+int ss_is_ipv6addr(const char *addr)
 {
     return strcmp(addr, ":") > 0;
 }
@@ -279,7 +249,7 @@ trim_whitespace(char *str)
     while (isspace((unsigned char)*str))
         str++;
 
-    if (*str == 0)   // All spaces?
+    if (*str == 0) // All spaces?
         return str;
 
     // Trim trailing space
@@ -293,8 +263,7 @@ trim_whitespace(char *str)
     return str;
 }
 
-void
-usage()
+void usage()
 {
     printf("\n");
     printf("shadowsocks-libev %s\n\n", VERSION);
@@ -432,8 +401,7 @@ usage()
     printf("\n");
 }
 
-void
-daemonize(const char *path)
+void daemonize(const char *path)
 {
 #ifndef __MINGW32__
     /* Our process ID and Session ID */
@@ -441,15 +409,18 @@ daemonize(const char *path)
 
     /* Fork off the parent process */
     pid = fork();
-    if (pid < 0) {
+    if (pid < 0)
+    {
         exit(EXIT_FAILURE);
     }
 
     /* If we got a good PID, then
      * we can exit the parent process. */
-    if (pid > 0) {
+    if (pid > 0)
+    {
         FILE *file = fopen(path, "w");
-        if (file == NULL) {
+        if (file == NULL)
+        {
             FATAL("Invalid pid file\n");
         }
 
@@ -465,23 +436,28 @@ daemonize(const char *path)
 
     /* Create a new SID for the child process */
     sid = setsid();
-    if (sid < 0) {
+    if (sid < 0)
+    {
         /* Log the failure */
         exit(EXIT_FAILURE);
     }
 
     /* Change the current working directory */
-    if ((chdir("/")) < 0) {
+    if ((chdir("/")) < 0)
+    {
         /* Log the failure */
         exit(EXIT_FAILURE);
     }
 
     int dev_null = open("/dev/null", O_WRONLY);
-    if (dev_null) {
+    if (dev_null)
+    {
         /* Redirect to null device  */
         dup2(dev_null, STDOUT_FILENO);
         dup2(dev_null, STDERR_FILENO);
-    } else {
+    }
+    else
+    {
         /* Close the standard file descriptors */
         close(STDOUT_FILENO);
         close(STDERR_FILENO);
@@ -495,24 +471,30 @@ daemonize(const char *path)
 }
 
 #ifdef HAVE_SETRLIMIT
-int
-set_nofile(int nofile)
+int set_nofile(int nofile)
 {
-    struct rlimit limit = { nofile, nofile }; /* set both soft and hard limit */
+    struct rlimit limit = {nofile, nofile}; /* set both soft and hard limit */
 
-    if (nofile <= 0) {
+    if (nofile <= 0)
+    {
         FATAL("nofile must be greater than 0\n");
     }
 
-    if (setrlimit(RLIMIT_NOFILE, &limit) < 0) {
-        if (errno == EPERM) {
+    if (setrlimit(RLIMIT_NOFILE, &limit) < 0)
+    {
+        if (errno == EPERM)
+        {
             LOGE(
                 "insufficient permission to change NOFILE, not starting as root?");
             return -1;
-        } else if (errno == EINVAL) {
+        }
+        else if (errno == EINVAL)
+        {
             LOGE("invalid nofile, decrease nofile and try again");
             return -1;
-        } else {
+        }
+        else
+        {
             LOGE("setrlimit failed: %s", strerror(errno));
             return -1;
         }
@@ -526,23 +508,25 @@ set_nofile(int nofile)
 size_t
 readoff_from(char **content, const char *file)
 {
-    FILE *f = strcmp(file, "-") == 0 ?
-              stdin : fopen(file, "r");
-    if (f == NULL) {
+    FILE *f = strcmp(file, "-") == 0 ? stdin : fopen(file, "r");
+    if (f == NULL)
+    {
         FATAL("Invalid file path %s", file);
     }
 
     size_t pos = 0;
     char buf[1024] = { 0 };
 
-    while (fgets(buf, sizeof(buf), f)) {
+    while (fgets(buf, sizeof(buf), f))
+    {
         size_t len = strlen(buf);
         *content = ss_realloc(*content, pos + len);
         strncpy(*content + pos, buf, len);
         pos += len;
     }
 
-    if (ferror(f)) {
+    if (ferror(f))
+    {
         FATAL("Failed to read the file.")
     }
 
@@ -557,22 +541,27 @@ get_default_conf(void)
 #ifndef __MINGW32__
     static char sysconf[] = "/etc/shadowsocks-libev/config.json";
     static char *userconf = NULL;
-    static int buf_size   = 0;
+    static int buf_size = 0;
     char *conf_home;
 
     conf_home = getenv("XDG_CONFIG_HOME");
 
     // Memory of userconf only gets allocated once, and will not be
     // freed. It is used as static buffer.
-    if (!conf_home) {
-        if (buf_size == 0) {
+    if (!conf_home)
+    {
+        if (buf_size == 0)
+        {
             buf_size = 50 + strlen(getenv("HOME"));
             userconf = malloc(buf_size);
         }
         snprintf(userconf, buf_size, "%s%s", getenv("HOME"),
                  "/.config/shadowsocks-libev/config.json");
-    } else {
-        if (buf_size == 0) {
+    }
+    else
+    {
+        if (buf_size == 0)
+        {
             buf_size = 50 + strlen(conf_home);
             userconf = malloc(buf_size);
         }
@@ -589,4 +578,44 @@ get_default_conf(void)
 #else
     return "config.json";
 #endif
+}
+
+/**
+ * strtotime
+ * ---------------------
+ * Convert a string to a time value in seconds.
+ * written by Thomas Moestl.
+   rewritten in C from scratch by Paul A. Rombouts
+ *
+ */
+time_t
+strtotime(char *str)
+{
+    time_t retval = 0, t;
+    char c;
+
+    while (isalnum(c = *str))
+    {
+        if (!isdigit(c))
+            break;
+
+        t = strtol(str, &str, 10);
+
+        struct { char c; time_t t; } tmtable[] = {
+            { 's',  1 }, { 'm', 60 }, { 'h', 60 },
+            { 'd', 24 }, { 'w',  7 }
+        };
+
+        if (isalpha(c = *str))
+        {
+            for (int i = 0; i < nelem(tmtable) && tmtable[i++].c != c;) {
+                t *= tmtable[i].t;
+            }
+            ++str;
+        }
+
+        retval += t;
+    }
+
+    return retval;
 }

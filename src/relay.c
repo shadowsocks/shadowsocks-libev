@@ -74,11 +74,9 @@ static int server_conn = 0;
 static char *manager_addr = NULL;
 static struct cork_dllist listeners;
 extern uint64_t tx, rx;
-
 #ifndef __MINGW32__
 ev_timer stat_watcher;
 #endif
-
 #endif
 static struct cork_dllist connections;
 
@@ -216,18 +214,17 @@ bailed: {
         create_ssocks_header(server->abuf, destaddr);
         return init_remote(EV_A_ remote, listen_ctx->remotes[remote_idx]);
     } else {
-        struct sockaddr_storage *addr
-                = elvis(destaddr->addr, ss_calloc(1, sizeof(*addr)));
-        if (destaddr->dname &&
+        if (destaddr->dname && !destaddr->addr &&
+            (destaddr->addr = ss_calloc(1, sizeof(*destaddr->addr))) &&
             get_sockaddr_r(destaddr->dname, NULL,
-                           destaddr->port, addr, 1, ipv6first) == -1)
+                           destaddr->port, destaddr->addr, 1, ipv6first) == -1)
         {
             remote->direct = 0;
             LOGE("failed to resolve %s", destaddr->dname);
             goto bailed;
         }
 
-        return init_remote(EV_A_ remote, &(remote_cnf_t) { .addr = addr, .iface = listen_ctx->iface });
+        return init_remote(EV_A_ remote, &(remote_cnf_t) { .addr = destaddr->addr, .iface = listen_ctx->iface });
     }
     return 0;
 }
@@ -372,7 +369,7 @@ new_server(int fd, listen_ctx_t *listener)
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
     ev_timer_init(&server->recv_ctx->watcher, server_timeout_cb,
-                  request_timeout, listener->timeout);
+                  request_timeout, 0);
 
     cork_dllist_add(&connections, &server->entries);
 
@@ -657,13 +654,6 @@ start_relay(jconf_t *conf,
         return -1;
     }
 
-#ifndef HAVE_LAUNCHD
-    if (conf->local_port == NULL) {
-        conf->local_port = "0";
-        LOGE("warning: random local port will be assigned");
-    }
-#endif
-
     if (conf->log) {
         USE_LOGFILE(conf->log);
         LOGI("enabled %slogging %s", conf->verbose ? "verbose " : "", conf->log);
@@ -685,9 +675,6 @@ start_relay(jconf_t *conf,
         LOGI("prioritized IPv6 addresses in domain resolution");
     }
 
-    if (!conf->remote_dns) {
-        LOGI("disabled remote domain resolution");
-    }
 
 #ifndef MODULE_TUNNEL
     if (conf->acl != NULL) {
@@ -741,6 +728,18 @@ start_relay(jconf_t *conf,
     // Setup proxy context
     struct ev_loop *loop = EV_DEFAULT;
 #ifdef MODULE_LOCAL
+
+#ifndef HAVE_LAUNCHD
+    if (conf->local_port == NULL) {
+        conf->local_port = "0";
+        LOGE("warning: random local port will be assigned");
+    }
+#endif
+
+    if (!conf->remote_dns) {
+        LOGI("disabled remote domain resolution");
+    }
+
     listen_ctx_t listen_ctx = {
         .mtu        = conf->mtu,
         .mptcp      = conf->mptcp,
@@ -1056,18 +1055,28 @@ start_relay(jconf_t *conf,
     if (conf->mode != UDP_ONLY) {
         ev_io_stop(EV_A_ & listen_ctx.io);
         free_connections(loop);
+    }
 
+    if (listen_ctx.remotes != NULL) {
         for (int i = 0; i < listen_ctx.remote_num; i++) {
             remote_cnf_t *remote_cnf = listen_ctx.remotes[i];
             if (remote_cnf != NULL) {
-                ss_free(listen_ctx.remotes[i]);
+                if (remote_cnf->iface)
+                    ss_free(remote_cnf->iface);
+                // TODO: hey yo! free() the whole struct, pls
+                if (remote_cnf->crypto)
+                    ss_free(remote_cnf->crypto);
+                if (remote_cnf->addr)
+                    ss_free(remote_cnf->addr);
+                ss_free(remote_cnf);
             }
         }
         ss_free(listen_ctx.remotes);
     }
+
 #elif MODULE_REMOTE
 #ifndef __MINGW32__
-    if (manager_addr != NULL) {
+    if (conf->manager_addr) {
         ev_timer_stop(EV_A_ & stat_watcher);
     }
 #endif
@@ -1078,12 +1087,15 @@ start_relay(jconf_t *conf,
     }
 #endif
 
-    if (plugin_enabled)
-        stop_plugin();
-
     if (conf->mode != TCP_ONLY) {
         free_udprelay(loop);
     }
+
+    if (plugin_enabled)
+        stop_plugin();
+
+    if (conf->log)
+        CLOSE_LOGFILE();
 
 #ifdef __MINGW32__
     winsock_cleanup();

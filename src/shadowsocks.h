@@ -100,7 +100,6 @@ new_ssocks_addr()
 {
     ssocks_addr_t *destaddr
                     = ss_calloc(1, sizeof(*destaddr));
-    destaddr->dname = ss_calloc(1, MAX_HOSTNAME_LEN * sizeof(*destaddr->dname));
     destaddr->addr  = ss_calloc(1, sizeof(*destaddr->addr));
     return destaddr;
 }
@@ -175,13 +174,13 @@ parse_ssocks_header(buffer_t *buf, ssocks_addr_t *destaddr, int offset)
         } break;
         case SSOCKS_ATYP_DOMAIN: {
             size_t dname_len = *(uint8_t *)(buf->data + offset);
-            char *dname = ss_calloc(dname_len, sizeof(char));
             if (buf->len < dname_len + 1 + offset) {
                 return -1;
-            } else {
-                memcpy(dname, buf->data + offset + 1, dname_len);
-                offset += dname_len + 1;
             }
+
+            char *dname = ss_malloc(dname_len);
+            memcpy(dname, buf->data + offset + 1, dname_len);
+            offset += dname_len + 1;
 
             destaddr->port = *(uint16_t *)(buf->data + offset);
 

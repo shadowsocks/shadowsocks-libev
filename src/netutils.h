@@ -105,6 +105,10 @@
 #define MAX_HOSTNAME_LEN 256 // FQCN <= 255 characters
 #define MAX_PORT_STR_LEN 6   // PORT < 65536
 
+#ifndef BUF_SIZE
+#define BUF_SIZE 65535
+#endif
+
 #define SOCKET_BUF_SIZE (16 * 1024 - 1) // 16383 Byte, equals to the max chunk size
 #define STREAM_BUF_SIZE SOCKET_BUF_SIZE
 
@@ -194,13 +198,17 @@ static const char mptcp_enabled_values[] = { MPTCP_ENABLED, 0 };
 #define get_sockaddr(node, service, storage, resolv, ipv6first) \
         get_sockaddr_r(node, service, 0, storage, resolv, ipv6first)
 
-socklen_t get_sockaddr_len(struct sockaddr *addr);
+#define get_sockaddr_len(addr) \
+    (addr)->sa_family == AF_INET  ? sizeof(struct sockaddr_in)  :    \
+    (addr)->sa_family == AF_INET6 ? sizeof(struct sockaddr_in6) : 0
+
 int get_sockaddr_r(const char *, const char *,
                    uint16_t, struct sockaddr_storage *, int, int);
 int get_sockaddr_str(struct sockaddr_storage *storage,
                      char *host, char *port);
 char *sockaddr_readable(char *format, struct sockaddr_storage *addr);
 
+int tproxy_socket(int socket, int family);
 int getdestaddr(int fd, struct sockaddr_storage *destaddr);
 int getdestaddr_dgram(struct msghdr *msg, struct sockaddr_storage *destaddr);
 

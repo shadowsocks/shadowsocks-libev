@@ -35,6 +35,15 @@
 #include "cache.h"
 #include "utils.h"
 
+struct cache *
+new_cache(const size_t capacity,
+          void (*free_cb)(void *key, void *element))
+{
+    struct cache *ret = NULL;
+    cache_create(&ret, capacity, free_cb);
+    return ret;
+}
+
 /** Creates a new cache object
  *
  *  @param dst
@@ -88,7 +97,7 @@ cache_delete(struct cache *cache, int keep_data)
     if (keep_data) {
         HASH_CLEAR(hh, cache->entries);
     } else {
-        HASH_ITER(hh, cache->entries, entry, tmp){
+        HASH_ITER(hh, cache->entries, entry, tmp) {
             HASH_DEL(cache->entries, entry);
             if (entry->data != NULL) {
                 if (cache->free_cb) {
@@ -127,7 +136,7 @@ cache_clear(struct cache *cache, ev_tstamp age)
 
     ev_tstamp now = ev_time();
 
-    HASH_ITER(hh, cache->entries, entry, tmp){
+    HASH_ITER(hh, cache->entries, entry, tmp) {
         if (now - entry->ts > age) {
             HASH_DEL(cache->entries, entry);
             if (entry->data != NULL) {
@@ -203,7 +212,7 @@ cache_remove(struct cache *cache, void *key, size_t key_len)
  *  you have to call this function with a **ptr,
  *  otherwise this will blow up in your face.
  *
- *  @return EINVAL if cache is NULL, 0 otherwise
+ *  @return EINVAL if cache is NULL or the key doesn't exist, 0 otherwise
  */
 int
 cache_lookup(struct cache *cache, void *key, size_t key_len, void *result)

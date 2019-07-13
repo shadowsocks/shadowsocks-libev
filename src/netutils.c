@@ -102,15 +102,33 @@ set_fastopen_passive(int socket)
     return s;
 }
 
-socklen_t
-get_sockaddr_len(struct sockaddr *addr)
+int
+tproxy_socket(int socket, int family)
 {
-    if (addr->sa_family == AF_INET) {
-        return sizeof(struct sockaddr_in);
-    } else if (addr->sa_family == AF_INET6) {
-        return sizeof(struct sockaddr_in6);
+#if defined(IP_TRANSPARENT) && \
+    defined(IP_RECVORIGDSTADDR) && \
+    defined(IPV6_RECVORIGDSTADDR)
+    int opt = 1, err = -1;
+    if (setsockopt(socket, SOL_IP, IP_TRANSPARENT, &opt, sizeof(opt))) {
+        close(socket);
+        return err;
     }
-    return 0;
+
+    switch (family) {
+        case AF_INET:
+            err = setsockopt(socket, SOL_IP,
+                             IP_RECVORIGDSTADDR, &opt, sizeof(opt));
+            break;
+        case AF_INET6:
+            err = setsockopt(socket, SOL_IPV6,
+                             IPV6_RECVORIGDSTADDR, &opt, sizeof(opt));
+            break;
+    }
+
+    return err;
+#else
+    FATAL("transparent proxy not supported in this build");
+#endif
 }
 
 int
@@ -218,6 +236,13 @@ create_and_bind(struct sockaddr_storage *storage,
         if (protocol == IPPROTO_TCP
             && listen_ctx->mptcp) {
             set_mptcp(fd);
+        }
+#elif MODULE_REDIR
+        if (protocol == IPPROTO_UDP) {
+            if (tproxy_socket(fd, storage->ss_family)) {
+                ERROR("tproxy_socket");
+                FATAL("failed to enable transparent proxy");
+            }
         }
 #endif
     }
@@ -489,7 +514,7 @@ sockaddr_readable(char *format, struct sockaddr_storage *addr)
                         if (addr->ss_family == AF_INET6
                             && i + 1 < len && format[i + 1] == ':')
                         {
-                            substr = malloc(strlen(host) + 2);
+                            substr = malloc(strlen(host) + 2 + 1);
                             sprintf(substr, "[%s]", host);
                         } else {
                             substr = host;
@@ -509,7 +534,7 @@ sockaddr_readable(char *format, struct sockaddr_storage *addr)
         }
 
         size_t substrlen = strlen(substr);
-        ret = realloc(ret, strlen(ret) + substrlen);
+        ret = realloc(ret, strlen(ret) + substrlen + 1);
         strcat(ret, substr);
     }
     return ret;
@@ -616,7 +641,7 @@ validate_hostname(const char *hostname, const int hostname_len)
 char *
 hostname_readable(char *dname, uint16_t port)
 {
-    static char ret[] = { 0 };
+    char *ret = ss_calloc(strlen(dname) + MAX_PORT_STR_LEN, sizeof(*ret));
     sprintf(ret, "%s:%d", dname, ntohs(port));
     return ret;
 }

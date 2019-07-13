@@ -1,12 +1,42 @@
 # All IPs listed here will be blocked while the ss-server try to outbound.
 # Only IP is allowed, *NOT* domain name.
 #
-#[bypass_all]
+@mode bypass
 
 [bypass_list]
-127.0.0.1
-(^|\.)bing\.com$
+@import local.acl   # relative path
+@import $$
+    #!/bin/bash
+    arin() {
+        declare authority
+        declare country="$1" version="$2"
+        case ${country} in
+            "US"|"CA"|"PR")
+                authority='http://ftp.arin.net/pub/stats/arin/delegated-arin-extended-latest' ;;
+            *)  authority='http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest' ;;
+        esac
+        wget -qO- "${authority}" | grep "${version}" | grep "${country}" | awk -F'|' '{ printf("%s/%d\n", $4, 32-log($5)/log(2)) }'
+    }
+    # see: https://github.com/firehol/iprange/wiki#iprange
+    #arin CN | iprange      # optimized list of ip addresses
+$$                  # shell script
+
+#@import [barfoo]
+#@import [foo] from /etc/foo.acl /etc/barz.acl
+(^|\.)cn$
 
 [proxy_list: Seattle, WA]
-(^|\.)edu$
-(^|\.)google\.com$
+(^|\.)(edu|mil|gov|us)$
+
+[proxy_list: Netflix]
+#@match regex
+(^|\.)(netflix|nflxext)\.com$
+(^|\.)(nflxso|nflximg|nflxvideo)\.net$
+
+[proxy_list: La Jolla, CA]
+.*
+
+
+#[dname_map]
+#(^|\.)cdninstagram\.com     127.0.0.1
+#(^|\.)instagram\.com        facebook.com

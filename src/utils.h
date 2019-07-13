@@ -176,33 +176,20 @@ void ss_color_reset(void);
     exit(-1);                       \
 }
 
-char *ss_itoa(int i);
-int ss_isnumeric(const char *s);
 int run_as(const char *user);
 void usage(void);
 void daemonize(const char *path);
+
+char *ss_itoa(int i);
+int ss_isnumeric(const char *s);
 char *ss_strndup(const char *s, size_t n);
 #ifdef HAVE_SETRLIMIT
 int set_nofile(int nofile);
 #endif
 
-void *ss_malloc(size_t size);
-void *ss_aligned_malloc(size_t size);
-void *ss_realloc(void *ptr, size_t new_size);
-void *ss_calloc(size_t num, size_t size);
-
 #define ss_free(ptr) { \
     free(ptr); \
     ptr = NULL; \
-}
-
-static inline char *
-currtime_readable()
-{
-    time_t now = time(NULL);
-    static char timestr[20] = {};
-    strftime(timestr, 20, TIME_FORMAT, localtime(&now));
-    return timestr;
 }
 
 #ifdef __MINGW32__
@@ -214,10 +201,92 @@ currtime_readable()
 #define ss_aligned_free(ptr) ss_free(ptr)
 #endif
 
+inline void *
+ss_malloc(size_t size)
+{
+    void *tmp = malloc(size);
+    if (tmp == NULL)
+        exit(EXIT_FAILURE);
+    return tmp;
+}
+
+inline void *
+ss_aligned_malloc(size_t size)
+{
+    int err;
+    void *tmp = NULL;
+#ifdef HAVE_POSIX_MEMALIGN
+    /* ensure 16 byte alignment */
+    err = posix_memalign(&tmp, 16, size);
+#elif __MINGW32__
+    tmp = _aligned_malloc(size, 16);
+    err = tmp == NULL;
+#else
+    err = -1;
+#endif
+    return err ? ss_malloc(size) : tmp;
+}
+
+inline void *
+ss_realloc(void *ptr, size_t new_size)
+{
+    void *new = realloc(ptr, new_size);
+    if (new == NULL)
+    {
+        free(ptr);
+        ptr = NULL;
+        exit(EXIT_FAILURE);
+    }
+    return new;
+}
+
+inline void *
+ss_calloc(size_t num, size_t size)
+{
+    void *tmp = calloc(num, size);
+    if (tmp == NULL)
+        exit(EXIT_FAILURE);
+    return tmp;
+}
+
 int ss_is_ipv6addr(const char *addr);
 char *trim_whitespace(char *str);
 
+// file operations
+#define current_dir(path) \
+    realpath(dirname(strdup(path)), NULL)
+#define setcwd(path)    \
+    if (chdir(path) != 0)   \
+        ERROR("setcwd");
+
 size_t readoff_from(char **content, const char *file);
 char *get_default_conf(void);
+
+// time functions
+time_t strtotime(char *str);
+static inline char *
+currtime_readable()
+{
+    time_t now = time(NULL);
+    static char timestr[20] = {};
+    strftime(timestr, 20, TIME_FORMAT, localtime(&now));
+    return timestr;
+}
+
+// libcork extension functions
+#include <libcork/ds.h>
+
+#define cork_array_merge(dst, src) \
+    for (int i = 0; i < cork_array_size(src); i++) {    \
+        cork_array_append(dst, cork_array_at(src, i));  \
+    }
+
+inline void
+cork_dllist_merge(struct cork_dllist *dst, struct cork_dllist *src)
+{
+    struct cork_dllist_item *curr, *next;
+    cork_dllist_foreach_void(src, curr, next)
+        cork_dllist_add(dst, curr);
+}
 
 #endif // _UTILS_H

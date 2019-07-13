@@ -61,10 +61,6 @@
 #include "netutils.h"
 #include "manager.h"
 
-#ifndef BUF_SIZE
-#define BUF_SIZE 65535
-#endif
-
 int verbose          = 0;
 char *executable     = "ss-server";
 char *working_dir    = NULL;
