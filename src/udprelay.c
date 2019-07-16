@@ -691,7 +691,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     if (destaddr->dname_len <= 0 ||
-        !validate_hostname(destaddr->dname, destaddr->dname_len))
+        destaddr->dname_len >= MAX_HOSTNAME_LEN)
     {
         destaddr->dname = NULL;
     }
@@ -705,7 +705,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (verbose) {
         LOGI("%s %s", remote->direct ? "bypassing" : "connecting to",
-             destaddr->dname ? hostname_readable(destaddr->dname, destaddr->port)
+             destaddr->dname ? hostname_readable(destaddr->dname, destaddr->dname_len, destaddr->port)
                              : sockaddr_readable("%a:%p", destaddr->addr));
     }
 

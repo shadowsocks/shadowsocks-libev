@@ -601,48 +601,13 @@ sockaddr_cmp_addr(struct sockaddr_storage *addr1,
     }
 }
 
-int
-validate_hostname(const char *hostname, const int hostname_len)
-{
-    if (hostname == NULL)
-        return 0;
-
-    if (hostname_len < 1 || hostname_len > 255)
-        return 0;
-
-    if (hostname[0] == '.')
-        return 0;
-
-    const char *label = hostname;
-    while (label < hostname + hostname_len) {
-        size_t label_len = hostname_len - (label - hostname);
-        char *next_dot   = strchr(label, '.');
-        if (next_dot != NULL)
-            label_len = next_dot - label;
-
-        if (label + label_len > hostname + hostname_len)
-            return 0;
-
-        if (label_len > 63 || label_len < 1)
-            return 0;
-
-        if (label[0] == '-' || label[label_len - 1] == '-')
-            return 0;
-
-        if (strspn(label, valid_label_bytes) < label_len)
-            return 0;
-
-        label += label_len + 1;
-    }
-
-    return 1;
-}
-
 char *
-hostname_readable(char *dname, uint16_t port)
+hostname_readable(const char *dname,
+                  const int dname_len, uint16_t port)
 {
-    char *ret = ss_calloc(strlen(dname) + MAX_PORT_STR_LEN, sizeof(*ret));
-    sprintf(ret, "%s:%d", dname, ntohs(port));
+    size_t len = dname_len + MAX_PORT_STR_LEN;
+    char *ret = ss_calloc(len , sizeof(*ret));
+    snprintf(ret, len, "%.*s:%d", dname_len, dname, ntohs(port));
     return ret;
 }
 

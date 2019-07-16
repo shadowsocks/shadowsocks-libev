@@ -57,7 +57,7 @@
 #include "acl.h"
 #include "plugin.h"
 
-#include "relay.h"
+#include "tcprelay.h"
 
 extern int acl;
 extern int verbose;
@@ -183,7 +183,7 @@ create_remote(EV_P_ remote_t *remote, buffer_t *buf,
     if (destaddr->dname_len == -1) {
         return -1;
     } else if (destaddr->dname_len <= 0 ||
-               !validate_hostname(destaddr->dname, destaddr->dname_len))
+               destaddr->dname_len >= MAX_HOSTNAME_LEN)
     {
         destaddr->dname = NULL;
     }
@@ -197,7 +197,7 @@ create_remote(EV_P_ remote_t *remote, buffer_t *buf,
 
     if (verbose) {
         LOGI("%s %s", direct ? "bypassing" : "connecting to",
-             destaddr->dname ? hostname_readable(destaddr->dname, destaddr->port)
+             destaddr->dname ? hostname_readable(destaddr->dname, destaddr->dname_len, destaddr->port)
                              : sockaddr_readable("%a:%p", destaddr->addr));
     }
 

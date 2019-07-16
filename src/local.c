@@ -57,7 +57,7 @@
 #include "tls.h"
 #include "plugin.h"
 #include "winsock.h"
-#include "relay.h"
+#include "tcprelay.h"
 #include "acl.h"
 
 #ifndef LIB_ONLY

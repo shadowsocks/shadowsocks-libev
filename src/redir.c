@@ -49,7 +49,7 @@
 #include "utils.h"
 #include "common.h"
 #include "acl.h"
-#include "relay.h"
+#include "tcprelay.h"
 
 int verbose    = 0;
 int ipv6first  = 0;

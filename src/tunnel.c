@@ -54,7 +54,7 @@
 #include "utils.h"
 #include "plugin.h"
 #include "winsock.h"
-#include "relay.h"
+#include "tcprelay.h"
 
 int verbose = 0;
 int acl = 0;

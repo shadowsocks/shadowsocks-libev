@@ -55,7 +55,7 @@
 #include "acl.h"
 #include "plugin.h"
 #include "winsock.h"
-#include "relay.h"
+#include "tcprelay.h"
 
 #ifndef SSMAXCONN
 #define SSMAXCONN 1024

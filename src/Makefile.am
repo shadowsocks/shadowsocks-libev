@@ -42,7 +42,7 @@ common_src = utils.c \
              jconf.c \
              json.c \
              udprelay.c \
-             relay.c \
+             tcprelay.c \
              cache.c \
              netutils.c
 
@@ -101,7 +101,7 @@ ss_redir_SOURCES = utils.c \
                    netutils.c \
                    cache.c \
                    udprelay.c \
-                   relay.c \
+                   tcprelay.c \
                    redir.c \
                    $(crypto_src) \
                    $(plugin_src) \
@@ -122,5 +122,5 @@ include_HEADERS = shadowsocks.h
 
 noinst_HEADERS = acl.h crypto.h stream.h aead.h json.h netutils.h tls.h uthash.h \
                  cache.h http.h plugin.h resolv.h utils.h base64.h ppbloom.h \
-                 common.h jconf.h manager.h protocol.h rule.h socks5.h udprelay.h relay.h winsock.h
+                 common.h jconf.h manager.h protocol.h rule.h socks5.h udprelay.h tcprelay.h winsock.h
 EXTRA_DIST = ss-nat

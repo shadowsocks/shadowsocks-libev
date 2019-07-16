@@ -263,8 +263,7 @@ int sockaddr_cmp(struct sockaddr_storage *addr1,
 int sockaddr_cmp_addr(struct sockaddr_storage *addr1,
                       struct sockaddr_storage *addr2, socklen_t len);
 
-int validate_hostname(const char *hostname, const int hostname_len);
-char *hostname_readable(char *dname, uint16_t port);
+char *hostname_readable(const char *dname, const int dname_len, uint16_t port);
 
 int is_addr_loopback(const struct sockaddr *addr);
 

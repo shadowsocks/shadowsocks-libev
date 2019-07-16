@@ -20,8 +20,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _RELAY_H
-#define _RELAY_H
+#ifndef _TCP_RELAY_H
+#define _TCP_RELAY_H
 
 #include <time.h>
 

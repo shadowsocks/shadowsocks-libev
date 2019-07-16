@@ -34,7 +34,7 @@ set(SS_SHARED_SOURCES
         json.c
         cache.c
         netutils.c
-        relay.c
+        tcprelay.c
         )
 
 set(LIBSHADOWSOCKS_LIBEV_SOURCE

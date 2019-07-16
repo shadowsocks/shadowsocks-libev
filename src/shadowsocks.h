@@ -123,6 +123,8 @@ void free_ssocks_addr(ssocks_addr_t *destaddr)
  * parse_ssocks_header
  * create_ssocks_header
  *
+ * CAVEATS: The domain name is not null-terminated
+ *
  * / Pre-encryption //////////////////////
  * - Shadowsocks Request
  *   +------+----------+----------+----------+
@@ -182,32 +184,9 @@ parse_ssocks_header(buffer_t *buf, ssocks_addr_t *destaddr, int offset)
             memcpy(dname, buf->data + offset + 1, dname_len);
             offset += dname_len + 1;
 
+            destaddr->dname = dname;
+            destaddr->dname_len = dname_len;
             destaddr->port = *(uint16_t *)(buf->data + offset);
-
-            struct cork_ip ip;
-            if (cork_ip_init(&ip, dname) != -1) {
-                switch (ip.version) {
-                    case 4: {
-                        struct sockaddr_in *addr
-                                         = ss_calloc(1, sizeof(*addr));
-                        addr->sin_family = AF_INET;
-                        memcpy(&addr->sin_addr, &ip.ip.v4, sizeof(ip.ip.v4));
-                        addr->sin_port   = destaddr->port;
-                        destaddr->addr   = (struct sockaddr_storage *)addr;
-                    } break;
-                    case 6: {
-                        struct sockaddr_in6 *addr
-                                          = ss_calloc(1, sizeof(*addr));
-                        addr->sin6_family = AF_INET;
-                        memcpy(&addr->sin6_addr, &ip.ip.v6, sizeof(ip.ip.v6));
-                        addr->sin6_port   = destaddr->port;
-                        destaddr->addr    = (struct sockaddr_storage *)addr;
-                    } break;
-                }
-            } else {
-                destaddr->dname = dname;
-                destaddr->dname_len = dname_len;
-            }
         } break;
         case SSOCKS_ATYP_IPV6: {
             size_t in6_addr_len = sizeof(struct in_addr);
