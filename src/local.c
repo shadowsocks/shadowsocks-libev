@@ -230,6 +230,7 @@ launch_or_create(const char *addr, const char *port)
     int error = launch_activate_socket("Listeners", &fds, &cnt);
     if (error == 0) {
         if (cnt == 1) {
+            LOGI("listening through launchd");
             return fds[0];
         } else {
             FATAL("please don't specify multi entry");
@@ -240,7 +241,8 @@ launch_or_create(const char *addr, const char *port)
          *          in the caller's launchd.plist(5).
          */
         if (port == NULL) {
-            usage();
+            fprintf(stderr, "local_port is NULL and no valid launchd plist\n");
+            fprintf(stderr, "for launchd plist, refer to https://github.com/shadowsocks/shadowsocks-libev/pull/1003\n");
             exit(EXIT_FAILURE);
         }
         return create_and_bind(addr, port);
@@ -1901,7 +1903,10 @@ main(int argc, char **argv)
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
 #endif
 
-    if (ss_is_ipv6addr(local_addr))
+    if (!local_port)
+        // don't log if local_port is NULL (in launchd mode)
+        ;
+    else if (ss_is_ipv6addr(local_addr))
         LOGI("listening at [%s]:%s", local_addr, local_port);
     else
         LOGI("listening at %s:%s", local_addr, local_port);
@@ -1931,7 +1936,7 @@ main(int argc, char **argv)
     }
 
     // Setup UDP
-    if (mode != TCP_ONLY) {
+    if (mode != TCP_ONLY && local_port != NULL) {
         LOGI("udprelay enabled");
         char *host                       = remote_addr[0].host;
         char *port                       = remote_addr[0].port == NULL ? remote_port : remote_addr[0].port;
@@ -1944,12 +1949,6 @@ main(int argc, char **argv)
         udp_fd = init_udprelay(local_addr, local_port, addr,
                                get_sockaddr_len(addr), mtu, crypto, listen_ctx.timeout, iface);
     }
-
-#ifdef HAVE_LAUNCHD
-    if (local_port == NULL)
-        LOGI("listening through launchd");
-    else
-#endif
 
 #ifndef __MINGW32__
     // setuid
