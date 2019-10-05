@@ -321,14 +321,27 @@ The OpenWRT project is maintained here:
 [openwrt-shadowsocks](https://github.com/shadowsocks/openwrt-shadowsocks).
 
 ### OS X
-For OS X, use [Homebrew](http://brew.sh) to install or build.
+
+For OS X, use [Homebrew](http://brew.sh) or [Nix](https://nixos.org/nix/) to install or build.
+
+[Install Nix](https://nixos.org/nix/):
+
+```bash
+curl https://nixos.org/nix/install | sh
+```
+
+[Install shadowsocks-libev using Nix](#nix):
+
+```bash
+nix-env -iA nixpkgs.shadowsocks-libev
+```
 
 Install Homebrew:
 
 ```bash
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 ```
-Install shadowsocks-libev:
+Install shadowsocks-libev using Homebrew:
 
 ```bash
 brew install shadowsocks-libev
