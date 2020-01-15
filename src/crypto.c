@@ -356,24 +356,32 @@ crypto_parse_key(const char *base64, uint8_t *key, size_t key_len)
 {
     size_t base64_len = strlen(base64);
     int out_len       = BASE64_SIZE(base64_len);
-    uint8_t out[out_len];
+    uint8_t *out = NULL;
 
+    out = (uint8_t*)ss_malloc(out_len*sizeof(uint8_t));
     out_len = base64_decode(out, base64, out_len);
     if (out_len > 0 && out_len >= key_len) {
         memcpy(key, out, key_len);
+        ss_free(out);
+        out = NULL;
 #ifdef SS_DEBUG
         dump("KEY", (char *)key, key_len);
 #endif
         return key_len;
     }
-
+    
+    ss_free(out);
+    out = NULL;
     out_len = BASE64_SIZE(key_len);
-    char out_key[out_len];
+    char *out_key = NULL;
+    out_key = (char*)ss_malloc(out_len*sizeof(char));
     rand_bytes(key, key_len);
     base64_encode(out_key, out_len, key, key_len);
     LOGE("Invalid key for your chosen cipher!");
     LOGE("It requires a " SIZE_FMT "-byte key encoded with URL-safe Base64", key_len);
     LOGE("Generating a new random key: %s", out_key);
+    ss_free(out_key);
+    out_key = NULL;
     FATAL("Please use the key above or input a valid key");
     return key_len;
 }
