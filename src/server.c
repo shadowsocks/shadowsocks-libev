@@ -711,7 +711,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         ev_timer_again(EV_A_ & server->recv_ctx->watcher);
     }
 
-    ssize_t r = recv(server->fd, buf->data, SOCKET_BUF_SIZE, 0);
+    ssize_t r = recv(server->fd, buf->data, 2 * SOCKET_BUF_SIZE, 0);
 
     if (r == 0) {
         // connection closed
@@ -739,7 +739,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     tx      += r;
     buf->len = r;
 
-    int err = crypto->decrypt(buf, server->d_ctx, SOCKET_BUF_SIZE);
+    int err = crypto->decrypt(buf, server->d_ctx, 2 * SOCKET_BUF_SIZE);
 
     if (err == CRYPTO_ERROR) {
         report_addr(server->fd, "authentication error");
@@ -931,7 +931,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
                 // XXX: should handle buffer carefully
                 if (server->buf->len > 0) {
-                    brealloc(remote->buf, server->buf->len, SOCKET_BUF_SIZE);
+                    brealloc(remote->buf, server->buf->len, 2 * SOCKET_BUF_SIZE);
                     memcpy(remote->buf->data, server->buf->data + server->buf->idx,
                            server->buf->len);
                     remote->buf->len = server->buf->len;
@@ -1086,7 +1086,7 @@ resolv_cb(struct sockaddr *addr, void *data)
 
             // XXX: should handle buffer carefully
             if (server->buf->len > 0) {
-                brealloc(remote->buf, server->buf->len, SOCKET_BUF_SIZE);
+                brealloc(remote->buf, server->buf->len, 2 * SOCKET_BUF_SIZE);
                 memcpy(remote->buf->data, server->buf->data + server->buf->idx,
                        server->buf->len);
                 remote->buf->len = server->buf->len;
@@ -1313,7 +1313,7 @@ new_remote(int fd)
     remote->recv_ctx = ss_malloc(sizeof(remote_ctx_t));
     remote->send_ctx = ss_malloc(sizeof(remote_ctx_t));
     remote->buf      = ss_malloc(sizeof(buffer_t));
-    balloc(remote->buf, SOCKET_BUF_SIZE);
+    balloc(remote->buf, 2 * SOCKET_BUF_SIZE);
     memset(remote->recv_ctx, 0, sizeof(remote_ctx_t));
     memset(remote->send_ctx, 0, sizeof(remote_ctx_t));
     remote->fd                  = fd;
@@ -1377,7 +1377,7 @@ new_server(int fd, listen_ctx_t *listener)
     server->buf      = ss_malloc(sizeof(buffer_t));
     memset(server->recv_ctx, 0, sizeof(server_ctx_t));
     memset(server->send_ctx, 0, sizeof(server_ctx_t));
-    balloc(server->buf, SOCKET_BUF_SIZE);
+    balloc(server->buf, 2 * SOCKET_BUF_SIZE);
     server->fd                  = fd;
     server->recv_ctx->server    = server;
     server->recv_ctx->connected = 0;
