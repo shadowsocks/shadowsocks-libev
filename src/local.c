@@ -391,6 +391,15 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
         }
     } else if (atyp == SOCKS5_ATYP_DOMAIN) {
         uint8_t name_len = *(uint8_t *)(buf->data + request_len);
+        if (name_len > MAX_HOSTNAME_LEN ) {
+            LOGE("socks5 hostname too long: %d bytes", name_len);
+            response.rep = SOCKS5_REP_CMD_NOT_SUPPORTED;
+            char *send_buf = (char *)&response;
+            send(server->fd, send_buf, 4, 0);
+            close_and_free_remote(EV_A_ remote);
+            close_and_free_server(EV_A_ server);
+            return -1;
+        }
         if (buf->len < request_len + 1 + name_len + 2) {
             return -1;
         }
