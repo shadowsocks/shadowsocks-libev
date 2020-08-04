@@ -218,7 +218,9 @@ read_jconf(const char *file)
                         conf.remote_num = j + 1;
                     }
                 } else if (value->type == json_string) {
-                    parse_addr(to_string(value), conf.remote_addr);
+                    char* tmp_str = to_string(value);
+                    parse_addr(tmp_str, conf.remote_addr);
+                    ss_free(tmp_str);
                     conf.remote_num = 1;
                 }
             } else if (strcmp(name, "port_password") == 0) {
