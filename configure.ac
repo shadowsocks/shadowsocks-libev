@@ -252,7 +252,8 @@ AC_ARG_ENABLE(connmarktos,
 if test x"$enable_connmarktos" = "xyes" ; then
 	AC_MSG_NOTICE([Linux Netfilter Conntrack support requested by --enable-connmarktos: ${enable_connmarktos}])
 	if test "x$enable_connmarktos" != "xno"; then
-	    AC_SEARCH_LIBS([nfct_query], [netfilter_conntrack],,[
+	    PKG_CHECK_MODULES([NETFILTER_CONNTRACK], [libnetfilter_conntrack],,
+	    [AC_SEARCH_LIBS([nfct_query], [netfilter_conntrack],,[
 	        if test x"$enable_connmarktos" = "xyes"; then
 	            AC_MSG_ERROR([--enable-connmarktos specified but libnetfilter-conntrack library not found])
 	        fi
@@ -262,7 +263,7 @@ if test x"$enable_connmarktos" = "xyes" ; then
 	        if test x"$enable_connmarktos" = "xyes"; then
 	            AC_MSG_ERROR([--enable-connmarktos specified but libnetfilter-conntrack headers not found])
 	        fi
-	        with_netfilter_conntrack=no])
+	        with_netfilter_conntrack=no])])
 	  # If nothing is broken; enable the libraries usage.
 	  if test "x$with_netfilter_conntrack" != "xno"; then
 		with_netfilter_conntrack=yes

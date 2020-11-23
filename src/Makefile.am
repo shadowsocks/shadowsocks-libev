@@ -9,7 +9,7 @@ AM_CFLAGS += -I$(top_srcdir)/libcork/include
 endif
 AM_CFLAGS += $(LIBPCRE_CFLAGS)
 
-SS_COMMON_LIBS = $(INET_NTOP_LIB) $(LIBPCRE_LIBS)
+SS_COMMON_LIBS = $(INET_NTOP_LIB) $(LIBPCRE_LIBS) $(NETFILTER_CONNTRACK_LIBS)
 if !USE_SYSTEM_SHARED_LIB
 SS_COMMON_LIBS += $(top_builddir)/libbloom/libbloom.la \
                   $(top_builddir)/libipset/libipset.la \
