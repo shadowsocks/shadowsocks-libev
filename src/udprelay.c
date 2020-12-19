@@ -508,10 +508,12 @@ create_server_socket(const char *host, const char *port)
         if (rc < 0 && errno != ENOPROTOOPT) {
             LOGE("setting ipv4 dscp failed: %d", errno);
         }
+#ifdef IPV6_TCLASS
         rc = setsockopt(server_sock, IPPROTO_IPV6, IPV6_TCLASS, &tos, sizeof(tos));
         if (rc < 0 && errno != ENOPROTOOPT) {
             LOGE("setting ipv6 dscp failed: %d", errno);
         }
+#endif
 #endif
 
 #ifdef MODULE_REDIR
@@ -675,10 +677,12 @@ resolv_cb(struct sockaddr *addr, void *data)
                 if (rc < 0 && errno != ENOPROTOOPT) {
                     LOGE("setting ipv4 dscp failed: %d", errno);
                 }
+#ifdef IPV6_TCLASS
                 rc = setsockopt(remotefd, IPPROTO_IPV6, IPV6_TCLASS, &tos, sizeof(tos));
                 if (rc < 0 && errno != ENOPROTOOPT) {
                     LOGE("setting ipv6 dscp failed: %d", errno);
                 }
+#endif
 #endif
 #ifdef SET_INTERFACE
                 if (query_ctx->server_ctx->iface) {
@@ -872,10 +876,12 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     if (rc < 0 && errno != ENOPROTOOPT) {
         LOGE("setting ipv4 dscp failed: %d", errno);
     }
+#ifdef IPV6_TCLASS
     rc = setsockopt(src_fd, IPPROTO_IPV6, IPV6_TCLASS, &tos, sizeof(tos));
     if (rc < 0 && errno != ENOPROTOOPT) {
         LOGE("setting ipv6 dscp failed: %d", errno);
     }
+#endif
 #endif
     if (bind(src_fd, (struct sockaddr *)&dst_addr, remote_dst_addr_len) != 0) {
         ERROR("[udp] remote_recv_bind");
@@ -1213,10 +1219,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         if (rc < 0 && errno != ENOPROTOOPT) {
             LOGE("setting ipv4 dscp failed: %d", errno);
         }
+#ifdef IPV6_TCLASS
         rc = setsockopt(remotefd, IPPROTO_IPV6, IPV6_TCLASS, &tos, sizeof(tos));
         if (rc < 0 && errno != ENOPROTOOPT) {
             LOGE("setting ipv6 dscp failed: %d", errno);
         }
+#endif
 #endif
 #ifdef SET_INTERFACE
         if (server_ctx->iface) {
@@ -1309,10 +1317,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (rc < 0 && errno != ENOPROTOOPT) {
                     LOGE("setting ipv4 dscp failed: %d", errno);
                 }
+#ifdef IPV6_TCLASS
                 rc = setsockopt(remotefd, IPPROTO_IPV6, IPV6_TCLASS, &tos, sizeof(tos));
                 if (rc < 0 && errno != ENOPROTOOPT) {
                     LOGE("setting ipv6 dscp failed: %d", errno);
                 }
+#endif
 #endif
 #ifdef SET_INTERFACE
                 if (server_ctx->iface) {
