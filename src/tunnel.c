@@ -83,7 +83,9 @@ int vpn = 0;
 int verbose    = 0;
 int reuse_port = 0;
 int tcp_incoming_sndbuf = 0;
+int tcp_incoming_rcvbuf = 0;
 int tcp_outgoing_sndbuf = 0;
+int tcp_outgoing_rcvbuf = 0;
 
 static crypto_t *crypto;
 
@@ -727,6 +729,10 @@ accept_cb(EV_P_ ev_io *w, int revents)
         setsockopt(serverfd, SOL_SOCKET, SO_SNDBUF, &tcp_incoming_sndbuf, sizeof(int));
     }
 
+    if (tcp_incoming_rcvbuf > 0) {
+        setsockopt(serverfd, SOL_SOCKET, SO_RCVBUF, &tcp_incoming_rcvbuf, sizeof(int));
+    }
+
     int index                    = rand() % listener->remote_num;
     struct sockaddr *remote_addr = listener->remote_addr[index];
 
@@ -782,6 +788,10 @@ accept_cb(EV_P_ ev_io *w, int revents)
 
     if (tcp_outgoing_sndbuf > 0) {
         setsockopt(remotefd, SOL_SOCKET, SO_SNDBUF, &tcp_outgoing_sndbuf, sizeof(int));
+    }
+
+    if (tcp_outgoing_rcvbuf > 0) {
+        setsockopt(remotefd, SOL_SOCKET, SO_RCVBUF, &tcp_outgoing_rcvbuf, sizeof(int));
     }
 
     // Setup
@@ -909,7 +919,9 @@ main(int argc, char **argv)
         { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
         { "reuse-port",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT  },
         { "tcp-incoming-sndbuf", required_argument, NULL, GETOPT_VAL_TCP_INCOMING_SNDBUF },
+        { "tcp-incoming-rcvbuf", required_argument, NULL, GETOPT_VAL_TCP_INCOMING_RCVBUF },
         { "tcp-outgoing-sndbuf", required_argument, NULL, GETOPT_VAL_TCP_OUTGOING_SNDBUF },
+        { "tcp-outgoing-rcvbuf", required_argument, NULL, GETOPT_VAL_TCP_OUTGOING_RCVBUF },
         { "password",    required_argument, NULL, GETOPT_VAL_PASSWORD    },
         { "key",         required_argument, NULL, GETOPT_VAL_KEY         },
         { "help",        no_argument,       NULL, GETOPT_VAL_HELP        },
@@ -958,8 +970,14 @@ main(int argc, char **argv)
         case GETOPT_VAL_TCP_INCOMING_SNDBUF:
             tcp_incoming_sndbuf = atoi(optarg);
             break;
+        case GETOPT_VAL_TCP_INCOMING_RCVBUF:
+            tcp_incoming_rcvbuf = atoi(optarg);
+            break;
         case GETOPT_VAL_TCP_OUTGOING_SNDBUF:
             tcp_outgoing_sndbuf = atoi(optarg);
+            break;
+        case GETOPT_VAL_TCP_OUTGOING_RCVBUF:
+            tcp_outgoing_rcvbuf = atoi(optarg);
             break;
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
@@ -1107,8 +1125,14 @@ main(int argc, char **argv)
         if (tcp_incoming_sndbuf == 0) {
             tcp_incoming_sndbuf = conf->tcp_incoming_sndbuf;
         }
+        if (tcp_incoming_rcvbuf == 0) {
+            tcp_incoming_rcvbuf = conf->tcp_incoming_rcvbuf;
+        }
         if (tcp_outgoing_sndbuf == 0) {
             tcp_outgoing_sndbuf = conf->tcp_outgoing_sndbuf;
+        }
+        if (tcp_outgoing_rcvbuf == 0) {
+            tcp_outgoing_rcvbuf = conf->tcp_outgoing_rcvbuf;
         }
         if (fast_open == 0) {
             fast_open = conf->fast_open;
@@ -1138,12 +1162,28 @@ main(int argc, char **argv)
         LOGI("set TCP incoming connection send buffer size to %d", tcp_incoming_sndbuf);
     }
 
+    if (tcp_incoming_rcvbuf != 0 && tcp_incoming_rcvbuf < SOCKET_BUF_SIZE) {
+        tcp_incoming_rcvbuf = 0;
+    }
+
+    if (tcp_incoming_rcvbuf != 0) {
+        LOGI("set TCP incoming connection receive buffer size to %d", tcp_incoming_rcvbuf);
+    }
+
     if (tcp_outgoing_sndbuf != 0 && tcp_outgoing_sndbuf < SOCKET_BUF_SIZE) {
         tcp_outgoing_sndbuf = 0;
     }
 
     if (tcp_outgoing_sndbuf != 0) {
         LOGI("set TCP outgoing connection send buffer size to %d", tcp_outgoing_sndbuf);
+    }
+
+    if (tcp_outgoing_rcvbuf != 0 && tcp_outgoing_rcvbuf < SOCKET_BUF_SIZE) {
+        tcp_outgoing_rcvbuf = 0;
+    }
+
+    if (tcp_outgoing_rcvbuf != 0) {
+        LOGI("set TCP outgoing connection receive buffer size to %d", tcp_outgoing_recvbuf);
     }
 
     if (plugin != NULL) {

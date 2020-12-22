@@ -390,7 +390,11 @@ usage()
     printf(
         "       [--tcp-incoming-sndbuf]    Size of the incoming connection TCP send buffer.\n");
     printf(
+        "       [--tcp-incoming-rcvbuf]    Size of the incoming connection TCP receive buffer.\n");
+    printf(
         "       [--tcp-outgoing-sndbuf]    Size of the outgoing connection TCP send buffer.\n");
+    printf(
+        "       [--tcp-outgoing-rcvbuf]    Size of the outgoing connection TCP receive buffer.\n");
 #if defined(MODULE_REMOTE) || defined(MODULE_LOCAL)
     printf(
         "       [--acl <acl_file>]         Path to ACL (Access Control List).\n");

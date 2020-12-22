@@ -278,10 +278,18 @@ read_jconf(const char *file)
                 check_json_value_type(value, json_integer,
                                       "invalid config file: option 'tcp_incoming_sndbuf' must be an integer");
                 conf.tcp_incoming_sndbuf = value->u.integer;
+            } else if (strcmp(name, "tcp_incoming_rcvbuf") == 0) {
+                check_json_value_type(value, json_integer,
+                                      "invalid config file: option 'tcp_incoming_rcvbuf' must be an integer");
+                conf.tcp_incoming_rcvbuf = value->u.integer;
             } else if (strcmp(name, "tcp_outgoing_sndbuf") == 0) {
                 check_json_value_type(value, json_integer,
                                       "invalid config file: option 'tcp_outgoing_sndbuf' must be an integer");
                 conf.tcp_outgoing_sndbuf = value->u.integer;
+            } else if (strcmp(name, "tcp_outgoing_rcvbuf") == 0) {
+                check_json_value_type(value, json_integer,
+                                      "invalid config file: option 'tcp_outgoing_rcvbuf' must be an integer");
+                conf.tcp_outgoing_rcvbuf = value->u.integer;
             } else if (strcmp(name, "auth") == 0) {
                 FATAL("One time auth has been deprecated. Try AEAD ciphers instead.");
             } else if (strcmp(name, "nofile") == 0) {
