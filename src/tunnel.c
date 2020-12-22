@@ -1183,7 +1183,7 @@ main(int argc, char **argv)
     }
 
     if (tcp_outgoing_rcvbuf != 0) {
-        LOGI("set TCP outgoing connection receive buffer size to %d", tcp_outgoing_recvbuf);
+        LOGI("set TCP outgoing connection receive buffer size to %d", tcp_outgoing_rcvbuf);
     }
 
     if (plugin != NULL) {
