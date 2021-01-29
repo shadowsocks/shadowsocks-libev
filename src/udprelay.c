@@ -869,6 +869,11 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         close(src_fd);
         goto CLEAN_UP;
     }
+    if (reuse_port) {
+        if (set_reuseport(src_fd) != 0) {
+            ERROR("[udp] remote_recv port_reuse");
+        }
+    }
 #ifdef IP_TOS
     // Set QoS flag
     int tos   = 46 << 2;
