@@ -243,6 +243,10 @@ sudo make DESTDIR=/usr install
 popd
 sudo ldconfig
 
+#If you git clone this project from github https url,
+#you have to initiate and update git submodule
+git submodule init && git submodule update
+
 # Start building
 ./autogen.sh && ./configure && make
 sudo make install
