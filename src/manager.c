@@ -1281,6 +1281,7 @@ main(int argc, char **argv)
     ev_signal_stop(EV_DEFAULT, &sigint_watcher);
     ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
     ss_free(working_dir);
+    free_addr(&ip_addr);
 
     return 0;
 }
