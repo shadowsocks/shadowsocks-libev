@@ -1381,5 +1381,9 @@ main(int argc, char **argv)
         stop_plugin();
     }
 
+    for (i = 0; i < remote_num; i++)
+        ss_free(listen_ctx.remote_addr[i]);
+    ss_free(listen_ctx.remote_addr);
+
     return ret_val;
 }

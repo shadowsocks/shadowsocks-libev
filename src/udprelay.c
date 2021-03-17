@@ -1467,6 +1467,9 @@ free_udprelay()
         ev_io_stop(loop, &server_ctx->io);
         close(server_ctx->fd);
         cache_delete(server_ctx->conn_cache, 0);
+#ifdef MODULE_LOCAL
+        free((char*) server_ctx->remote_addr);
+#endif
         ss_free(server_ctx);
         server_ctx_list[server_num] = NULL;
     }
