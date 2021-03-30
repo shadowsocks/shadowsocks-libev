@@ -12,6 +12,7 @@
 Description=Shadowsocks-libev Default Server Service
 Documentation=man:shadowsocks-libev(8)
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
