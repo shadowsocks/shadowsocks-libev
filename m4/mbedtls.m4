@@ -91,4 +91,20 @@ AC_DEFUN([ss_MBEDTLS],
     [AC_MSG_RESULT([ok])],
     [AC_MSG_WARN([We will continue without Camellia block cipher support, MBEDTLS_CAMELLIA_C required])]
   )
+
+  AC_MSG_CHECKING([whether mbedtls supports the SM4 block cipher or not])
+  AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM(
+      [[
+#include <mbedtls/config.h>
+      ]],
+      [[
+#ifndef MBEDTLS_SM4_C
+#error the SM4 block cipher not supported by your mbed TLS.
+#endif
+      ]]
+    )],
+    [AC_MSG_RESULT([ok])],
+    [AC_MSG_WARN([We will continue without SM4 block cipher support, MBEDTLS_SM4_C required])]
+  )
 ])

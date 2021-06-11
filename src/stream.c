@@ -86,14 +86,16 @@
 #define CAMELLIA_128_CFB    10
 #define CAMELLIA_192_CFB    11
 #define CAMELLIA_256_CFB    12
-#define CAST5_CFB           13
-#define DES_CFB             14
-#define IDEA_CFB            15
-#define RC2_CFB             16
-#define SEED_CFB            17
-#define SALSA20             18
-#define CHACHA20            19
-#define CHACHA20IETF        20
+#define SM4_128_CBC         13
+#define SM4_128_CTR         14
+#define CAST5_CFB           15
+#define DES_CFB             16
+#define IDEA_CFB            17
+#define RC2_CFB             18
+#define SEED_CFB            19
+#define SALSA20             20
+#define CHACHA20            21
+#define CHACHA20IETF        22
 
 const char *supported_stream_ciphers[STREAM_CIPHER_NUM] = {
     "table",
@@ -109,6 +111,8 @@ const char *supported_stream_ciphers[STREAM_CIPHER_NUM] = {
     "camellia-128-cfb",
     "camellia-192-cfb",
     "camellia-256-cfb",
+    "sm4-128-cbc",
+    "sm4-128-ctr",
     "cast5-cfb",
     "des-cfb",
     "idea-cfb",
@@ -133,6 +137,8 @@ static const char *supported_stream_ciphers_mbedtls[STREAM_CIPHER_NUM] = {
     "CAMELLIA-128-CFB128",
     "CAMELLIA-192-CFB128",
     "CAMELLIA-256-CFB128",
+    "SM4-128-CBC",
+    "SM4-128-CTR",
     CIPHER_UNSUPPORTED,
     CIPHER_UNSUPPORTED,
     CIPHER_UNSUPPORTED,
@@ -144,11 +150,11 @@ static const char *supported_stream_ciphers_mbedtls[STREAM_CIPHER_NUM] = {
 };
 
 static const int supported_stream_ciphers_nonce_size[STREAM_CIPHER_NUM] = {
-    0, 0, 16, 16, 16, 16, 16, 16, 16, 8, 16, 16, 16, 8, 8, 8, 8, 16, 8, 8, 12
+    0, 0, 16, 16, 16, 16, 16, 16, 16, 8, 16, 16, 16, 16, 16, 8, 8, 8, 8, 16, 8, 8, 12
 };
 
 static const int supported_stream_ciphers_key_size[STREAM_CIPHER_NUM] = {
-    0, 16, 16, 16, 24, 32, 16, 24, 32, 16, 16, 24, 32, 16, 8, 16, 16, 16, 32, 32, 32
+    0, 16, 16, 16, 24, 32, 16, 24, 32, 16, 16, 24, 32, 16, 16, 16, 8, 16, 16, 16, 32, 32, 32
 };
 
 static int

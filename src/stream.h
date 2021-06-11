@@ -37,7 +37,7 @@
 #endif
 
 #include <sodium.h>
-#define STREAM_CIPHER_NUM          21
+#define STREAM_CIPHER_NUM          23
 
 #include "crypto.h"
 
