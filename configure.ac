@@ -272,4 +272,40 @@ if test x"$enable_connmarktos" = "xyes" ; then
 	fi
 fi
 
+AC_ARG_ENABLE(nftables,
+[AS_HELP_STRING(--enable-nftables, report malicious IP to nftables)],
+[ enable_nftables="$enableval" ])
+
+if test x"$enable_nftables" = "xyes" ; then
+	AC_MSG_NOTICE([Linux nftables support requested by --enable-nftables: ${enable_nftables}])
+	if test "x$enable_nftables" != "xno"; then
+	    PKG_CHECK_MODULES([NFTABLES], [libmnl libnftnl],,
+	    [AC_SEARCH_LIBS([mnl_socket_open], [mnl],,[
+	        if test x"$enable_nftables" = "xyes"; then
+	            AC_MSG_ERROR([--enable-nftables specified but libmnl library not found])
+	        fi
+	        with_nftables=no], [-lmnl])
+	    AC_CHECK_HEADERS([libmnl/libmnl.h],,[
+	        if test x"$enable_nftables" = "xyes"; then
+	            AC_MSG_ERROR([--enable-nftables specified but libmnl headers not found])
+	        fi
+	        with_nftables=no])
+	    AC_SEARCH_LIBS([nftnl_nlmsg_build_hdr], [nftnl],,[
+	        if test x"$enable_nftables" = "xyes"; then
+	            AC_MSG_ERROR([--enable-nftables specified but libnftnl library not found])
+	        fi
+	        with_nftables=no], [-lnftnl])
+	    AC_CHECK_HEADERS([libnftnl/common.h],,[
+	        if test x"$enable_nftables" = "xyes"; then
+	            AC_MSG_ERROR([--enable-nftables specified but libnftnl headers not found])
+	        fi
+	        with_nftables=no])])
+	    # If nothing is broken; enable the libraries usage.
+	    if test "x$with_nftables" != "xno"; then
+		with_nftables=yes
+		AC_DEFINE(USE_NFTABLES, 1, [Enable support for nftables firewall])
+	    fi
+	fi
+fi
+
 AC_OUTPUT

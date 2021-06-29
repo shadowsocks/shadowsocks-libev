@@ -414,6 +414,12 @@ usage()
 #ifdef __linux__
     printf(
         "       [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.\n");
+#ifdef USE_NFTABLES
+    printf(
+        "       [--nftables-sets <sets>]   Add malicious IP into nftables sets.\n");
+    printf(
+        "                                  sets spec: [<table1>:]<set1>[,[<table2>:]<set2>...]\n");
+#endif
 #endif
 #ifndef MODULE_MANAGER
     printf(
