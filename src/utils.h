@@ -191,14 +191,8 @@ extern int use_syslog;
 
 #endif // if __ANDROID__
 
-// Workaround for "%z" in Windows printf
-#ifdef __MINGW32__
-#define SSIZE_FMT "%Id"
-#define SIZE_FMT "%Iu"
-#else
 #define SSIZE_FMT "%zd"
 #define SIZE_FMT "%zu"
-#endif
 
 #ifdef __MINGW32__
 // Override Windows built-in functions
