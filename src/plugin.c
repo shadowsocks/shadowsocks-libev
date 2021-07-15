@@ -313,11 +313,13 @@ get_local_port()
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port        = 0;
     if (bind(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        close(sock);
         return 0;
     }
 
     socklen_t len = sizeof(serv_addr);
     if (getsockname(sock, (struct sockaddr *)&serv_addr, &len) == -1) {
+        close(sock);
         return 0;
     }
     if (close(sock) < 0) {
