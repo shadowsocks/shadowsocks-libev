@@ -442,7 +442,7 @@ create_and_bind(const char *host, const char *port, int protocol)
         }
     }
 
-    if (!result) {
+    if (result != NULL) {
         freeaddrinfo(result);
     }
 
@@ -837,12 +837,14 @@ create_server_socket(const char *host, const char *port)
         close(server_sock);
     }
 
+    if (result != NULL) {
+        freeaddrinfo(result);
+    }
+
     if (rp == NULL) {
         LOGE("cannot bind");
         return -1;
     }
-
-    freeaddrinfo(result);
 
     return server_sock;
 }
