@@ -1118,7 +1118,7 @@ main(int argc, char **argv)
     if (workdir == NULL || strlen(workdir) == 0) {
         workdir = pw->pw_dir;
         // If home dir is still not defined or set to nologin/nonexistent, fall back to /tmp
-        if (strstr(workdir, "nologin") || strstr(workdir, "nonexistent") || workdir == NULL || strlen(workdir) == 0) {
+        if (workdir == NULL || strlen(workdir) == 0 || strstr(workdir, "nologin") || strstr(workdir, "nonexistent")) {
             workdir = "/tmp";
         }
 
