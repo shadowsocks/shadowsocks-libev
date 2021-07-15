@@ -614,6 +614,9 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
+    // properly terminate string which recvfrom does not do
+    buf[r] = '\0';
+
     char *action = get_action(buf, r);
     if (action == NULL) {
         return;
