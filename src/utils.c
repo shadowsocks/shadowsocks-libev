@@ -484,7 +484,7 @@ daemonize(const char *path)
     }
 
     int dev_null = open("/dev/null", O_WRONLY);
-    if (dev_null) {
+    if (dev_null > 0) {
         /* Redirect to null device  */
         dup2(dev_null, STDOUT_FILENO);
         dup2(dev_null, STDERR_FILENO);
