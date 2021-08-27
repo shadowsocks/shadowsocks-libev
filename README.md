@@ -69,6 +69,14 @@ sudo snap install shadowsocks-libev --edge
 
 * * *
 
+### Initialise the build environment
+
+This repository uses submodules, so you should pull them before you start, using:
+
+```bash
+git submodule update --init --recursive
+```
+
 ### Pre-build configure guide
 
 For a complete list of available configure-time option,
