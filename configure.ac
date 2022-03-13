@@ -66,7 +66,7 @@ dnl Add library for mingw
 case $host in
   *-mingw*)
     CFLAGS="$CFLAGS -mno-ms-bitfields"
-    LIBS="$LIBS -lws2_32"
+    LIBS="$LIBS -lws2_32 -liphlpapi"
     ;;
   *-cygwin*)
     CFLAGS="$CFLAGS -mno-ms-bitfields"

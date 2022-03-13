@@ -117,7 +117,7 @@ list(APPEND DEPS
         )
 
 if (MINGW)
-list(APPEND DEPS ws2_32)
+list(APPEND DEPS ws2_32 iphlpapi)
 add_compile_definitions(CARES_STATICLIB PCRE_STATIC)
 endif ()
 endif ()
