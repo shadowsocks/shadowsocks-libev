@@ -550,7 +550,7 @@ create_and_bind(const char *host, const char *port, int mptcp)
 {
     struct addrinfo hints;
     struct addrinfo *result, *rp, *ipv4v6bindall;
-    int s, listen_sock;
+    int s, listen_sock = -1;
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family   = AF_UNSPEC;               /* Return IPv4 and IPv6 choices */
