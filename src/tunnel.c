@@ -736,7 +736,13 @@ accept_cb(EV_P_ ev_io *w, int revents)
     int index                    = rand() % listener->remote_num;
     struct sockaddr *remote_addr = listener->remote_addr[index];
 
-    int remotefd = socket(remote_addr->sa_family, SOCK_STREAM, IPPROTO_TCP);
+    int protocol = IPPROTO_TCP;
+#ifdef IPPROTO_MPTCP
+    if (listener->mptcp > 0) {
+        protocol = IPPROTO_MPTCP;
+    }
+#endif
+    int remotefd = socket(remote_addr->sa_family, SOCK_STREAM, protocol);
     if (remotefd == -1) {
         ERROR("socket");
         return;
@@ -767,6 +773,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
     setsockopt(remotefd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
 
+#ifndef IPPROTO_MPTCP
     if (listener->mptcp > 1) {
         int err = setsockopt(remotefd, SOL_TCP, listener->mptcp, &opt, sizeof(opt));
         if (err == -1) {
@@ -785,6 +792,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
             ERROR("failed to enable multipath TCP");
         }
     }
+#endif
 
     if (tcp_outgoing_sndbuf > 0) {
         setsockopt(remotefd, SOL_SOCKET, SO_SNDBUF, &tcp_outgoing_sndbuf, sizeof(int));

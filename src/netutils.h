@@ -60,11 +60,13 @@ typedef struct {
     char *port;
 } ss_addr_t;
 
+#ifndef IPPROTO_MPTCP
 /* MPTCP_ENABLED setsockopt values for kernel 4 & 3, best behaviour to be independant of kernel version is to test from newest to the latest values */
 #ifndef MPTCP_ENABLED
 static const char mptcp_enabled_values[] = { 42, 26, 0 };
 #else
 static const char mptcp_enabled_values[] = { MPTCP_ENABLED, 0 };
+#endif
 #endif
 
 #ifndef UPDATE_INTERVAL
