@@ -16,4 +16,5 @@ deps:
 endif
 
 srpm: deps
-	$(TOP_DIR)/rpm/genrpm.sh -o $(outdir)
+	git config --global --add safe.directory $(TOP_DIR)
+	$(RPM_DIR)/genrpm.sh -o $(outdir)
