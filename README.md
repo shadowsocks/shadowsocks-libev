@@ -184,7 +184,7 @@ yum install gcc gettext autoconf libtool automake make pcre-devel asciidoc xmlto
 sudo pacman -S shadowsocks-libev
 ```
 
-Please refer to downstream [PKGBUILD](https://projects.archlinux.org/svntogit/community.git/tree/trunk?h=packages/shadowsocks-libev)
+Please refer to downstream [PKGBUILD](https://github.com/archlinux/svntogit-community/blob/packages/shadowsocks-libev/trunk/PKGBUILD)
 script for extra modifications and distribution-specific bugs.
 
 ### NixOS
