@@ -5,6 +5,7 @@ on:
     push:
       branches:
         - master
+        - dev-3.3.5
       tags:
         - v*
         - latest
