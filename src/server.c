@@ -595,11 +595,9 @@ create_and_bind(const char *host, const char *port, int mptcp)
 
     for (/*rp = result*/; rp != NULL; rp = rp->ai_next) {
         int protocol = rp->ai_protocol;
-#ifdef IPPROTO_MPTCP
-        if (mptcp == 1) {
-            protocol = IPPROTO_MPTCP;
+        if (mptcp < 0) {
+            protocol = IPPROTO_MPTCP; // Enable upstream MPTCP
         }
-#endif
         listen_sock = socket(rp->ai_family, rp->ai_socktype, protocol);
         if (listen_sock == -1) {
             continue;
@@ -622,7 +620,7 @@ create_and_bind(const char *host, const char *port, int mptcp)
             }
         }
 
-#ifndef IPPROTO_MPTCP
+        // Enable out-of-tree mptcp
         if (mptcp == 1) {
             int i = 0;
             while ((mptcp = mptcp_enabled_values[i]) > 0) {
@@ -633,10 +631,9 @@ create_and_bind(const char *host, const char *port, int mptcp)
                 i++;
             }
             if (mptcp == 0) {
-                ERROR("failed to enable multipath TCP");
+                ERROR("failed to enable out-of-tree multipath TCP");
             }
         }
-#endif
 
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
         if (s == 0) {
@@ -1874,8 +1871,9 @@ main(int argc, char **argv)
             plugin_opts = optarg;
             break;
         case GETOPT_VAL_MPTCP:
-            mptcp = 1;
-            LOGI("enable multipath TCP");
+            mptcp = get_mptcp(1);
+            if (mptcp)
+                LOGI("enable multipath TCP (%s)", mptcp > 0 ? "out-of-tree" : "upstream");
             break;
         case GETOPT_VAL_KEY:
             key = optarg;

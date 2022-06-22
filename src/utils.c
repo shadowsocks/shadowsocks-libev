@@ -578,3 +578,20 @@ load16_be(const void *s)
     return ((uint16_t)in[0] << 8)
            | ((uint16_t)in[1]);
 }
+
+int
+get_mptcp(int enable)
+{
+    const char oldpath[] = "/proc/sys/net/mptcp/mptcp_enabled";
+
+    if (enable) {
+        // Check if kernel has out-of-tree MPTCP support.
+        if (access(oldpath, F_OK) != -1)
+            return 1;
+
+        // Otherwise, just use IPPROTO_MPTCP.
+        return -1;
+    }
+
+    return 0;
+}

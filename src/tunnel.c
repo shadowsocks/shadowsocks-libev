@@ -737,11 +737,9 @@ accept_cb(EV_P_ ev_io *w, int revents)
     struct sockaddr *remote_addr = listener->remote_addr[index];
 
     int protocol = IPPROTO_TCP;
-#ifdef IPPROTO_MPTCP
-    if (listener->mptcp > 0) {
-        protocol = IPPROTO_MPTCP;
+    if (listener->mptcp < 0) {
+        protocol = IPPROTO_MPTCP; // Enable upstream MPTCP
     }
-#endif
     int remotefd = socket(remote_addr->sa_family, SOCK_STREAM, protocol);
     if (remotefd == -1) {
         ERROR("socket");
@@ -773,11 +771,11 @@ accept_cb(EV_P_ ev_io *w, int revents)
     setsockopt(remotefd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
 
-#ifndef IPPROTO_MPTCP
+    // Enable out-of-tree MPTCP
     if (listener->mptcp > 1) {
         int err = setsockopt(remotefd, SOL_TCP, listener->mptcp, &opt, sizeof(opt));
         if (err == -1) {
-            ERROR("failed to enable multipath TCP");
+            ERROR("failed to enable out-of-tree multipath TCP");
         }
     } else if (listener->mptcp == 1) {
         int i = 0;
@@ -789,10 +787,9 @@ accept_cb(EV_P_ ev_io *w, int revents)
             i++;
         }
         if (listener->mptcp == 0) {
-            ERROR("failed to enable multipath TCP");
+            ERROR("failed to enable out-of-tree multipath TCP");
         }
     }
-#endif
 
     if (tcp_outgoing_sndbuf > 0) {
         setsockopt(remotefd, SOL_SOCKET, SO_SNDBUF, &tcp_outgoing_sndbuf, sizeof(int));
@@ -956,8 +953,9 @@ main(int argc, char **argv)
             LOGI("set MTU to %d", mtu);
             break;
         case GETOPT_VAL_MPTCP:
-            mptcp = 1;
-            LOGI("enable multipath TCP");
+            mptcp = get_mptcp(1);
+            if (mptcp)
+                LOGI("enable multipath TCP (%s)", mptcp > 0 ? "out-of-tree" : "upstream");
             break;
         case GETOPT_VAL_NODELAY:
             no_delay = 1;

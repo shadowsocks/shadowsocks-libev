@@ -250,5 +250,6 @@ void *ss_realloc(void *ptr, size_t new_size);
 int ss_is_ipv6addr(const char *addr);
 char *get_default_conf(void);
 uint16_t load16_be(const void *s);
+int get_mptcp(int enable);
 
 #endif // _UTILS_H

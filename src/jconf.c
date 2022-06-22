@@ -340,7 +340,7 @@ read_jconf(const char *file)
             } else if (strcmp(name, "mptcp") == 0) {
                 check_json_value_type(value, json_boolean,
                                       "invalid config file: option 'mptcp' must be a boolean");
-                conf.mptcp = value->u.boolean;
+                conf.mptcp = get_mptcp(value->u.boolean);
             } else if (strcmp(name, "ipv6_first") == 0) {
                 check_json_value_type(value, json_boolean,
                                       "invalid config file: option 'ipv6_first' must be a boolean");

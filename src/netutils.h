@@ -60,13 +60,18 @@ typedef struct {
     char *port;
 } ss_addr_t;
 
+// Be compatible with older libc.
 #ifndef IPPROTO_MPTCP
-/* MPTCP_ENABLED setsockopt values for kernel 4 & 3, best behaviour to be independant of kernel version is to test from newest to the latest values */
+#define IPPROTO_MPTCP 262
+#endif
+
+/* MPTCP_ENABLED setsockopt values for out-of-tree kernel 4 & 3, best behaviour
+ * to be independent of kernel version is to test from newest to latest values.
+ */
 #ifndef MPTCP_ENABLED
 static const char mptcp_enabled_values[] = { 42, 26, 0 };
 #else
 static const char mptcp_enabled_values[] = { MPTCP_ENABLED, 0 };
-#endif
 #endif
 
 #ifndef UPDATE_INTERVAL
