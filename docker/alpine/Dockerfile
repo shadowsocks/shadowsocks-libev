@@ -1,21 +1,17 @@
-#
-# Dockerfile for shadowsocks-libev
-#
+FROM alpine:3.16
+LABEL maintainer="kev <noreply@datageek.info>, Sah <contact@leesah.name>, vndroid <waveworkshop@outlook.com>"
 
-FROM alpine
-LABEL maintainer="kev <noreply@datageek.info>, Sah <contact@leesah.name>"
-
-ENV SERVER_ADDR 0.0.0.0
-ENV SERVER_PORT 8388
+ENV SERVER_ADDR=0.0.0.0
+ENV SERVER_PORT=8388
 ENV PASSWORD=
-ENV METHOD      aes-256-gcm
-ENV TIMEOUT     300
-ENV DNS_ADDRS    8.8.8.8,8.8.4.4
-ENV TZ UTC
+ENV METHOD=aes-256-gcm
+ENV TIMEOUT=300
+ENV DNS_ADDRS="8.8.8.8,8.8.4.4"
+ENV TZ=UTC
 ENV ARGS=
 
 COPY . /tmp/repo
-RUN set -ex \
+RUN set -x \
  # Build environment setup
  && apk add --no-cache --virtual .build-deps \
       autoconf \
@@ -33,8 +29,10 @@ RUN set -ex \
  && cd /tmp/repo \
  && ./autogen.sh \
  && ./configure --prefix=/usr --disable-documentation \
+ && make -j$(getconf _NPROCESSORS_ONLN) \
  && make install \
  && ls /usr/bin/ss-* | xargs -n1 setcap cap_net_bind_service+ep \
+ && strip $(ls /usr/local/bin | grep -Ev 'ss-nat') \
  && apk del .build-deps \
  # Runtime dependencies setup
  && apk add --no-cache \
@@ -46,8 +44,11 @@ RUN set -ex \
       | sort -u) \
  && rm -rf /tmp/repo
 
-USER nobody
+COPY ./docker/alpine/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["docker-entrypoint.sh"]
 
-COPY ./docker/alpine/entrypoint.sh /entrypoint.sh
+EXPOSE 8388
 
-CMD /entrypoint.sh
+STOPSIGNAL SIGINT
+
+CMD ["ss-server"]
