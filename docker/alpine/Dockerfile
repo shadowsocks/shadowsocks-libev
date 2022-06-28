@@ -28,10 +28,11 @@ RUN set -x \
  # Build & install
  && cd /tmp/repo \
  && ./autogen.sh \
- && ./configure --prefix=/usr --disable-documentation \
+ && ./configure --prefix=/usr/local --disable-documentation \
  && make -j$(getconf _NPROCESSORS_ONLN) \
  && make install \
- && ls /usr/bin/ss-* | xargs -n1 setcap cap_net_bind_service+ep \
+ && cd /usr/local/bin \
+ && ls /usr/local/bin/ss-* | xargs -n1 setcap cap_net_bind_service+ep \
  && strip $(ls /usr/local/bin | grep -Ev 'ss-nat') \
  && apk del .build-deps \
  # Runtime dependencies setup
@@ -39,7 +40,7 @@ RUN set -x \
       ca-certificates \
       rng-tools \
       tzdata \
-      $(scanelf --needed --nobanner /usr/bin/ss-* \
+      $(scanelf --needed --nobanner /usr/local/bin/ss-* \
       | awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
       | sort -u) \
  && rm -rf /tmp/repo
