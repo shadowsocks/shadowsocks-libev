@@ -218,7 +218,7 @@ Notes: Fedora 26  libsodium version >= 1.0.12, so you can install via dnf instal
 
 If your system is too old to provide libmbedtls and libsodium (later than **v1.0.8**), you will need to either install those libraries manually or upgrade your system.
 
-If your system provides with those libraries, you **should not** install them from source. You should jump this section and install them from distribution repository instead.
+If your system provides with those libraries, you **should not** install them from source.You should jump to this section and install them from the distribution repository instead.
 
 For some of the distributions, you might install build dependencies like this:
 
