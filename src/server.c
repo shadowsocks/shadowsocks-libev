@@ -506,8 +506,8 @@ report_addr(int fd, const char *info)
 #endif
 }
 
-//////////////////////
-// local change
+//////////////////////////
+// capture ip passed auth
 //
 // buffer size 8k * 8 = 64k
 uint32_t lookup[8000];
@@ -516,9 +516,8 @@ struct sockaddr_in a[1];
 
 int search_ip(char * addr){
    int r = inet_pton(AF_INET, addr, &(a[0].sin_addr));
-   int size = sizeof (lookup) / sizeof (uint32_t);
    if (r == 1){
-       for (int i=0; i < size; i++){
+       for (int i=0; i < loop_size; i++){
         if (lookup[i] == a[0].sin_addr.s_addr){
             return i;
         }
@@ -540,17 +539,14 @@ int append_ip(char * addr){
                 lookup[i] = a[0].sin_addr.s_addr;
                 return i;
             }
-        } //for
-
+        }
         // lookup buffer full, remove old item from head
         for (int i=0;i < lookup_size -1;i ++){
             lookup[i] = lookup[i+1];
         }
-
         // append at last
         lookup[lookup_size-1] = a[0].sin_addr.s_addr;
         return lookup_size -1;
-
     }
     return 0;
 }
@@ -561,7 +557,7 @@ report_addr_ok(int fd, const char *info)
     char *peer_name;
     peer_name = get_peer_name(fd);
     if (peer_name != NULL) {
-        // ip not seen
+        // check ip not seen
         if (search_ip(peer_name) < 0){
             int pos = append_ip(peer_name);
             LOGI("passed handshake with %s: %d %s", peer_name, pos, info);
