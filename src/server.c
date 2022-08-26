@@ -522,6 +522,9 @@ int search_ip(char * addr){
             return i;
         }
        }
+   }if(r == 0){
+    // ip6
+    return -2
    }
    return -1;
 }
@@ -558,7 +561,7 @@ report_addr_ok(int fd, const char *info)
     peer_name = get_peer_name(fd);
     if (peer_name != NULL) {
         // check ip not seen
-        if (search_ip(peer_name) < 0){
+        if (search_ip(peer_name) == -1){
             int pos = append_ip(peer_name);
             LOGI("passed handshake with %s: %d %s", peer_name, pos, info);
         }
