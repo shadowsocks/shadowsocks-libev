@@ -506,6 +506,79 @@ report_addr(int fd, const char *info)
 #endif
 }
 
+//////////////////////
+// local change
+//
+// buffer size 8k * 8 = 64k
+uint32_t lookup[8000];
+int lookup_size = sizeof(lookup) / sizeof(lookup[0]);
+struct sockaddr_in a[1];
+
+int search_ip(char * addr){
+   int r = inet_pton(AF_INET, addr, &(a[0].sin_addr));
+   int size = sizeof (lookup) / sizeof (uint32_t);
+   if (r == 1){
+       for (int i=0; i < size; i++){
+        if (lookup[i] == a[0].sin_addr.s_addr){
+            return i;
+        }
+       }
+   }
+   return -1;
+}
+
+int append_ip(char * addr){
+    int r = inet_pton(AF_INET, addr, &(a[0].sin_addr));
+    if (r == 1){
+
+        for (int i = 0; i < lookup_size; i++ ){
+            // already in lookup
+            if (lookup[i] == a[0].sin_addr.s_addr ){
+                return i;
+            // empty slot
+            }else if (lookup[i] == 0){
+                lookup[i] = a[0].sin_addr.s_addr;
+                return i;
+            }
+        } //for
+
+        // lookup buffer full, remove old item from head
+        for (int i=0;i < lookup_size -1;i ++){
+            lookup[i] = lookup[i+1];
+        }
+
+        // append at last
+        lookup[lookup_size-1] = a[0].sin_addr.s_addr;
+        return lookup_size -1;
+
+    }
+    return 0;
+}
+
+static void
+report_addr_ok(int fd, const char *info)
+{
+    char *peer_name;
+    peer_name = get_peer_name(fd);
+    if (peer_name != NULL) {
+        // ip not seen
+        if (search_ip(peer_name) < 0){
+            int pos = append_ip(peer_name);
+            LOGI("passed handshake with %s: %d %s", peer_name, pos, info);
+        }
+    }
+
+#ifdef USE_NFTABLES
+    struct sockaddr_in6 addr;
+    socklen_t len = sizeof(struct sockaddr_in6);
+    if (!getpeername(fd, (struct sockaddr *)&addr, &len))
+        nftbl_report_addr((struct sockaddr *)&addr);
+#endif
+}
+
+
+// end
+/////////////////////
 int
 setfastopen(int fd)
 {
@@ -987,6 +1060,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
         return;
     }
+
+    // report ip
+    report_addr_ok(server->fd, "authentication ok");
 
     // handshake and transmit data
     if (server->stage == STAGE_STREAM) {
