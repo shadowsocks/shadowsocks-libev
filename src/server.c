@@ -517,14 +517,14 @@ struct sockaddr_in a[1];
 int search_ip(char * addr){
    int r = inet_pton(AF_INET, addr, &(a[0].sin_addr));
    if (r == 1){
-       for (int i=0; i < loop_size; i++){
+       for (int i=0; i < lookup_size; i++){
         if (lookup[i] == a[0].sin_addr.s_addr){
             return i;
         }
        }
    }if(r == 0){
     // ip6
-    return -2
+    return -2;
    }
    return -1;
 }
