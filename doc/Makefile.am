@@ -1,8 +1,8 @@
 ASCIIDOC = @ASCIIDOC@
 ASCIIDOC_EXTRA =
-MANPAGE_XSL = manpage-normal.xsl
+MANPAGE_XSL = $(srcdir)/manpage-normal.xsl
 XMLTO = @XMLTO@
-XMLTO_EXTRA = -m manpage-bold-literal.xsl
+XMLTO_EXTRA = -m $(srcdir)/manpage-bold-literal.xsl
 GZIPCMD = @GZIP@
 INSTALL = @INSTALL@
 RM = @RM@
@@ -46,11 +46,11 @@ html-local: $(MAN_HTML)
 	$(AM_V_GEN)$(XMLTO) -m $(MANPAGE_XSL) $(XMLTO_EXTRA) man $<
 
 %.xml: %.asciidoc
-	$(AM_V_GEN)$(ASCIIDOC) -b docbook -d manpage -f asciidoc.conf \
+	$(AM_V_GEN)$(ASCIIDOC) -b docbook -d manpage -f $(srcdir)/asciidoc.conf \
 	    -aversion=$(VERSION) $(ASCIIDOC_EXTRA) -o $@ $<
 
 %.html: %.asciidoc
-	$(AM_V_GEN)$(ASCIIDOC) -b html4 -d article -f asciidoc.conf \
+	$(AM_V_GEN)$(ASCIIDOC) -b html4 -d article -f $(srcdir)/asciidoc.conf \
 		-aversion=$(VERSION) $(ASCIIDOC_EXTRA) -o $@ $<
 
 doc_DATA = $(MAN_HTML)
