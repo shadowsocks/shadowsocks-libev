@@ -2,34 +2,32 @@
 
 [![Build Status](https://travis-ci.com/shadowsocks/shadowsocks-libev.svg?branch=master)](https://travis-ci.com/shadowsocks/shadowsocks-libev) [![Snap Status](https://build.snapcraft.io/badge/shadowsocks/shadowsocks-libev.svg)](https://build.snapcraft.io/user/shadowsocks/shadowsocks-libev)
 
-## Intro
+## Introdução
 
-[Shadowsocks-libev](https://shadowsocks.org) is a lightweight secured SOCKS5
-proxy for embedded devices and low-end boxes.
+[Shadowsocks-libev](https://shadowsocks.org) é um SOCKS5 leve e seguro
+proxy para dispositivos embutidos e caixas de baixo custo.
 
-It is a port of [Shadowsocks](https://github.com/shadowsocks/shadowsocks)
-created by [@clowwindy](https://github.com/clowwindy), and maintained by
-[@madeye](https://github.com/madeye) and [@linusyang](https://github.com/linusyang).
+É uma porta de [Shadowsocks](https://github.com/shadowsocks/shadowsocks)
+criado por [@clowwindy](https://github.com/clowwindy) e mantido por
+[@madeye](https://github.com/madeye) e [@linusyang](https://github.com/linusyang).
 
-Current version: 3.3.5 | [Changelog](debian/changelog)
+Versão atual: 3.3.5 | [Changelog](debian/changelog)
 
-## Features
+## Características
 
-Shadowsocks-libev is written in pure C and depends on [libev](http://software.schmorp.de/pkg/libev.html). It's designed
-to be a lightweight implementation of shadowsocks protocol, in order to keep the resource usage as low as possible.
+Shadowsocks-libev é escrito em C puro e depende de [libev](http://software.schmorp.de/pkg/libev.html). Ele foi projetado para ser uma implementação leve do protocolo shadowsocks, a fim de manter o uso de recursos o mais baixo possível.
 
-For a full list of feature comparison between different versions of shadowsocks,
-refer to the [Wiki page](https://github.com/shadowsocks/shadowsocks/wiki/Feature-Comparison-across-Different-Versions).
+Para obter uma lista completa de comparação de recursos entre diferentes versões de shadowsocks, consulte a [página da Wiki (https://github.com/shadowsocks/shadowsocks/wiki/Feature-Comparison-across-Different-Versions).
 
-## Quick Start
+## Começo rápido
 
-Snap is the recommended way to install the latest binaries.
+Snap é a maneira recomendada de instalar os binários mais recentes.
 
-### Install snap core
+### Instale o snap core
 
 https://snapcraft.io/core
 
-### Install from snapcraft.io
+### Instalar a partir do snapcraft.io
 
 Stable channel:
 
@@ -43,9 +41,9 @@ Edge channel:
 sudo snap install shadowsocks-libev --edge
 ```
 
-## Installation
+## Instalação
 
-### Distribution-specific guide
+### Guia específico de distribuição
 
 - [Debian & Ubuntu](#debian--ubuntu)
     + [Install from repository](#install-from-repository-not-recommended)
@@ -69,24 +67,24 @@ sudo snap install shadowsocks-libev --edge
 
 * * *
 
-### Initialise the build environment
+### Inicialize o ambiente de compilação
 
-This repository uses submodules, so you should pull them before you start, using:
+Este repositório usa submódulos, então você deve puxá-los antes de começar, usando:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-### Pre-build configure guide
+### Guia de configuração de pré-compilação
 
-For a complete list of available configure-time option,
-try `configure --help`.
+Para obter uma lista completa das opções de tempo de configuração disponíveis,
+tentar `configure --help`.
 
 ### Debian & Ubuntu
 
-#### Install from repository (not recommended)
+#### Instale a partir do repositório (não recomendado)
 
-Shadowsocks-libev is available in the official repository for following distributions:
+Shadowsocks-libev está disponível no repositório oficial para as seguintes distribuições:
 
 * Debian 8 or higher, including oldoldstable (jessie), old stable (stretch), stable (buster), testing (bullseye) and unstable (sid)
 * Ubuntu 16.10 or higher
@@ -96,14 +94,14 @@ sudo apt update
 sudo apt install shadowsocks-libev
 ```
 
-#### Build deb package from source
+#### Compile o pacote deb a partir da fonte.
 
-Supported distributions:
+Distribuições suportadas:
 
 * Debian 8, 9 or higher
 * Ubuntu 14.04 LTS, 16.04 LTS, 16.10 or higher
 
-You can build shadowsocks-libev and all its dependencies by script:
+Você pode construir shadowsocks-libev e todas as suas dependências por script:
 
 ```bash
 mkdir -p ~/build-area/
@@ -112,14 +110,14 @@ cd ~/build-area
 ./build_deb.sh
 ```
 
-For older systems, building `.deb` packages is not supported.
-Please try to build and install directly from source. See the [Linux](#linux) section below.
+Para sistemas mais antigos, a construção de pacotes `.deb` não é suportada.
+Por favor, tente construir e instalar diretamente da fonte. Veja a seção [Linux](#linux) abaixo.
 
-**Note for Debian 8 (Jessie) users to build their own deb packages**:
+**Nota para usuários do Debian 8 (Jessie) para construir seus próprios pacotes deb**:
 
-We strongly encourage you to install shadowsocks-libev from `jessie-backports-sloppy`. If you insist on building from source, you will need to manually install libsodium from `jessie-backports-sloppy`, **NOT** libsodium in main repository.
+Nós encorajamos você a instalar shadowsocks-libev de `jessie-backports-sloppy`. Se você insistir em compilar a partir da fonte, você precisará instalar manualmente o libsodium de `jessie-backports-sloppy`, **NÃO** libsodium no repositório principal.
 
-For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
+Para mais informações sobre backports, você pode consultar [Debian Backports](https://backports.debian.org).
 
 ``` bash
 cd shadowsocks-libev
@@ -132,11 +130,11 @@ cd ..
 sudo dpkg -i shadowsocks-libev*.deb
 ```
 
-**Note for Debian 9 (Stretch) users to build their own deb packages**:
+**Nota para usuários do Debian 9 (Stretch) para construir seus próprios pacotes deb**:
 
-We strongly encourage you to install shadowsocks-libev from `stretch-backports`. If you insist on building from source, you will need to manually install libsodium from `stretch-backports`, **NOT** libsodium in main repository.
+Nós encorajamos você a instalar shadowsocks-libev de `stretch-backports`. Se você insistir em compilar a partir do código-fonte, precisará instalar manualmente o libsodium de `stretch-backports`, **NÃO** libsodium no repositório principal.
 
-For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
+Para mais informações sobre backports, você pode consultar [Debian Backports](https://backports.debian.org).
 
 ``` bash
 cd shadowsocks-libev
@@ -148,7 +146,7 @@ cd ..
 sudo dpkg -i shadowsocks-libev*.deb
 ```
 
-#### Configure and start the service
+#### Configurar e iniciar o serviço
 
 ```
 # Edit the configuration file
@@ -164,14 +162,14 @@ sudo systemctl start shadowsocks-libev      # for systemd
 
 ### Fedora & RHEL
 
-Supported distributions:
+Distribuições suportadas:
 
 * Recent Fedora versions (until EOL)
 * RHEL 6, 7 and derivatives (including CentOS, Scientific Linux)
 
-#### Build from source with centos
+#### Construa a partir da fonte com centos
 
-If you are using CentOS 7, you need to install these prerequirements to build from source code:
+Se você estiver usando o CentOS 7, precisará instalar estes pré-requisitos para compilar a partir do código-fonte:
 
 ```bash
 yum install epel-release -y
@@ -184,8 +182,7 @@ yum install gcc gettext autoconf libtool automake make pcre-devel asciidoc xmlto
 sudo pacman -S shadowsocks-libev
 ```
 
-Please refer to downstream [PKGBUILD](https://github.com/archlinux/svntogit-community/blob/packages/shadowsocks-libev/trunk/PKGBUILD)
-script for extra modifications and distribution-specific bugs.
+Consulte o script downstream [PKGBUILD](https://github.com/archlinux/svntogit-community/blob/packages/shadowsocks-libev/trunk/PKGBUILD) para modificações extras e bugs específicos da distribuição.
 
 ### NixOS
 
@@ -201,7 +198,7 @@ nix-env -iA nixpkgs.shadowsocks-libev
 
 ### Linux
 
-In general, you need the following build dependencies:
+Em geral, você precisa das seguintes dependências de compilação:
 
 * autotools (autoconf, automake, libtool)
 * gettext
@@ -214,13 +211,13 @@ In general, you need the following build dependencies:
 * asciidoc (for documentation only)
 * xmlto (for documentation only)
 
-Notes: Fedora 26  libsodium version >= 1.0.12, so you can install via dnf install libsodium instead build from source.
+Notas: Fedora 26 libsodium versão >= 1.0.12, então você pode instalar via dnf install libsodium em vez de compilar a partir da fonte.
 
-If your system is too old to provide libmbedtls and libsodium (later than **v1.0.8**), you will need to either install those libraries manually or upgrade your system.
+Se seu sistema for muito antigo para fornecer libmbedtls e libsodium (posterior a **v1.0.8**), você precisará instalar essas bibliotecas manualmente ou atualizar seu sistema.
 
-If your system provides with those libraries, you **should not** install them from source.You should jump to this section and install them from the distribution repository instead.
+Se o seu sistema fornece essas bibliotecas, você **não deve** instalá-las a partir do código-fonte. Você deve ir para esta seção e instalá-las a partir do repositório de distribuição.
 
-For some of the distributions, you might install build dependencies like this:
+Para algumas das distribuições, você pode instalar dependências de compilação como esta:
 
 ```bash
 # Installation of basic build dependencies
@@ -256,19 +253,19 @@ sudo ldconfig
 sudo make install
 ```
 
-You may need to manually install missing softwares.
+Pode ser necessário instalar manualmente os softwares ausentes.
 
 ### FreeBSD
 #### Install
-Shadowsocks-libev is available in FreeBSD Ports Collection. You can install it in either way, `pkg` or `ports`.
+Shadowsocks-libev está disponível na Coleção de Ports do FreeBSD. Você pode instalá-lo de qualquer maneira, `pkg` ou `ports`.
 
-**pkg (recommended)**
+**pkg (recomendado)**
 
 ```bash
 pkg install shadowsocks-libev
 ```
 
-**ports**
+**portas**
 
 ```bash
 cd /usr/ports/net/shadowsocks-libev
@@ -276,86 +273,86 @@ make install
 ```
 
 #### Configuration
-Edit your `config.json` file. By default, it's located in `/usr/local/etc/shadowsocks-libev`.
+Edite seu arquivo `config.json`. Por padrão, está localizado em `/usr/local/etc/shadowsocks-libev`.
 
-To enable shadowsocks-libev, add the following rc variable to your `/etc/rc.conf` file:
+Para habilitar shadowsocks-libev, adicione a seguinte variável rc ao seu arquivo `/etc/rc.conf`:
 
 ```
 shadowsocks_libev_enable="YES"
 ```
 
-#### Run
+#### Executar
 
-Start the Shadowsocks server:
+Inicie o servidor Shadowsocks:
 
 ```bash
 service shadowsocks_libev start
 ```
 
-#### Run as client
-By default, shadowsocks-libev is running as a server in FreeBSD. If you would like to start shadowsocks-libev in client mode, you can modify the rc script (`/usr/local/etc/rc.d/shadowsocks_libev`) manually.
+#### Executar como cliente
+Por padrão, shadowsocks-libev está rodando como um servidor no FreeBSD. Se você quiser iniciar o shadowsocks-libev no modo cliente, você pode modificar o script rc (`/usr/local/etc/rc.d/shadowsocks_libev`) manualmente.
 
 ```
 # modify the following line from "ss-server" to "ss-local"
 command="/usr/local/bin/ss-local"
 ```
 
-Note that is simply a workaround, each time you upgrade the port your changes will be overwritten by the new version.
+Observe que é simplesmente uma solução alternativa, cada vez que você atualizar a porta, suas alterações serão substituídas pela nova versão.
 
 ### OpenWRT
 
-The OpenWRT project is maintained here:
+O projeto OpenWRT é mantido aqui:
 [openwrt-shadowsocks](https://github.com/shadowsocks/openwrt-shadowsocks).
 
 ### OS X
-For OS X, use [Homebrew](http://brew.sh) to install or build.
+Para OS X, use [Homebrew](http://brew.sh) para instalar ou compilar.
 
-Install Homebrew:
+Instale o Homebrew:
 
 ```bash
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 ```
-Install shadowsocks-libev:
+Instale shadowsocks-libev:
 
 ```bash
 brew install shadowsocks-libev
 ```
 
 ### Windows (MinGW)
-To build Windows native binaries, the recommended method is to use Docker:
+Para compilar binários nativos do Windows, o método recomendado é usar o Docker:
 
-* On Windows: double-click `make.bat` in `docker\mingw`
-* On Unix-like system:
+* No Windows: clique duas vezes em `make.bat` em `docker\mingw`
+* No sistema do tipo Unix:
 
         cd shadowsocks-libev/docker/mingw
         make
 
-A tarball with 32-bit and 64-bit binaries will be generated in the same directory.
+Um tarball com binários de 32 bits e 64 bits será gerado no mesmo diretório.
 
-You could also manually use MinGW-w64 compilers to build in Unix-like shell (MSYS2/Cygwin), or cross-compile on Unix-like systems (Linux/MacOS). Please refer to build scripts in `docker/mingw`.
+Você também pode usar compiladores MinGW-w64 manualmente para compilar em shell do tipo Unix (MSYS2/Cygwin) ou compilar em sistemas semelhantes ao Unix (Linux/MacOS). Por favor, consulte os scripts de compilação em `docker/mingw`.
 
-Currently you need to use a patched libev library for MinGW:
+Atualmente você precisa usar uma biblioteca libev corrigida para MinGW:
 
 * https://github.com/shadowsocks/libev/archive/mingw.zip
 
-Notice that TCP Fast Open (TFO) is only available on **Windows 10**, **1607** or later version (precisely, build >= 14393). If you are using **1709** (build 16299) or later version, you also need to run the following command in PowerShell/Command Prompt **as Administrator** and **reboot** to use TFO properly:
+Observe que o TCP Fast Open (TFO) está disponível apenas no **Windows 10**, **1607** ou versão posterior (precisamente, build >= 14393). Se você estiver usando **1709** (compilação 16299) ou versão posterior, também precisará executar o seguinte comando no PowerShell/Prompt de comando **como administrador** e **reinicializar** para usar o TFO corretamente:
 
         netsh int tcp set global fastopenfallback=disabled
 
 ### Docker
 
-As you expect, simply pull the image and run.
+Como você espera, basta puxar a imagem e executar.
 ```
 docker pull shadowsocks/shadowsocks-libev
 docker run -e PASSWORD=<password> -p<server-port>:8388 -p<server-port>:8388/udp -d shadowsocks/shadowsocks-libev
 ```
 
-More information about the image can be found [here](docker/alpine/README.md).
+Mais informações sobre a imagem podem ser encontradas [aqui](docker/alpine/README.md).
 
-## Usage
+## Utilização
 
-For a detailed and complete list of all supported arguments,
-you may refer to the man pages of the applications, respectively.
+Para obter uma lista detalhada e completa de todos os argumentos suportados,
+você pode consultar as páginas de manual dos aplicativos, respectivamente.
 
     ss-[local|redir|server|tunnel|manager]
 
@@ -450,9 +447,9 @@ you may refer to the man pages of the applications, respectively.
 
        [-v]                       Verbose mode.
 
-## Transparent proxy
+## proxy transparente
 
-The latest shadowsocks-libev has provided a *redir* mode. You can configure your Linux-based box or router to proxy all TCP traffic transparently, which is handy if you use an OpenWRT-powered router.
+O mais recente shadowsocks-libev forneceu um modo *redir*. Você pode configurar sua caixa ou roteador baseado em Linux para fazer proxy de todo o tráfego TCP de forma transparente, o que é útil se você usar um roteador com OpenWRT.
 
     # Create new chain
     iptables -t nat -N SHADOWSOCKS
@@ -489,11 +486,11 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
     # Start the shadowsocks-redir
     ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
 
-## Transparent proxy (pure tproxy)
+## Proxy transparente (pure tproxy)
 
-Executing this script on the linux host can proxy all outgoing traffic of this machine (except the traffic sent to the reserved address). Other hosts under the same LAN can also change their default gateway to the ip of this linux host (at the same time change the dns server to 1.1.1.1 or 8.8.8.8, etc.) to proxy their outgoing traffic.
+A execução deste script no host linux pode fazer proxy de todo o tráfego de saída desta máquina (exceto o tráfego enviado para o endereço reservado). Outros hosts na mesma LAN também podem alterar seu gateway padrão para o ip deste host linux (ao mesmo tempo, alterar o servidor dns para 1.1.1.1 ou 8.8.8.8, etc.) para fazer proxy de seu tráfego de saída.
 
-> Of course, the ipv6 proxy is similar, just change `iptables` to `ip6tables`, `ip` to `ip -6`, `127.0.0.1` to `::1`, and other details.
+> Claro, o proxy ipv6 é semelhante, basta alterar `iptables` para `ip6tables`, `ip` para `ip -6`, `127.0.0.1` para `::1`, e outros detalhes.
 
 ```shell
 #!/bin/bash
@@ -641,33 +638,34 @@ main() {
 main "$@"
 ```
 
-## Security Tips
+## Dicas de segurança
 
-For any public server, to avoid users accessing localhost of your server, please add `--acl acl/server_block_local.acl` to the command line.
+Para qualquer servidor público, para evitar que os usuários acessem o localhost do seu servidor, adicione `--acl acl/server_block_local.acl` à linha de comando.
 
-Although shadowsocks-libev can handle thousands of concurrent connections nicely, we still recommend
-setting up your server's firewall rules to limit connections from each user:
+Embora shadowsocks-libev possa lidar bem com milhares de conexões simultâneas, ainda recomendamos
+configurando as regras de firewall do seu servidor para limitar as conexões de cada usuário:
 
     # Up to 32 connections are enough for normal usage
     iptables -A INPUT -p tcp --syn --dport ${SHADOWSOCKS_PORT} -m connlimit --connlimit-above 32 -j REJECT --reject-with tcp-reset
 
-## License
+## Licença
 
 ```
 Copyright: 2013-2015, Clow Windy <clowwindy42@gmail.com>
            2013-2018, Max Lv <max.c.lv@gmail.com>
            2014, Linus Yang <linusyang@gmail.com>
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Este programa é um software livre: você pode redistribuí-lo 
+e/ou modificá-lo sob os termos da GNU General Public License 
+conforme publicada pela Free Software Foundation, a versão 3
+da Licença ou (a seu critério) qualquer versão posterior.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+Este programa é distribuído na esperança de que seja útil,
+ mas SEM QUALQUER GARANTIA; sem mesmo a garantia implícita 
+de COMERCIALIZAÇÃO ou ADEQUAÇÃO A UM DETERMINADO FIM.Veja
+a Licença Pública Geral GNU para mais detalhes.
 
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
+Você deve ter recebido uma cópia da GNU General Public License 
+License juntamente com este programa. Caso contrário, 
+consulte <http://www.gnu.org/licenses/>.
 ```
