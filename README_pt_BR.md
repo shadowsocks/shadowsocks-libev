@@ -46,20 +46,20 @@ sudo snap install shadowsocks-libev --edge
 ### Guia específico de distribuição
 
 - [Debian & Ubuntu](#debian--ubuntu)
-    + [Install from repository](#install-from-repository-not-recommended)
-    + [Build deb package from source](#build-deb-package-from-source)
-    + [Configure and start the service](#configure-and-start-the-service)
-- [Fedora & RHEL](#fedora--rhel)
-    + [Build from source with centos](#build-from-source-with-centos)
-- [Archlinux & Manjaro](#archlinux--manjaro)
+    + [Instalar do repositório](#instalar-do-repositório-não-recomendado)
+    + [Construa o pacote deb a partir da fonte](#construa-o-pacote-deb-a-partir-da-fonte)
+    + [Configurar e iniciar o serviço](#configurar-e-iniciar-o-serviço)
+- [Fedora & RHEL](#fedora-&-rhel)
+     + [Construir a partir da fonte com centos](#construir-a-partir-da-fonte-com-centos)
+- [Archlinux & Manjaro](#archlinux-&-manjaro)
 - [NixOS](#nixos)
 - [Nix](#nix)
-- [Directly build and install on UNIX-like system](#linux)
+- [Compile e instale diretamente no sistema semelhante ao UNIX](#linux)
 - [FreeBSD](#freebsd)
-    + [Install](#install)
-    + [Configuration](#configuration)
-    + [Run](#run)
-    + [Run as client](#run-as-client)
+     + [Instalar](#instalar)
+     + [Configuração](#configuração)
+     + [Executar](#executar)
+     + [Executar como cliente](#executar-como-cliente)
 - [OpenWRT](#openwrt)
 - [OS X](#os-x)
 - [Windows (MinGW)](#windows-mingw)
@@ -86,8 +86,8 @@ tentar `configure --help`.
 
 Shadowsocks-libev está disponível no repositório oficial para as seguintes distribuições:
 
-* Debian 8 or higher, including oldoldstable (jessie), old stable (stretch), stable (buster), testing (bullseye) and unstable (sid)
-* Ubuntu 16.10 or higher
+* Debian 8 ou superior, incluindo oldoldstable (jessie), old stable (stretch), stable (buster), testing (bullseye) e unstable (sid)
+* Ubuntu 16.10 ou superior
 
 ```bash
 sudo apt update
@@ -98,8 +98,8 @@ sudo apt install shadowsocks-libev
 
 Distribuições suportadas:
 
-* Debian 8, 9 or higher
-* Ubuntu 14.04 LTS, 16.04 LTS, 16.10 or higher
+* Debian 8, 9 ou superior
+* Ubuntu 14.04 LTS, 16.04 LTS, 16.10 ou superior
 
 Você pode construir shadowsocks-libev e todas as suas dependências por script:
 
@@ -149,23 +149,23 @@ sudo dpkg -i shadowsocks-libev*.deb
 #### Configurar e iniciar o serviço
 
 ```
-# Edit the configuration file
+# Edite o arquivo de configuração
 sudo vim /etc/shadowsocks-libev/config.json
 
-# Edit the default configuration for debian
+# Edite a configuração padrão do debian
 sudo vim /etc/default/shadowsocks-libev
 
-# Start the service
-sudo /etc/init.d/shadowsocks-libev start    # for sysvinit, or
-sudo systemctl start shadowsocks-libev      # for systemd
+# Inicia o serviço
+sudo /etc/init.d/shadowsocks-libev start    # para sysvinit, ou
+sudo systemctl start shadowsocks-libev      # para systemd
 ```
 
 ### Fedora & RHEL
 
 Distribuições suportadas:
 
-* Recent Fedora versions (until EOL)
-* RHEL 6, 7 and derivatives (including CentOS, Scientific Linux)
+* Versões recentes do Fedora (até EOL)
+* RHEL 6, 7 e derivados (incluindo CentOS, Scientific Linux)
 
 #### Construa a partir da fonte com centos
 
@@ -205,11 +205,11 @@ Em geral, você precisa das seguintes dependências de compilação:
 * pkg-config
 * libmbedtls
 * libsodium
-* libpcre3 (old pcre library)
+* libpcre3 (antiga biblioteca pcre)
 * libev
 * libc-ares
-* asciidoc (for documentation only)
-* xmlto (for documentation only)
+* asciidoc (somente para documentação)
+* xmlto (apenas para documentação)
 
 Notas: Fedora 26 libsodium versão >= 1.0.12, então você pode instalar via dnf install libsodium em vez de compilar a partir da fonte.
 
@@ -220,7 +220,7 @@ Se o seu sistema fornece essas bibliotecas, você **não deve** instalá-las a p
 Para algumas das distribuições, você pode instalar dependências de compilação como esta:
 
 ```bash
-# Installation of basic build dependencies
+# Instalação de dependências básicas de compilação
 ## Debian / Ubuntu
 sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libc-ares-dev automake libmbedtls-dev libsodium-dev pkg-config
 ## CentOS / Fedora / RHEL
@@ -228,7 +228,7 @@ sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto c-are
 ## Arch
 sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto c-ares libev
 
-# Installation of libsodium
+# Instalação do libsodium
 export LIBSODIUM_VER=1.0.16
 wget https://download.libsodium.org/libsodium/releases/old/libsodium-$LIBSODIUM_VER.tar.gz
 tar xvf libsodium-$LIBSODIUM_VER.tar.gz
@@ -238,7 +238,7 @@ sudo make install
 popd
 sudo ldconfig
 
-# Installation of MbedTLS
+# Instalação do MbedTLS
 export MBEDTLS_VER=2.6.0
 wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/mbedtls-$MBEDTLS_VER.tar.gz
 tar xvf mbedtls-$MBEDTLS_VER.tar.gz
@@ -248,7 +248,7 @@ sudo make DESTDIR=/usr install
 popd
 sudo ldconfig
 
-# Start building
+# Comece a construir
 ./autogen.sh && ./configure && make
 sudo make install
 ```
@@ -256,7 +256,7 @@ sudo make install
 Pode ser necessário instalar manualmente os softwares ausentes.
 
 ### FreeBSD
-#### Install
+#### Instalar
 Shadowsocks-libev está disponível na Coleção de Ports do FreeBSD. Você pode instalá-lo de qualquer maneira, `pkg` ou `ports`.
 
 **pkg (recomendado)**
@@ -272,7 +272,7 @@ cd /usr/ports/net/shadowsocks-libev
 make install
 ```
 
-#### Configuration
+#### Configuração
 Edite seu arquivo `config.json`. Por padrão, está localizado em `/usr/local/etc/shadowsocks-libev`.
 
 Para habilitar shadowsocks-libev, adicione a seguinte variável rc ao seu arquivo `/etc/rc.conf`:
@@ -293,7 +293,7 @@ service shadowsocks_libev start
 Por padrão, shadowsocks-libev está rodando como um servidor no FreeBSD. Se você quiser iniciar o shadowsocks-libev no modo cliente, você pode modificar o script rc (`/usr/local/etc/rc.d/shadowsocks_libev`) manualmente.
 
 ```
-# modify the following line from "ss-server" to "ss-local"
+# modifique a seguinte linha de "ss-server" para "ss-local"
 command="/usr/local/bin/ss-local"
 ```
 
@@ -354,114 +354,108 @@ Mais informações sobre a imagem podem ser encontradas [aqui](docker/alpine/REA
 Para obter uma lista detalhada e completa de todos os argumentos suportados,
 você pode consultar as páginas de manual dos aplicativos, respectivamente.
 
-    ss-[local|redir|server|tunnel|manager]
+     ss-[local|redir|server|tunnel|manager]
 
-       -s <server_host>           Host name or IP address of your remote server.
+       -s <server_host>            Nome do host ou endereço IP de seu servidor remoto.
 
-       -p <server_port>           Port number of your remote server.
+       -p <server_port>            Número da porta do seu servidor remoto.
 
-       -l <local_port>            Port number of your local server.
+       -l <local_port>             Número da porta do seu servidor local.
 
-       -k <password>              Password of your remote server.
+       -k <password>               Senha do seu servidor remoto.
 
-       -m <encrypt_method>        Encrypt method: rc4-md5,
-                                  aes-128-gcm, aes-192-gcm, aes-256-gcm,
-                                  aes-128-cfb, aes-192-cfb, aes-256-cfb,
-                                  aes-128-ctr, aes-192-ctr, aes-256-ctr,
-                                  camellia-128-cfb, camellia-192-cfb,
-                                  camellia-256-cfb, bf-cfb,
-                                  chacha20-ietf-poly1305,
-                                  xchacha20-ietf-poly1305,
-                                  salsa20, chacha20 and chacha20-ietf.
-                                  The default cipher is chacha20-ietf-poly1305.
+       -m <encrypt_method>         Método de criptografia: rc4-md5,
+                                   aes-128-gcm, aes-192-gcm, aes-256-gcm,
+                                   aes-128-cfb, aes-192-cfb, aes-256-cfb,
+                                   aes-128-ctr, aes-192-ctr, aes-256-ctr,
+                                   camellia-128-cfb, camellia-192-cfb,
+                                   camellia-256-cfb, bf-cfb,
+                                   chacha20-ietf-poly1305,
+                                   xchacha20-ietf-poly1305,
+                                   salsa20, chacha20 e chacha20-ietf.
+                                   A cifra padrão é chacha20-ietf-poly1305.
 
-       [-a <user>]                Run as another user.
+       [-a <user>]                 Executar como outro usuário.
 
-       [-f <pid_file>]            The file path to store pid.
+       [-f <pid_file>]             O caminho do arquivo para armazenar pid.
 
-       [-t <timeout>]             Socket timeout in seconds.
+       [-t <timeout>]              Tempo limite do soquete em segundos.
 
-       [-c <config_file>]         The path to config file.
+       [-c <config_file>]          O caminho para o arquivo de configuração.
 
-       [-n <number>]              Max number of open files.
+       [-n <number>]               Número máximo de arquivos abertos.
 
-       [-i <interface>]           Network interface to bind.
-                                  (not available in redir mode)
+       [-i <interface>]            Interface de rede a ser vinculada.
+                                   (não disponível no modo redir)
 
-       [-b <local_address>]       Local address to bind.
-                                  For servers: Specify the local address to use 
-                                  while this server is making outbound 
-                                  connections to remote servers on behalf of the
-                                  clients.
-                                  For clients: Specify the local address to use 
-                                  while this client is making outbound 
-                                  connections to the server.
+       [-b <local_address>]        Endereço local para ligar.
+                                   Para servidores: Especifique o endereço local a ser usado
+                                   enquanto este servidor está fazendo saída
+                                   conexões a servidores remotos em nome do
+                                   clientes.
+                                   Para clientes: Especifique o endereço local a ser usado
+                                   enquanto este cliente está fazendo saída
+                                   conexões com o servidor.
 
-       [-u]                       Enable UDP relay.
-                                  (TPROXY is required in redir mode)
+       [-u]                        Habilita retransmissão UDP.
+                                   (TPROXY é necessário no modo redir)
 
-       [-U]                       Enable UDP relay and disable TCP relay.
-                                  (not available in local mode)
+       [-U]                        Ativa a retransmissão UDP e desativa a retransmissão TCP.
+                                   (não disponível no modo local)
 
-       [-T]                       Use tproxy instead of redirect. (for tcp)
-                                  (only available in redir mode)
+       [-T]                        Use tproxy em vez de redirecionar. (para tcp)
+                                   (disponível apenas no modo redir)
 
-       [-L <addr>:<port>]         Destination server address and port
-                                  for local port forwarding.
-                                  (only available in tunnel mode)
+       [-L <addr>:<port>]          Endereço e porta do servidor de destino
+                                   para encaminhamento de porta local.
+                                   (disponível apenas no modo túnel)
 
-       [-6]                       Resolve hostname to IPv6 address first.
+       [-6]                        Primeiro, resolva o nome do host para o endereço IPv6.
 
-       [-d <addr>]                Name servers for internal DNS resolver.
-                                  (only available in server mode)
+       [-d <addr>]                 Servidores de nome para resolvedor de DNS interno.
+                                   (disponível apenas no modo servidor)
 
-       [--reuse-port]             Enable port reuse.
+       [--reuse-port]              Habilita a reutilização de porta.
 
-       [--fast-open]              Enable TCP fast open.
-                                  with Linux kernel > 3.7.0.
-                                  (only available in local and server mode)
+       [--fast-open]               Habilita a abertura rápida do TCP.
+                                   com kernel do Linux > 3.7.0.
+                                   (disponível apenas no modo local e servidor)
 
-       [--acl <acl_file>]         Path to ACL (Access Control List).
-                                  (only available in local and server mode)
+       [--acl <acl_file>]          Caminho para ACL (lista de controle de acesso).
+                                   (disponível apenas no modo local e servidor)
 
-       [--manager-address <addr>] UNIX domain socket address.
-                                  (only available in server and manager mode)
+       [--manager-address <addr>]  endereço de soquete do domínio UNIX.
+                                   (disponível apenas no modo servidor e gerenciador)
 
-       [--mtu <MTU>]              MTU of your network interface.
+       [--mtu <MTU>]               MTU de sua interface de rede.
 
-       [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.
+       [--mptcp]                   Habilita o Multipath TCP no Kernel MPTCP.
+ 
+       [--no-delay]                Habilita TCP_NODELAY.
 
-       [--no-delay]               Enable TCP_NODELAY.
+       [--executable <path>]       Caminho para o executável do ss-server.
+                                   (disponível apenas no modo gerenciador)
+ 
+       [-D <path>]                 Caminho para o diretório de trabalho do ss-manager.
+                                   (disponível apenas no modo gerenciador)
 
-       [--executable <path>]      Path to the executable of ss-server.
-                                  (only available in manager mode)
-
-       [-D <path>]                Path to the working directory of ss-manager.
-                                  (only available in manager mode)
-
-       [--key <key_in_base64>]    Key of your remote server.
-
-       [--plugin <name>]          Enable SIP003 plugin. (Experimental)
-
-       [--plugin-opts <options>]  Set SIP003 plugin options. (Experimental)
-
-       [-v]                       Verbose mode.
+       [--key <key_in_base64>]     Chave do seu servidor remoto.
 
 ## proxy transparente
 
 O mais recente shadowsocks-libev forneceu um modo *redir*. Você pode configurar sua caixa ou roteador baseado em Linux para fazer proxy de todo o tráfego TCP de forma transparente, o que é útil se você usar um roteador com OpenWRT.
 
-    # Create new chain
+    # Criar nova cadeia
     iptables -t nat -N SHADOWSOCKS
     iptables -t mangle -N SHADOWSOCKS
 
-    # Ignore your shadowsocks server's addresses
-    # It's very IMPORTANT, just be careful.
+    # Ignore os endereços do seu servidor shadowsocks
+    # É muito IMPORTANTE, apenas tome cuidado.
     iptables -t nat -A SHADOWSOCKS -d 123.123.123.123 -j RETURN
 
-    # Ignore LANs and any other addresses you'd like to bypass the proxy
-    # See Wikipedia and RFC5735 for full list of reserved networks.
-    # See ashi009/bestroutetb for a highly optimized CHN route list.
+    # Ignore LANs e quaisquer outros endereços que você gostaria de ignorar o proxy
+    # Veja Wikipedia e RFC5735 para lista completa de redes reservadas.
+    # Consulte ashi009/bestroutetb para obter uma lista de rotas CHN altamente otimizada.
     iptables -t nat -A SHADOWSOCKS -d 0.0.0.0/8 -j RETURN
     iptables -t nat -A SHADOWSOCKS -d 10.0.0.0/8 -j RETURN
     iptables -t nat -A SHADOWSOCKS -d 127.0.0.0/8 -j RETURN
@@ -471,22 +465,22 @@ O mais recente shadowsocks-libev forneceu um modo *redir*. Você pode configurar
     iptables -t nat -A SHADOWSOCKS -d 224.0.0.0/4 -j RETURN
     iptables -t nat -A SHADOWSOCKS -d 240.0.0.0/4 -j RETURN
 
-    # Anything else should be redirected to shadowsocks's local port
+    # Qualquer outra coisa deve ser redirecionada para a porta local do shadowsocks
     iptables -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports 12345
 
-    # Add any UDP rules
+    # Adicione quaisquer regras UDP
     ip route add local default dev lo table 100
     ip rule add fwmark 1 lookup 100
     iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01
 
-    # Apply the rules
+    # Aplicar as regras
     iptables -t nat -A PREROUTING -p tcp -j SHADOWSOCKS
     iptables -t mangle -A PREROUTING -j SHADOWSOCKS
 
-    # Start the shadowsocks-redir
+    # Iniciar o shadowsocks-redir
     ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
 
-## Proxy transparente (pure tproxy)
+## Proxy transparente (tproxy puro)
 
 A execução deste script no host linux pode fazer proxy de todo o tráfego de saída desta máquina (exceto o tráfego enviado para o endereço reservado). Outros hosts na mesma LAN também podem alterar seu gateway padrão para o ip deste host linux (ao mesmo tempo, alterar o servidor dns para 1.1.1.1 ou 8.8.8.8, etc.) para fazer proxy de seu tráfego de saída.
 
@@ -496,7 +490,7 @@ A execução deste script no host linux pode fazer proxy de todo o tráfego de s
 #!/bin/bash
 
 start_ssredir() {
-    # please modify MyIP, MyPort, etc.
+    # modifique MyIP, MyPort, etc.
     (ss-redir -s MyIP -p MyPort -m MyMethod -k MyPasswd -b 127.0.0.1 -l 60080 --no-delay -u -T -v </dev/null &>>/var/log/ss-redir.log &)
 }
 
@@ -512,12 +506,12 @@ start_iptables() {
     iptables -t mangle -A SSREDIR -j CONNMARK --restore-mark
     iptables -t mangle -A SSREDIR -m mark --mark 0x2333 -j RETURN
 
-    # please modify MyIP, MyPort, etc.
-    # ignore traffic sent to ss-server
+    # modifique MyIP, MyPort, etc.
+    # ignorar o tráfego enviado para o servidor ss
     iptables -t mangle -A SSREDIR -p tcp -d MyIP --dport MyPort -j RETURN
     iptables -t mangle -A SSREDIR -p udp -d MyIP --dport MyPort -j RETURN
 
-    # ignore traffic sent to reserved addresses
+    # ignorar o tráfego enviado para endereços reservados
     iptables -t mangle -A SSREDIR -d 0.0.0.0/8          -j RETURN
     iptables -t mangle -A SSREDIR -d 10.0.0.0/8         -j RETURN
     iptables -t mangle -A SSREDIR -d 100.64.0.0/10      -j RETURN
@@ -535,7 +529,7 @@ start_iptables() {
     iptables -t mangle -A SSREDIR -d 240.0.0.0/4        -j RETURN
     iptables -t mangle -A SSREDIR -d 255.255.255.255/32 -j RETURN
 
-    # mark the first packet of the connection
+    # marca o primeiro pacote da conexão
     iptables -t mangle -A SSREDIR -p tcp --syn                      -j MARK --set-mark 0x2333
     iptables -t mangle -A SSREDIR -p udp -m conntrack --ctstate NEW -j MARK --set-mark 0x2333
 
@@ -645,7 +639,7 @@ Para qualquer servidor público, para evitar que os usuários acessem o localhos
 Embora shadowsocks-libev possa lidar bem com milhares de conexões simultâneas, ainda recomendamos
 configurando as regras de firewall do seu servidor para limitar as conexões de cada usuário:
 
-    # Up to 32 connections are enough for normal usage
+    # Até 32 conexões são suficientes para uso normal
     iptables -A INPUT -p tcp --syn --dport ${SHADOWSOCKS_PORT} -m connlimit --connlimit-above 32 -j REJECT --reject-with tcp-reset
 
 ## Licença
@@ -666,6 +660,6 @@ de COMERCIALIZAÇÃO ou ADEQUAÇÃO A UM DETERMINADO FIM.Veja
 a Licença Pública Geral GNU para mais detalhes.
 
 Você deve ter recebido uma cópia da GNU General Public License 
-License juntamente com este programa. Caso contrário, 
+juntamente com este programa. Caso contrário, 
 consulte <http://www.gnu.org/licenses/>.
 ```
