@@ -46,12 +46,12 @@ sudo snap install shadowsocks-libev --edge
 ### Guia específico de distribuição
 
 - [Debian & Ubuntu](#debian--ubuntu)
-    + [Instalar do repositório](#instalar-do-repositório-não-recomendado)
-    + [Construa o pacote deb a partir da fonte](#construa-o-pacote-deb-a-partir-da-fonte)
+    + [Instalar do repositório](#instale-a-partir-do-repositório-não-recomendado)
+    + [Construa o pacote deb a partir da fonte](#compile-o-pacote-deb-a-partir-da-fonte)
     + [Configurar e iniciar o serviço](#configurar-e-iniciar-o-serviço)
-- [Fedora & RHEL](#fedora-&-rhel)
-     + [Construir a partir da fonte com centos](#construir-a-partir-da-fonte-com-centos)
-- [Archlinux & Manjaro](#archlinux-&-manjaro)
+- [Fedora & RHEL](#fedora--rhel)
+     + [Construir a partir da fonte com centos](#construa-a-partir-da-fonte-com-centos)
+- [Archlinux & Manjaro](#archlinux--manjaro)
 - [NixOS](#nixos)
 - [Nix](#nix)
 - [Compile e instale diretamente no sistema semelhante ao UNIX](#linux)
