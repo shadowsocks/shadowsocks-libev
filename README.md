@@ -454,10 +454,19 @@ you may refer to the man pages of the applications, respectively.
 
 The latest shadowsocks-libev has provided a *redir* mode. You can configure your Linux-based box or router to proxy all TCP traffic transparently, which is handy if you use an OpenWRT-powered router.
 
+    # Create ipset
+    ipset create gfw  hash:ip hashsize  10000
+    
+    # Dnsmasq with ipset support, add block domain by GFW into dnsmasq.conf
+    ipset=/google.com/gfw
+    
+    # Anything else should be redirected to shadowsocks's local port
+    iptables -t nat -I PREROUTING -p tcp -m set --match-set gfw dst -m multiport --dports 80,443 -j REDIRECT --to-ports 12345
+
     # Create new chain
     iptables -t nat -N SHADOWSOCKS
     iptables -t mangle -N SHADOWSOCKS
-
+    
     # Ignore your shadowsocks server's addresses
     # It's very IMPORTANT, just be careful.
     iptables -t nat -A SHADOWSOCKS -d 123.123.123.123 -j RETURN
@@ -473,9 +482,6 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
     iptables -t nat -A SHADOWSOCKS -d 192.168.0.0/16 -j RETURN
     iptables -t nat -A SHADOWSOCKS -d 224.0.0.0/4 -j RETURN
     iptables -t nat -A SHADOWSOCKS -d 240.0.0.0/4 -j RETURN
-
-    # Anything else should be redirected to shadowsocks's local port
-    iptables -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports 12345
 
     # Add any UDP rules
     ip route add local default dev lo table 100
