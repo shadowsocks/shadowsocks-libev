@@ -43,7 +43,7 @@ jobs:
           esac;
 
       - name: build & push image
-        uses: docker/build-push-action@v2.4.0
+        uses: docker/build-push-action@v3.3.0
         with:
           context: .
           file: docker/alpine/Dockerfile
