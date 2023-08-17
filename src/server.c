@@ -789,7 +789,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         int optval = 1;
         if (setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
                        (void *)&optval, sizeof(optval)) < 0)
-            FATAL("failed to set TCP_FASTOPEN_CONNECT");
+            LOGW("failed to set TCP_FASTOPEN_CONNECT");
         s = connect(sockfd, res->ai_addr, res->ai_addrlen);
 #elif defined(CONNECT_DATA_IDEMPOTENT)
         struct sockaddr_in sa;

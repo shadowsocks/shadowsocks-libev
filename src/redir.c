@@ -551,7 +551,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             int optval = 1;
             if (setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
                            (void *)&optval, sizeof(optval)) < 0)
-                FATAL("failed to set TCP_FASTOPEN_CONNECT");
+                LOGW("failed to set TCP_FASTOPEN_CONNECT");
             s = connect(remote->fd, remote->addr, get_sockaddr_len(remote->addr));
             if (s == 0)
                 s = send(remote->fd, remote->buf->data, remote->buf->len, 0);

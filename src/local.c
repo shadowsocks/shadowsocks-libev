@@ -714,7 +714,7 @@ server_stream(EV_P_ ev_io *w, buffer_t *buf)
             int optval = 1;
             if (setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
                            (void *)&optval, sizeof(optval)) < 0)
-                FATAL("failed to set TCP_FASTOPEN_CONNECT");
+                LOGW("failed to set TCP_FASTOPEN_CONNECT");
             s = connect(remote->fd, (struct sockaddr *)&(remote->addr), remote->addr_len);
 #else
             FATAL("fast open is not enabled in this build");

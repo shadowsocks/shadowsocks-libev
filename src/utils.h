@@ -40,6 +40,9 @@
 #define LOGI(...)                                                \
     ((void)__android_log_print(ANDROID_LOG_DEBUG, "shadowsocks", \
                                __VA_ARGS__))
+#define LOGW(...)                                                \
+    ((void)__android_log_print(ANDROID_LOG_WARN, "shadowsocks",  \
+                               __VA_ARGS__))
 #define LOGE(...)                                                \
     ((void)__android_log_print(ANDROID_LOG_ERROR, "shadowsocks", \
                                __VA_ARGS__))
@@ -74,6 +77,17 @@ extern FILE *logfile;
             fflush(logfile); }                                                   \
     }                                                                            \
     while (0)
+#define LOGW(format, ...)                                           \
+    do {                                                            \
+        if (logfile != NULL) {                                      \
+            time_t now = time(NULL);                                \
+            char timestr[20];                                       \
+            strftime(timestr, 20, TIME_FORMAT, localtime(&now));    \
+            fprintf(logfile, " %s WARNNING: " format "\n", timestr, \
+                    ## __VA_ARGS__);                                \
+            fflush(logfile); }                                      \
+    }                                                               \
+    while (0)
 #define LOGE(format, ...)                                        \
     do {                                                         \
         if (logfile != NULL) {                                   \
@@ -105,6 +119,19 @@ extern FILE *logfile;
         fprintf(stdout, format "\n", ## __VA_ARGS__);        \
         fflush(stdout);                                      \
     }                                                        \
+    while (0)
+
+#define LOGW(format, ...)                                     \
+    do {                                                      \
+        time_t now = time(NULL);                              \
+        char timestr[20];                                     \
+        strftime(timestr, 20, TIME_FORMAT, localtime(&now));  \
+        ss_color_error();                                     \
+        fprintf(stderr, " %s WARNNING: ", timestr);           \
+        ss_color_reset();                                     \
+        fprintf(stderr, format "\n", ## __VA_ARGS__);         \
+        fflush(stderr);                                       \
+    }                                                         \
     while (0)
 
 #define LOGE(format, ...)                                     \
@@ -163,6 +190,26 @@ extern int use_syslog;
             }                                                                    \
         }                                                                        \
     }                                                                            \
+    while (0)
+
+#define LOGW(format, ...)                                                            \
+    do {                                                                             \
+        if (use_syslog) {                                                            \
+            syslog(LOG_ERR, format, ## __VA_ARGS__);                                 \
+        } else {                                                                     \
+            time_t now = time(NULL);                                                 \
+            char timestr[20];                                                        \
+            strftime(timestr, 20, TIME_FORMAT, localtime(&now));                     \
+            if (use_tty) {                                                           \
+                fprintf(stderr, "\e[01;35m %s WARNNING: \e[0m" format "\n", timestr, \
+                        ## __VA_ARGS__);                                             \
+                fflush(stderr);                                                      \
+            } else {                                                                 \
+                fprintf(stderr, " %s WARNNING: " format "\n", timestr,               \
+                        ## __VA_ARGS__);                                             \
+                fflush(stderr);                                                      \
+            }                                                                        \
+        } }                                                                          \
     while (0)
 
 #define LOGE(format, ...)                                                         \
