@@ -620,6 +620,14 @@ create_and_bind(const char *host, const char *port, int mptcp)
             }
         }
 
+        if (tcp_incoming_sndbuf > 0) {
+            setsockopt(listen_sock, SOL_SOCKET, SO_SNDBUF, &tcp_incoming_sndbuf, sizeof(int));
+        }
+
+        if (tcp_incoming_rcvbuf > 0) {
+            setsockopt(listen_sock, SOL_SOCKET, SO_RCVBUF, &tcp_incoming_rcvbuf, sizeof(int));
+        }
+
         // Enable out-of-tree mptcp
         if (mptcp == 1) {
             int i = 0;
@@ -1768,14 +1776,6 @@ accept_cb(EV_P_ ev_io *w, int revents)
 #ifdef SO_NOSIGPIPE
     setsockopt(serverfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
-
-    if (tcp_incoming_sndbuf > 0) {
-        setsockopt(serverfd, SOL_SOCKET, SO_SNDBUF, &tcp_incoming_sndbuf, sizeof(int));
-    }
-
-    if (tcp_incoming_rcvbuf > 0) {
-        setsockopt(serverfd, SOL_SOCKET, SO_RCVBUF, &tcp_incoming_rcvbuf, sizeof(int));
-    }
 
     setnonblocking(serverfd);
 
