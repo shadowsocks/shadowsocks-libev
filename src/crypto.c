@@ -131,6 +131,42 @@ entropy_check(void)
 #endif
 }
 
+#ifndef ATTR_UNUSED
+#define ATTR_UNUSED __attribute__((unused))
+#endif
+
+static int none_encrypt_all(ATTR_UNUSED buffer_t *a, ATTR_UNUSED cipher_t *b, ATTR_UNUSED size_t c) {
+    return CRYPTO_OK;
+}
+
+static int none_decrypt_all(ATTR_UNUSED buffer_t *a, ATTR_UNUSED cipher_t *b, ATTR_UNUSED size_t c) {
+    return CRYPTO_OK;
+}
+
+static int none_encrypt(ATTR_UNUSED buffer_t *a, ATTR_UNUSED cipher_ctx_t *b, ATTR_UNUSED size_t c) {
+    return CRYPTO_OK;
+}
+
+static int none_decrypt(ATTR_UNUSED buffer_t *a, ATTR_UNUSED cipher_ctx_t *b, ATTR_UNUSED size_t c) {
+    return CRYPTO_OK;
+}
+
+static void none_ctx_init(ATTR_UNUSED cipher_t *a, ATTR_UNUSED cipher_ctx_t *b, ATTR_UNUSED int c) {
+}
+
+static void none_ctx_release(ATTR_UNUSED cipher_ctx_t *a) {
+}
+
+static crypto_t none_crypt = {
+        .cipher      = NULL,
+        .encrypt_all = &none_encrypt_all,
+        .decrypt_all = &none_decrypt_all,
+        .encrypt     = &none_encrypt,
+        .decrypt     = &none_decrypt,
+        .ctx_init    = &none_ctx_init,
+        .ctx_release = &none_ctx_release,
+};
+
 crypto_t *
 crypto_init(const char *password, const char *key, const char *method)
 {
@@ -150,6 +186,10 @@ crypto_init(const char *password, const char *key, const char *method)
 #endif
 
     if (method != NULL) {
+        if (strcmp(method, "none") == 0) {
+            return &none_crypt;
+        }
+
         for (i = 0; i < STREAM_CIPHER_NUM; i++)
             if (strcmp(method, supported_stream_ciphers[i]) == 0) {
                 m = i;

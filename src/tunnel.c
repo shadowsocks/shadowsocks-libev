@@ -1151,7 +1151,7 @@ main(int argc, char **argv)
     }
 
     if (remote_num == 0 || remote_port == NULL || tunnel_addr_str == NULL
-        || local_port == NULL || (password == NULL && key == NULL)) {
+        || local_port == NULL || (password == NULL && key == NULL && strcmp(method, "none"))) {
         usage();
         exit(EXIT_FAILURE);
     }
