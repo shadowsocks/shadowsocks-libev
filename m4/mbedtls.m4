@@ -31,7 +31,12 @@ AC_DEFUN([ss_MBEDTLS],
   AC_COMPILE_IFELSE(
     [AC_LANG_PROGRAM(
       [[
+#include <mbedtls/version.h>
+#if MBEDTLS_VERSION_NUMBER >= 0x03000000
+#include <mbedtls/mbedtls_config.h>
+#else
 #include <mbedtls/config.h>
+#endif
       ]],
       [[
 #ifndef MBEDTLS_CIPHER_MODE_CFB
@@ -48,7 +53,12 @@ AC_DEFUN([ss_MBEDTLS],
   AC_COMPILE_IFELSE(
     [AC_LANG_PROGRAM(
       [[
+#include <mbedtls/version.h>
+#if MBEDTLS_VERSION_NUMBER >= 0x03000000
+#include <mbedtls/mbedtls_config.h>
+#else
 #include <mbedtls/config.h>
+#endif
       ]],
       [[
 #ifndef MBEDTLS_ARC4_C
@@ -64,7 +74,12 @@ AC_DEFUN([ss_MBEDTLS],
   AC_COMPILE_IFELSE(
     [AC_LANG_PROGRAM(
       [[
+#include <mbedtls/version.h>
+#if MBEDTLS_VERSION_NUMBER >= 0x03000000
+#include <mbedtls/mbedtls_config.h>
+#else
 #include <mbedtls/config.h>
+#endif
       ]],
       [[
 #ifndef MBEDTLS_BLOWFISH_C
@@ -80,7 +95,12 @@ AC_DEFUN([ss_MBEDTLS],
   AC_COMPILE_IFELSE(
     [AC_LANG_PROGRAM(
       [[
+#include <mbedtls/version.h>
+#if MBEDTLS_VERSION_NUMBER >= 0x03000000
+#include <mbedtls/mbedtls_config.h>
+#else
 #include <mbedtls/config.h>
+#endif
       ]],
       [[
 #ifndef MBEDTLS_CAMELLIA_C

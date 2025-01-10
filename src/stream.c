@@ -168,33 +168,6 @@ crypto_stream_xor_ic(uint8_t *c, const uint8_t *m, uint64_t mlen,
     return 0;
 }
 
-int
-cipher_nonce_size(const cipher_t *cipher)
-{
-    if (cipher == NULL) {
-        return 0;
-    }
-    return cipher->info->iv_size;
-}
-
-int
-cipher_key_size(const cipher_t *cipher)
-{
-    /*
-     * Semi-API changes (technically public, morally prnonceate)
-     * Renamed a few headers to include _internal in the name. Those headers are
-     * not supposed to be included by users.
-     * Changed md_info_t into an opaque structure (use md_get_xxx() accessors).
-     * Changed pk_info_t into an opaque structure.
-     * Changed cipher_base_t into an opaque structure.
-     */
-    if (cipher == NULL) {
-        return 0;
-    }
-    /* From Version 1.2.7 released 2013-04-13 Default Blowfish keysize is now 128-bits */
-    return cipher->info->key_bitlen / 8;
-}
-
 const cipher_kt_t *
 stream_get_cipher_type(int method)
 {
@@ -642,34 +615,22 @@ stream_key_init(int method, const char *pass, const char *key)
     cipher_t *cipher = (cipher_t *)ss_malloc(sizeof(cipher_t));
     memset(cipher, 0, sizeof(cipher_t));
 
-    if (method == SALSA20 || method == CHACHA20 || method == CHACHA20IETF) {
-        cipher_kt_t *cipher_info = (cipher_kt_t *)ss_malloc(sizeof(cipher_kt_t));
-        cipher->info             = cipher_info;
-        cipher->info->base       = NULL;
-        cipher->info->key_bitlen = supported_stream_ciphers_key_size[method] * 8;
-        cipher->info->iv_size    = supported_stream_ciphers_nonce_size[method];
-    } else {
-        cipher->info = (cipher_kt_t *)stream_get_cipher_type(method);
-    }
-
-    if (cipher->info == NULL && cipher->key_len == 0) {
+    if (method < SALSA20 && stream_get_cipher_type(method) == NULL) {
         LOGE("Cipher %s not found in crypto library", supported_stream_ciphers[method]);
         FATAL("Cannot initialize cipher");
     }
 
     if (key != NULL)
-        cipher->key_len = crypto_parse_key(key, cipher->key, cipher_key_size(cipher));
+        cipher->key_len = crypto_parse_key(key, cipher->key,
+                                           supported_stream_ciphers_key_size[method]);
     else
-        cipher->key_len = crypto_derive_key(pass, cipher->key, cipher_key_size(cipher));
+        cipher->key_len = crypto_derive_key(pass, cipher->key,
+                                            supported_stream_ciphers_key_size[method]);
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and NONCE");
     }
-    if (method == RC4_MD5) {
-        cipher->nonce_len = 16;
-    } else {
-        cipher->nonce_len = cipher_nonce_size(cipher);
-    }
+    cipher->nonce_len = supported_stream_ciphers_nonce_size[method];
     cipher->method = method;
 
     return cipher;

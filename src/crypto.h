@@ -97,7 +97,6 @@ typedef struct buffer {
 typedef struct {
     int method;
     int skey;
-    cipher_kt_t *info;
     size_t nonce_len;
     size_t key_len;
     size_t tag_len;
