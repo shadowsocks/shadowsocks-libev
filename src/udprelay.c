@@ -316,7 +316,7 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
     }
 
     if (port != NULL) {
-        sprintf(port, "%d", load16_be(buf + offset));
+        sprintf(port, "%d", ntohs(*(uint16_t*)(buf + offset)));
     }
     offset += 2;
 

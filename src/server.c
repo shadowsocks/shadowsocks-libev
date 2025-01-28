@@ -1129,7 +1129,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             return;
         }
 
-        port = ntohs(load16_be(server->buf->data + offset));
+        port = *(uint16_t*)(server->buf->data + offset);
 
         offset += 2;
 
