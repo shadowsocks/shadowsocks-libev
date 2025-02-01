@@ -232,7 +232,7 @@ sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto c-are
 sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto c-ares libev
 
 # Installation of libsodium
-export LIBSODIUM_VER=1.0.16
+export LIBSODIUM_VER=1.0.17
 wget https://download.libsodium.org/libsodium/releases/old/libsodium-$LIBSODIUM_VER.tar.gz
 tar xvf libsodium-$LIBSODIUM_VER.tar.gz
 pushd libsodium-$LIBSODIUM_VER
@@ -245,7 +245,7 @@ sudo ldconfig
 export MBEDTLS_VER=2.6.0
 wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/mbedtls-$MBEDTLS_VER.tar.gz
 tar xvf mbedtls-$MBEDTLS_VER.tar.gz
-pushd mbedtls-$MBEDTLS_VER
+pushd mbedtls-mbedtls-$MBEDTLS_VER
 make SHARED=1 CFLAGS="-O2 -fPIC"
 sudo make DESTDIR=/usr install
 popd
