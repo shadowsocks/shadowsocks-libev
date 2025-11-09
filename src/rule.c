@@ -107,8 +107,10 @@ lookup_rule(const struct cork_dllist *rules, const char *name, size_t name_len)
         rule_t *rule = cork_container_of(curr, rule_t, entries);
         pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(rule->pattern_re, NULL);
         if (pcre2_match(rule->pattern_re,
-                      (PCRE2_SPTR)name, name_len, 0, 0, match_data, NULL) >= 1)
+                      (PCRE2_SPTR)name, name_len, 0, 0, match_data, NULL) >= 1) {
+            pcre2_match_data_free(match_data);
             return rule;
+        }
         pcre2_match_data_free(match_data);
     }
 
