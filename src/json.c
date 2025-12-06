@@ -47,6 +47,7 @@ const struct _json_value json_value_none;
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <limits.h>
 
 typedef unsigned int json_uchar;
 
@@ -758,14 +759,31 @@ json_value * json_parse_ex (json_settings * settings,
                      else
                      {
                         flags |= flag_num_e_got_sign;
+                        /* Overflow check for exponent */
+                        if (num_e > (LONG_MAX / 10) || (num_e == (LONG_MAX / 10) && (b - '0') > (LONG_MAX % 10))) {
+                           sprintf(error, "%d:%d: Exponent too large (overflow)", line_and_col);
+                           goto e_failed;
+                        }
                         num_e = (num_e * 10) + (b - '0');
                         continue;
                      }
 
+                     /* Overflow check for integer */
+                     long prev = top->u.integer;
+                     if ((prev > 0 && (prev > (LONG_MAX / 10) || (prev == (LONG_MAX / 10) && (b - '0') > (LONG_MAX % 10)))) ||
+                         (prev < 0 && (prev < (LONG_MIN / 10) || (prev == (LONG_MIN / 10) && -(b - '0') < (LONG_MIN % 10))))) {
+                        sprintf(error, "%d:%d: Integer too large (overflow)", line_and_col);
+                        goto e_failed;
+                     }
                      top->u.integer = (top->u.integer * 10) + (b - '0');
                      continue;
                   }
 
+                  /* Overflow check for fraction */
+                  if (num_fraction > (LONG_MAX / 10) || (num_fraction == (LONG_MAX / 10) && (b - '0') > (LONG_MAX % 10))) {
+                     sprintf(error, "%d:%d: Fraction too large (overflow)", line_and_col);
+                     goto e_failed;
+                  }
                   num_fraction = (num_fraction * 10) + (b - '0');
                   continue;
                }
