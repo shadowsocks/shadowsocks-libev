@@ -70,6 +70,7 @@ typedef struct {
     char *user;
     char *plugin;
     char *plugin_opts;
+    int   plugin_mode;
     int fast_open;
     int reuse_port;
     int tcp_incoming_sndbuf;
@@ -95,5 +96,6 @@ typedef struct {
 jconf_t *read_jconf(const char *file);
 void parse_addr(const char *str, ss_addr_t *addr);
 void free_addr(ss_addr_t *addr);
+int parse_plugin_mode(const char *mode_str);
 
 #endif // _JCONF_H

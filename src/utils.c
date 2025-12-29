@@ -431,6 +431,8 @@ usage()
         "       [--plugin <name>]          Enable SIP003 plugin. (Experimental)\n");
     printf(
         "       [--plugin-opts <options>]  Set SIP003 plugin options. (Experimental)\n");
+    printf(
+        "       [--plugin-mode <mode>]     Set plugin mode (Defined in SIP003u): tcp_only(default), udp_only or tcp_and_udp. (Experimental)\n");
     printf("\n");
     printf(
         "       [-v]                       Verbose mode.\n");

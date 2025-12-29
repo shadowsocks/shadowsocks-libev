@@ -92,6 +92,8 @@ destroy_server(struct server *server)
         ss_free(server->plugin);
     if (server->plugin_opts)
         ss_free(server->plugin_opts);
+    if (server->plugin_mode)
+        ss_free(server->plugin_mode);
     if (server->mode)
         ss_free(server->mode);
 }
@@ -135,6 +137,8 @@ build_config(char *prefix, struct manager_ctx *manager, struct server *server)
         fprintf(f, ",\n\"plugin\":\"%s\"", server->plugin);
     if (server->plugin_opts)
         fprintf(f, ",\n\"plugin_opts\":\"%s\"", server->plugin_opts);
+    if (server->plugin_mode)
+        fprintf(f, ",\n\"plugin_mode\":\"%s\"", server->plugin_mode);
     fprintf(f, "\n}\n");
     fclose(f);
     ss_free(path);
@@ -213,6 +217,14 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
     if (server->plugin_opts == NULL && manager->plugin_opts) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --plugin-opts \"%s\"", manager->plugin_opts);
+    }
+    if (server->plugin_mode == NULL && manager->plugin_mode == UDP_ONLY) {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " --plugin-mode \"udp_only\"");
+    }
+    if (server->plugin_mode == NULL && manager->plugin_mode == TCP_AND_UDP) {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " --plugin-mode \"tcp_and_udp\"");
     }
     if (manager->nameservers) {
         int len = strlen(cmd);
@@ -321,6 +333,10 @@ get_server(char *buf, int len)
             } else if (strcmp(name, "plugin_opts") == 0) {
                 if (value->type == json_string) {
                     server->plugin_opts = strdup(value->u.string.ptr);
+                }
+            } else if (strcmp(name, "plugin_mode") == 0) {
+                if (value->type == json_string) {
+                    server->plugin_mode = strdup(value->u.string.ptr);
                 }
             } else if (strcmp(name, "mode") == 0) {
                 if (value->type == json_string) {
@@ -868,6 +884,7 @@ main(int argc, char **argv)
     char *manager_address = NULL;
     char *plugin          = NULL;
     char *plugin_opts     = NULL;
+    int   plugin_mode     = TCP_ONLY;
     char *workdir         = NULL;
 
     int fast_open  = 0;
@@ -900,6 +917,7 @@ main(int argc, char **argv)
         { "mtu",             required_argument, NULL, GETOPT_VAL_MTU         },
         { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN      },
         { "plugin-opts",     required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
+        { "plugin-mode",     required_argument, NULL, GETOPT_VAL_PLUGIN_MODE },
         { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD    },
         { "workdir",         required_argument, NULL, GETOPT_VAL_WORKDIR     },
         { "help",            no_argument,       NULL, GETOPT_VAL_HELP        },
@@ -939,6 +957,9 @@ main(int argc, char **argv)
             break;
         case GETOPT_VAL_PLUGIN_OPTS:
             plugin_opts = optarg;
+            break;
+        case GETOPT_VAL_PLUGIN_MODE:
+            plugin_mode = parse_plugin_mode(optarg);
             break;
         case 's':
             if (server_num < MAX_REMOTE_NUM) {
@@ -1053,6 +1074,9 @@ main(int argc, char **argv)
         }
         if (plugin_opts == NULL) {
             plugin_opts = conf->plugin_opts;
+        }
+        if (plugin_mode == TCP_ONLY) {
+            plugin_mode = conf->plugin_mode;
         }
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
@@ -1184,6 +1208,7 @@ main(int argc, char **argv)
     manager.mtu             = mtu;
     manager.plugin          = plugin;
     manager.plugin_opts     = plugin_opts;
+    manager.plugin_mode     = plugin_mode;
     manager.ipv6first       = ipv6first;
     manager.workdir         = workdir;
 #ifdef HAVE_SETRLIMIT

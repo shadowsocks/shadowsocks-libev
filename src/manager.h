@@ -53,6 +53,7 @@ struct manager_ctx {
     char *user;
     char *plugin;
     char *plugin_opts;
+    int   plugin_mode;
     char *manager_address;
     char **hosts;
     int host_num;
@@ -74,6 +75,7 @@ struct server {
     char *method;
     char *plugin;
     char *plugin_opts;
+    char *plugin_mode;
     uint64_t traffic;
 };
 
