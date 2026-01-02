@@ -20,11 +20,10 @@ AC_DISABLE_STATIC
 AC_DISABLE_SHARED
 LT_INIT([dlopen])
 
-dnl Check for pcre library
-TS_CHECK_PCRE
-if test "x${enable_pcre}" != "xyes"; then
-  AC_MSG_ERROR([Cannot find pcre library. Configure --with-pcre=DIR])
-fi
+dnl Check for pcre2 library
+AC_SUBST([PKG_CONFIG_PATH])
+PKG_PROG_PKG_CONFIG
+PKG_CHECK_MODULES([LIBPCRE], [libpcre2-8])
 
 dnl Checks for using shared libraries from system
 AC_ARG_ENABLE(
