@@ -18,7 +18,7 @@ jobs:
           submodules: true
 
       - uses: docker/setup-qemu-action@v1.1.0
-      - uses: docker/setup-buildx-action@v1.3.0
+      - uses: docker/setup-buildx-action@v2.4.1
       - uses: docker/login-action@v1.9.0
         with:
           password: ${{ secrets.DOCKER_PASSWORD }}
