@@ -1709,7 +1709,7 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 #endif
-    if (!password && !key) {
+    if (!password && !key && strcmp(method, "none")) {
         fprintf(stderr, "both password and key are NULL\n");
         exit(EXIT_FAILURE);
     }
