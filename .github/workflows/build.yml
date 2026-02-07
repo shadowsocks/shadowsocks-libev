@@ -26,12 +26,12 @@ jobs:
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
-        run: brew install mbedtls libsodium libev c-ares pcre2
+        run: brew install mbedtls@3 libsodium libev c-ares pcre2
 
       - name: Build
         run: |
           mkdir -p build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_STATIC=OFF
           make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
       - name: Test
