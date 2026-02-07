@@ -34,7 +34,11 @@ jobs:
           cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_STATIC=OFF
           make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
-      - name: Test
+      - name: Unit tests
         run: |
           cd build
           ctest --output-on-failure
+
+      - name: Stress test
+        run: |
+          python3 tests/stress_test.py --bin build/shared/bin/ --size 10
