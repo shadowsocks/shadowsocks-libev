@@ -151,6 +151,26 @@ Only available with Linux kernel > 3.9.0.
 --no-delay::
 Enable TCP_NODELAY.
 
+--tcp-incoming-sndbuf <size>::
+Set TCP send buffer size for incoming connections.
++
+Not available in manager mode.
+
+--tcp-incoming-rcvbuf <size>::
+Set TCP receive buffer size for incoming connections.
++
+Not available in manager mode.
+
+--tcp-outgoing-sndbuf <size>::
+Set TCP send buffer size for outgoing connections.
++
+Not available in manager mode.
+
+--tcp-outgoing-rcvbuf <size>::
+Set TCP receive buffer size for outgoing connections.
++
+Not available in manager mode.
+
 --acl <acl_config>::
 Enable ACL (Access Control List) and specify config file.
 +
@@ -165,6 +185,17 @@ Only available in server and manager mode.
 Specify the executable path of `ss-server`.
 +
 Only available in manager mode.
+
+-D <path>::
+--workdir <path>::
+Specify the working directory of ss-manager.
++
+Only available in manager mode.
+
+--nftables-sets <family:table:set>::
+Specify nftables sets for reporting malicious IPs.
++
+Only available in server mode, when built with nftables support.
 
 -v::
 Enable verbose mode.

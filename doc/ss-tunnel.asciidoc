@@ -103,7 +103,7 @@ Enable UDP relay.
 Enable UDP relay and disable TCP relay.
 
 -6::
-Resovle hostname to IPv6 address first.
+Resolve hostname to IPv6 address first.
 
 -L <addr:port>::
 Specify destination server address and port for local port forwarding.
@@ -126,6 +126,18 @@ Only available with Linux kernel > 3.9.0.
 --no-delay::
 Enable TCP_NODELAY.
 
+--tcp-incoming-sndbuf <size>::
+Set TCP send buffer size for incoming connections.
+
+--tcp-incoming-rcvbuf <size>::
+Set TCP receive buffer size for incoming connections.
+
+--tcp-outgoing-sndbuf <size>::
+Set TCP send buffer size for outgoing connections.
+
+--tcp-outgoing-rcvbuf <size>::
+Set TCP receive buffer size for outgoing connections.
+
 --plugin <plugin_name>::
 Enable SIP003 plugin. (Experimental)
 
@@ -137,6 +149,19 @@ Enable verbose mode.
 
 -h|--help::
 Print help message.
+
+EXAMPLE
+-------
+`ss-tunnel`(1) can be used to forward DNS queries to a remote DNS server
+through the shadowsocks tunnel. Here is an example:
+
+....
+# Forward local UDP port 5353 to 8.8.8.8:53 through the ss-server
+ss-tunnel -s example.com -p 12345 -l 5353 -k foobar -m aes-256-cfb -L 8.8.8.8:53 -u
+
+# Then configure your system to use 127.0.0.1:5353 as the DNS server
+dig @127.0.0.1 -p 5353 www.google.com
+....
 
 SEE ALSO
 --------

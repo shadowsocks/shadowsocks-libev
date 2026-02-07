@@ -79,8 +79,8 @@ git submodule update --init --recursive
 
 ### Pre-build configure guide
 
-For a complete list of available configure-time option,
-try `configure --help`.
+For a complete list of available configure-time options,
+try `cmake -LH` from a build directory.
 
 ### Debian & Ubuntu
 
@@ -203,11 +203,11 @@ nix-env -iA nixpkgs.shadowsocks-libev
 
 In general, you need the following build dependencies:
 
-* autotools (autoconf, automake, libtool)
-* gettext
+* cmake (>= 3.2)
+* a C compiler (gcc or clang)
 * pkg-config
 * libmbedtls
-* libsodium
+* libsodium (>= 1.0.4)
 * libpcre3 (old pcre library)
 * libev
 * libc-ares
@@ -218,18 +218,18 @@ Notes: Fedora 26  libsodium version >= 1.0.12, so you can install via dnf instal
 
 If your system is too old to provide libmbedtls and libsodium (later than **v1.0.8**), you will need to either install those libraries manually or upgrade your system.
 
-If your system provides with those libraries, you **should not** install them from source.You should jump to this section and install them from the distribution repository instead.
+If your system provides with those libraries, you **should not** install them from source. You should jump to this section and install them from the distribution repository instead.
 
 For some of the distributions, you might install build dependencies like this:
 
 ```bash
 # Installation of basic build dependencies
 ## Debian / Ubuntu
-sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libev-dev libc-ares-dev automake libmbedtls-dev libsodium-dev pkg-config
+sudo apt-get install --no-install-recommends build-essential cmake libpcre3-dev asciidoc xmlto libev-dev libc-ares-dev libmbedtls-dev libsodium-dev pkg-config
 ## CentOS / Fedora / RHEL
-sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto c-ares-devel libev-devel
+sudo yum install gcc cmake make asciidoc xmlto c-ares-devel libev-devel
 ## Arch
-sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto c-ares libev
+sudo pacman -S gcc cmake make asciidoc xmlto c-ares libev
 
 # Installation of libsodium
 export LIBSODIUM_VER=1.0.16
@@ -252,8 +252,18 @@ popd
 sudo ldconfig
 
 # Start building
-./autogen.sh && ./configure && make
+git submodule update --init --recursive
+mkdir -p build && cd build
+cmake ..
+make
 sudo make install
+```
+
+To run unit tests:
+
+```bash
+cd build
+ctest --output-on-failure
 ```
 
 You may need to manually install missing softwares.

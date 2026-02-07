@@ -99,7 +99,7 @@ Enable UDP relay.
 Enable UDP relay and disable TCP relay.
 
 -6::
-Resovle hostname to IPv6 address first.
+Resolve hostname to IPv6 address first.
 
 -d <addr>::
 Setup name servers for internal DNS resolver (libc-ares).
@@ -117,6 +117,18 @@ Only available with Linux kernel > 3.9.0.
 
 --no-delay::
 Enable TCP_NODELAY.
+
+--tcp-incoming-sndbuf <size>::
+Set TCP send buffer size for incoming connections.
+
+--tcp-incoming-rcvbuf <size>::
+Set TCP receive buffer size for incoming connections.
+
+--tcp-outgoing-sndbuf <size>::
+Set TCP send buffer size for outgoing connections.
+
+--tcp-outgoing-rcvbuf <size>::
+Set TCP receive buffer size for outgoing connections.
 
 --acl <acl_config>::
 Enable ACL (Access Control List) and specify config file.

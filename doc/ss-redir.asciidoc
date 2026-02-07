@@ -99,7 +99,7 @@ Enable UDP relay and disable TCP relay.
 Use tproxy instead of redirect. (for tcp)
 
 -6::
-Resovle hostname to IPv6 address first.
+Resolve hostname to IPv6 address first.
 
 --mtu <MTU>::
 Specify the MTU of your network interface.
@@ -116,6 +116,18 @@ Only available with Linux kernel > 3.9.0.
 
 --no-delay::
 Enable TCP_NODELAY.
+
+--tcp-incoming-sndbuf <size>::
+Set TCP send buffer size for incoming connections.
+
+--tcp-incoming-rcvbuf <size>::
+Set TCP receive buffer size for incoming connections.
+
+--tcp-outgoing-sndbuf <size>::
+Set TCP send buffer size for outgoing connections.
+
+--tcp-outgoing-rcvbuf <size>::
+Set TCP receive buffer size for outgoing connections.
 
 --plugin <plugin_name>::
 Enable SIP003 plugin. (Experimental)

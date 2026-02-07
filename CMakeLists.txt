@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.5)
 
 set(PROJECT_NAME shadowsocks-libev)
 set(RELEASE_DATE 2020-09-15)
@@ -8,9 +8,14 @@ set(PROJECT_URL "https://shadowsocks.org")
 set(PROJECT_ISSUES_URL "https://github.com/shadowsocks/shadowsocks-libev")
 project(${PROJECT_NAME} VERSION ${PROJECT_VERSION})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+include(GNUInstallDirs)
 
-#set(PROJECT_BINARY_DIR ${PROJECT_SOURCE_DIR}/out)
+# Compiler flags matching autotools
+# Note: -Werror is applied per-target in src/CMakeLists.txt to avoid
+# breaking bundled submodules (libcork, libipset, libbloom)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -D_GNU_SOURCE")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -Wall -Wno-deprecated-declarations -fno-strict-aliasing")
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
@@ -33,14 +38,47 @@ message(STATUS "Running cmake version ${CMAKE_VERSION}")
 
 option(WITH_STATIC "build with static libraries." ON)
 option(WITH_EMBEDDED_SRC "build with embedded libcork, libipset, and libbloom source." ON)
-
-# Will set GIT_EXECUTABLE and GIT_FOUND
-# find_package(Git)
+option(ENABLE_CONNMARKTOS "Enable saved connmark to IP TOS QoS feature" OFF)
+option(ENABLE_NFTABLES "Report malicious IP to nftables" OFF)
 
 # When choose to not use embedded libcork, libipset and libbloom, use libs shipped by system
 if (NOT WITH_EMBEDDED_SRC)
     set(USE_SYSTEM_SHARED_LIB TRUE)
 endif ()
+
+# Find dependencies via Find modules
+find_package(PCRE REQUIRED)
+find_package(MbedTLS REQUIRED)
+find_package(Sodium REQUIRED)
+find_package(Cares REQUIRED)
+
+# Connmarktos support
+if(ENABLE_CONNMARKTOS)
+    if(NOT LINUX)
+        message(FATAL_ERROR "connmarktos is only supported on Linux")
+    endif()
+    find_library(NETFILTER_CONNTRACK_LIB netfilter_conntrack)
+    find_library(NFNETLINK_LIB nfnetlink)
+    if(NOT NETFILTER_CONNTRACK_LIB)
+        message(FATAL_ERROR "--enable-connmarktos specified but libnetfilter_conntrack not found")
+    endif()
+    set(USE_NFCONNTRACK_TOS 1)
+    message(STATUS "Connmarktos enabled")
+endif()
+
+# Nftables support
+if(ENABLE_NFTABLES)
+    if(NOT LINUX)
+        message(FATAL_ERROR "nftables is only supported on Linux")
+    endif()
+    find_library(MNL_LIB mnl)
+    find_library(NFTNL_LIB nftnl)
+    if(NOT MNL_LIB OR NOT NFTNL_LIB)
+        message(FATAL_ERROR "--enable-nftables specified but libmnl or libnftnl not found")
+    endif()
+    set(USE_NFTABLES 1)
+    message(STATUS "Nftables enabled")
+endif()
 
 # Run platform tests
 include(${PROJECT_SOURCE_DIR}/cmake/configure.cmake)
@@ -56,7 +94,7 @@ configure_file(
 )
 install(FILES
         ${PROJECT_BINARY_DIR}/pkgconfig/shadowsocks-libev.pc
-        DESTINATION lib/pkgconfig
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
         )
 
 if (WITH_EMBEDDED_SRC)
@@ -158,3 +196,13 @@ endif ()
 add_subdirectory(src)
 add_subdirectory(doc)
 
+# Testing
+include(CTest)
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
+
+# Install ss-nat on Linux
+if(LINUX)
+    install(PROGRAMS src/ss-nat DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
