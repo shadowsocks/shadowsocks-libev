@@ -12,7 +12,7 @@ Build-Depends:
  libc-ares-dev,
  libev-dev,
  libmbedtls-dev,
- libpcre3-dev,
+ libpcre2-dev,
  libsodium-dev (>= 1.0.12),
  pkg-config,
  xmlto
