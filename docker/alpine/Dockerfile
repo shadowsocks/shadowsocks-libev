@@ -26,7 +26,7 @@ RUN set -x \
  # Build & install
  && cd /tmp/repo \
  && mkdir -p build && cd build \
- && cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release \
+ && cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_TESTING=OFF -DWITH_STATIC=OFF -DCMAKE_BUILD_TYPE=Release \
  && make -j$(getconf _NPROCESSORS_ONLN) \
  && make install \
  && cd /usr/local/bin \
