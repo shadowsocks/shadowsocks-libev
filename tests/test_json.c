@@ -55,9 +55,8 @@ test_parse_nested(void)
     assert(outer->type == json_object);
     assert(outer->u.object.length == 1);
 
-    json_value *inner = outer->u.object.values[0].value;
-    assert(inner->type == json_boolean);
-    assert(inner->u.boolean != 0);
+    assert(outer->u.object.values[0].value->type == json_boolean);
+    assert(outer->u.object.values[0].value->u.boolean != 0);
 
     json_value_free(val);
 }
@@ -86,16 +85,13 @@ static void
 test_parse_invalid(void)
 {
     /* Missing closing brace */
-    json_value *val = json_parse("{\"key\": 1", 9);
-    assert(val == NULL);
+    assert(json_parse("{\"key\": 1", 9) == NULL);
 
     /* Empty string */
-    val = json_parse("", 0);
-    assert(val == NULL);
+    assert(json_parse("", 0) == NULL);
 
     /* Just garbage */
-    val = json_parse("not json", 8);
-    assert(val == NULL);
+    assert(json_parse("not json", 8) == NULL);
 }
 
 static void

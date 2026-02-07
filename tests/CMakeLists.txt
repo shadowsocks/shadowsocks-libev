@@ -99,7 +99,7 @@ ss_add_test(test_jconf
 # test_buffer - needs sodium and mbedtls for crypto.c buffer functions
 ss_add_test(test_buffer
     "test_buffer.c;${PROJECT_SOURCE_DIR}/src/crypto.c;${PROJECT_SOURCE_DIR}/src/utils.c;${PROJECT_SOURCE_DIR}/src/base64.c;${PROJECT_SOURCE_DIR}/src/aead.c;${PROJECT_SOURCE_DIR}/src/stream.c;${PROJECT_SOURCE_DIR}/src/ppbloom.c;${PROJECT_SOURCE_DIR}/src/cache.c"
-    "${LIBSODIUM_SHARED};${LIBMBEDTLS_SHARED};${LIBMBEDCRYPTO_SHARED};${LIBEV_SHARED};${TEST_PPBLOOM_LIBS}")
+    "${LIBSODIUM_SHARED};${LIBMBEDTLS_SHARED};${LIBMBEDCRYPTO_SHARED};${LIBEV_SHARED};${TEST_PPBLOOM_LIBS};m")
 
 # test_crypto - full crypto test
 set(TEST_CRYPTO_LIBS
@@ -115,4 +115,4 @@ else()
 endif()
 ss_add_test(test_crypto
     "test_crypto.c;${PROJECT_SOURCE_DIR}/src/crypto.c;${PROJECT_SOURCE_DIR}/src/aead.c;${PROJECT_SOURCE_DIR}/src/stream.c;${PROJECT_SOURCE_DIR}/src/ppbloom.c;${PROJECT_SOURCE_DIR}/src/cache.c;${PROJECT_SOURCE_DIR}/src/base64.c;${PROJECT_SOURCE_DIR}/src/utils.c"
-    "${TEST_CRYPTO_LIBS}")
+    "${TEST_CRYPTO_LIBS};m")
