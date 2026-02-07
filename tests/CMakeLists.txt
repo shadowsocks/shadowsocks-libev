@@ -65,7 +65,7 @@ else()
 endif()
 ss_add_test(test_ppbloom
     "test_ppbloom.c;${PROJECT_SOURCE_DIR}/src/ppbloom.c;${PROJECT_SOURCE_DIR}/src/utils.c"
-    "${TEST_PPBLOOM_LIBS};${LIBSODIUM_SHARED}")
+    "${TEST_PPBLOOM_LIBS};${LIBSODIUM_SHARED};m")
 
 # test_rule - needs pcre and cork
 set(TEST_RULE_LIBS
