@@ -39,6 +39,9 @@ jobs:
           cd build
           ctest --output-on-failure
 
+      - name: ss-setup TUI tests
+        run: bash tests/test_ss_setup.sh
+
       - name: Stress test
         run: |
           python3 tests/stress_test.py --bin build/shared/bin/ --size 10

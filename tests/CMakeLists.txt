@@ -116,3 +116,8 @@ endif()
 ss_add_test(test_crypto
     "test_crypto.c;${PROJECT_SOURCE_DIR}/src/crypto.c;${PROJECT_SOURCE_DIR}/src/aead.c;${PROJECT_SOURCE_DIR}/src/stream.c;${PROJECT_SOURCE_DIR}/src/ppbloom.c;${PROJECT_SOURCE_DIR}/src/cache.c;${PROJECT_SOURCE_DIR}/src/base64.c;${PROJECT_SOURCE_DIR}/src/utils.c"
     "${TEST_CRYPTO_LIBS};m")
+
+# test_ss_setup - bash unit tests for the ss-setup TUI tool
+add_test(NAME test_ss_setup
+    COMMAND bash "${PROJECT_SOURCE_DIR}/tests/test_ss_setup.sh"
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")

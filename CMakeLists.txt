@@ -206,3 +206,6 @@ endif()
 if(LINUX)
     install(PROGRAMS src/ss-nat DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
+
+# Install ss-setup TUI tool
+install(PROGRAMS scripts/ss-setup.sh DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME ss-setup)
