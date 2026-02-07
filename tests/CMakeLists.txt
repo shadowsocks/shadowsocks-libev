@@ -94,7 +94,7 @@ else()
 endif()
 ss_add_test(test_jconf
     "test_jconf.c;${PROJECT_SOURCE_DIR}/src/jconf.c;${PROJECT_SOURCE_DIR}/src/json.c;${PROJECT_SOURCE_DIR}/src/utils.c;${PROJECT_SOURCE_DIR}/src/netutils.c"
-    "${TEST_JCONF_LIBS}")
+    "${TEST_JCONF_LIBS};m")
 
 # test_buffer - needs sodium and mbedtls for crypto.c buffer functions
 ss_add_test(test_buffer
