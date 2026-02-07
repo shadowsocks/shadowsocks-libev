@@ -14,21 +14,20 @@ COPY . /tmp/repo
 RUN set -x \
  # Build environment setup
  && apk add --no-cache --virtual .build-deps \
-      autoconf \
-      automake \
       build-base \
+      cmake \
       c-ares-dev \
       libcap \
       libev-dev \
-      libtool \
       libsodium-dev \
       linux-headers \
       mbedtls-dev \
-      pcre-dev \
+      pcre2-dev \
  # Build & install
  && cd /tmp/repo \
- && ./autogen.sh \
- && ./configure --prefix=/usr/local --disable-documentation \
+ && git submodule update --init --recursive || true \
+ && mkdir -p build && cd build \
+ && cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DWITH_DOC=OFF -DCMAKE_BUILD_TYPE=Release \
  && make -j$(getconf _NPROCESSORS_ONLN) \
  && make install \
  && cd /usr/local/bin \
