@@ -25,9 +25,8 @@ RUN set -x \
       pcre2-dev \
  # Build & install
  && cd /tmp/repo \
- && git submodule update --init --recursive || true \
  && mkdir -p build && cd build \
- && cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DWITH_DOC=OFF -DCMAKE_BUILD_TYPE=Release \
+ && cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release \
  && make -j$(getconf _NPROCESSORS_ONLN) \
  && make install \
  && cd /usr/local/bin \
