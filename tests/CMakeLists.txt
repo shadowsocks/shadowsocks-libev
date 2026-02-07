@@ -34,7 +34,7 @@ ss_add_test(test_utils
 # test_json - standalone json parser
 ss_add_test(test_json
     "test_json.c;${PROJECT_SOURCE_DIR}/src/json.c"
-    "")
+    "m")
 
 # test_netutils - needs cork for ip address parsing
 set(TEST_NETUTILS_LIBS
