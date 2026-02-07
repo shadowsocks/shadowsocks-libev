@@ -3,7 +3,7 @@ include_directories(BEFORE ${MBEDTLS_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_BINARY_DIR}/src)
 include_directories(${SODIUM_INCLUDE_DIRS})
-include_directories(${PCRE_INCLUDE_DIRS})
+include_directories(${PCRE2_INCLUDE_DIRS})
 include_directories(${CARES_INCLUDE_DIRS})
 
 if(WITH_EMBEDDED_SRC)
@@ -69,7 +69,7 @@ ss_add_test(test_ppbloom
 
 # test_rule - needs pcre and cork
 set(TEST_RULE_LIBS
-    ${LIBPCRE_SHARED}
+    ${LIBPCRE2_SHARED}
     ${LIBSODIUM_SHARED}
 )
 if(WITH_EMBEDDED_SRC)

@@ -47,7 +47,7 @@ if (NOT WITH_EMBEDDED_SRC)
 endif ()
 
 # Find dependencies via Find modules
-find_package(PCRE REQUIRED)
+find_package(PCRE2 REQUIRED)
 find_package(MbedTLS REQUIRED)
 find_package(Sodium REQUIRED)
 find_package(Cares REQUIRED)

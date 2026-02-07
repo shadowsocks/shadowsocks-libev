@@ -52,8 +52,10 @@ test_init_rule(void)
     (void)ret;
     assert(rule->pattern_re != NULL);
 
+    if (rule->match_data)
+        pcre2_match_data_free(rule->match_data);
     if (rule->pattern_re)
-        pcre_free(rule->pattern_re);
+        pcre2_code_free(rule->pattern_re);
     free(rule->pattern);
     free(rule);
 }
@@ -102,10 +104,12 @@ test_lookup_rule(void)
     (void)found;
 
     /* Clean up */
-    if (rule1->pattern_re) pcre_free(rule1->pattern_re);
+    if (rule1->match_data) pcre2_match_data_free(rule1->match_data);
+    if (rule1->pattern_re) pcre2_code_free(rule1->pattern_re);
     free(rule1->pattern);
     free(rule1);
-    if (rule2->pattern_re) pcre_free(rule2->pattern_re);
+    if (rule2->match_data) pcre2_match_data_free(rule2->match_data);
+    if (rule2->pattern_re) pcre2_code_free(rule2->pattern_re);
     free(rule2->pattern);
     free(rule2);
 }

@@ -92,7 +92,7 @@ set(SS_WERROR_FLAGS -Werror)
 # that may be in /opt/homebrew/include (e.g. mbedtls 4.x vs 3.x)
 include_directories(BEFORE ${MBEDTLS_INCLUDE_DIRS})
 include_directories(${SODIUM_INCLUDE_DIRS})
-include_directories(${PCRE_INCLUDE_DIRS})
+include_directories(${PCRE2_INCLUDE_DIRS})
 include_directories(${CARES_INCLUDE_DIRS})
 
 # Extract mbedTLS lib dir to ensure static/shared libs come from same version
@@ -106,7 +106,7 @@ find_library(LIBMBEDCRYPTO libmbedcrypto.a HINTS ${_MBEDTLS_LIB_DIR} NO_DEFAULT_
 find_library(LIBMBEDCRYPTO libmbedcrypto.a)
 find_library(LIBEV libev.a)
 find_library(LIBUDNS libcares.a)
-find_library(LIBPCRE libpcre.a)
+find_library(LIBPCRE2 libpcre2-8.a)
 
 # Dependencies we need for static and shared
 list(APPEND DEPS
@@ -114,7 +114,7 @@ list(APPEND DEPS
         bloom
         ${LIBEV}
         ${LIBUDNS}
-        ${LIBPCRE}
+        ${LIBPCRE2}
         ${LIBSODIUM}
         ${LIBMBEDTLS}
         ${LIBMBEDCRYPTO}
@@ -122,7 +122,7 @@ list(APPEND DEPS
 
 if (MINGW)
 list(APPEND DEPS ws2_32 iphlpapi)
-add_compile_definitions(CARES_STATICLIB PCRE_STATIC)
+add_compile_definitions(CARES_STATICLIB PCRE2_STATIC)
 endif ()
 endif ()
 
@@ -133,7 +133,7 @@ find_library(LIBMBEDCRYPTO_SHARED mbedcrypto HINTS ${_MBEDTLS_LIB_DIR} NO_DEFAUL
 find_library(LIBMBEDCRYPTO_SHARED mbedcrypto)
 find_library(LIBEV_SHARED ev)
 find_library(LIBUDNS_SHARED cares)
-find_library(LIBPCRE_SHARED pcre)
+find_library(LIBPCRE2_SHARED pcre2-8)
 
 if (WITH_EMBEDDED_SRC)
 list(APPEND DEPS_SHARED
@@ -143,7 +143,7 @@ list(APPEND DEPS_SHARED
         ipset-shared
         ${LIBEV_SHARED}
         ${LIBUDNS_SHARED}
-        ${LIBPCRE_SHARED}
+        ${LIBPCRE2_SHARED}
         ${LIBSODIUM_SHARED}
         ${LIBMBEDTLS_SHARED}
         ${LIBMBEDCRYPTO_SHARED}
@@ -159,7 +159,7 @@ list(APPEND DEPS_SHARED
         ${LIBCORKIPSET_SHARED}
         ${LIBEV_SHARED}
         ${LIBUDNS_SHARED}
-        ${LIBPCRE_SHARED}
+        ${LIBPCRE2_SHARED}
         ${LIBSODIUM_SHARED}
         ${LIBMBEDTLS_SHARED}
         ${LIBMBEDCRYPTO_SHARED}

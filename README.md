@@ -208,7 +208,7 @@ In general, you need the following build dependencies:
 * pkg-config
 * libmbedtls
 * libsodium (>= 1.0.4)
-* libpcre3 (old pcre library)
+* libpcre2
 * libev
 * libc-ares
 * asciidoc (for documentation only)
@@ -225,7 +225,7 @@ For some of the distributions, you might install build dependencies like this:
 ```bash
 # Installation of basic build dependencies
 ## Debian / Ubuntu
-sudo apt-get install --no-install-recommends build-essential cmake libpcre3-dev asciidoc xmlto libev-dev libc-ares-dev libmbedtls-dev libsodium-dev pkg-config
+sudo apt-get install --no-install-recommends build-essential cmake libpcre2-dev asciidoc xmlto libev-dev libc-ares-dev libmbedtls-dev libsodium-dev pkg-config
 ## CentOS / Fedora / RHEL
 sudo yum install gcc cmake make asciidoc xmlto c-ares-devel libev-devel
 ## Arch
