@@ -13,9 +13,7 @@ override_dh_auto_install:
 override_dh_auto_configure:
 	# Whether to have stack-protector is decided by dpkg-buildflags.
 	# So --disable-ssp here should be safe. See Bug#829498
-	dh_auto_configure -- \
-		--enable-shared \
-		--disable-ssp
+	dh_auto_configure
 
 override_dh_installchangelogs:
 	dh_installchangelogs -XChanges
