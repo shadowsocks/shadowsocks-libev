@@ -137,16 +137,10 @@ else ()
 set(LIBCORK_SOURCE ${LIBCORK_SOURCE} libcork/src/libcork/posix/mingw.c)
 endif ()
 
-if (WITH_STATIC)
 add_library(cork STATIC ${LIBCORK_SOURCE})
 target_compile_definitions(cork PUBLIC -DCORK_API=CORK_LOCAL)
-endif ()
-
-add_library(cork-shared SHARED ${LIBCORK_SOURCE})
-target_compile_definitions(cork-shared PUBLIC -DCORK_API=CORK_EXPORT)
-set_target_properties(cork-shared PROPERTIES OUTPUT_NAME cork)
 if (MINGW)
-target_link_libraries(cork-shared ws2_32)
+target_link_libraries(cork ws2_32)
 endif ()
 
 set(LIBIPSET_SOURCE
@@ -171,26 +165,15 @@ set(LIBIPSET_SOURCE
         libipset/src/libipset/set/storage.c
         )
 
-if (WITH_STATIC)
 add_library(ipset STATIC ${LIBIPSET_SOURCE})
-endif ()
-
-add_library(ipset-shared SHARED ${LIBIPSET_SOURCE})
-set_target_properties(ipset-shared PROPERTIES OUTPUT_NAME ipset)
 
 set(LIBBLOOM_SOURCE
         libbloom/bloom.c
         libbloom/murmur2/MurmurHash2.c
         )
 
-if (WITH_STATIC)
 add_library(bloom STATIC ${LIBBLOOM_SOURCE})
 target_link_libraries(ipset cork bloom)
-endif ()
-
-add_library(bloom-shared SHARED ${LIBBLOOM_SOURCE})
-target_link_libraries(ipset-shared cork-shared bloom-shared)
-set_target_properties(bloom-shared PROPERTIES OUTPUT_NAME bloom)
 endif ()
 
 add_subdirectory(src)

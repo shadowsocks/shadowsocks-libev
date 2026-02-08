@@ -138,9 +138,9 @@ find_library(LIBPCRE2_SHARED pcre2-8)
 if (WITH_EMBEDDED_SRC)
 list(APPEND DEPS_SHARED
         m
-        bloom-shared
-        cork-shared
-        ipset-shared
+        bloom
+        cork
+        ipset
         ${LIBEV_SHARED}
         ${LIBUDNS_SHARED}
         ${LIBPCRE2_SHARED}

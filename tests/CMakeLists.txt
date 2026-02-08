@@ -43,7 +43,7 @@ set(TEST_NETUTILS_LIBS
     ${LIBUDNS_SHARED}
 )
 if(WITH_EMBEDDED_SRC)
-    list(APPEND TEST_NETUTILS_LIBS cork-shared)
+    list(APPEND TEST_NETUTILS_LIBS cork)
 else()
     list(APPEND TEST_NETUTILS_LIBS ${LIBCORK_SHARED})
 endif()
@@ -59,7 +59,7 @@ ss_add_test(test_cache
 # test_ppbloom - needs bloom
 set(TEST_PPBLOOM_LIBS "")
 if(WITH_EMBEDDED_SRC)
-    list(APPEND TEST_PPBLOOM_LIBS bloom-shared)
+    list(APPEND TEST_PPBLOOM_LIBS bloom)
 else()
     list(APPEND TEST_PPBLOOM_LIBS ${LIBBLOOM_SHARED})
 endif()
@@ -73,7 +73,7 @@ set(TEST_RULE_LIBS
     ${LIBSODIUM_SHARED}
 )
 if(WITH_EMBEDDED_SRC)
-    list(APPEND TEST_RULE_LIBS cork-shared)
+    list(APPEND TEST_RULE_LIBS cork)
 else()
     list(APPEND TEST_RULE_LIBS ${LIBCORK_SHARED})
 endif()
@@ -88,7 +88,7 @@ set(TEST_JCONF_LIBS
     ${LIBUDNS_SHARED}
 )
 if(WITH_EMBEDDED_SRC)
-    list(APPEND TEST_JCONF_LIBS cork-shared)
+    list(APPEND TEST_JCONF_LIBS cork)
 else()
     list(APPEND TEST_JCONF_LIBS ${LIBCORK_SHARED})
 endif()
@@ -109,7 +109,7 @@ set(TEST_CRYPTO_LIBS
     ${LIBEV_SHARED}
 )
 if(WITH_EMBEDDED_SRC)
-    list(APPEND TEST_CRYPTO_LIBS bloom-shared)
+    list(APPEND TEST_CRYPTO_LIBS bloom)
 else()
     list(APPEND TEST_CRYPTO_LIBS ${LIBBLOOM_SHARED})
 endif()

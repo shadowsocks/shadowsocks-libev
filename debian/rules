@@ -11,7 +11,7 @@ override_dh_auto_install:
 	dh_auto_install
 
 override_dh_auto_configure:
-	dh_auto_configure
+	dh_auto_configure -- -DWITH_STATIC=OFF
 
 override_dh_installchangelogs:
 	dh_installchangelogs -XChanges
