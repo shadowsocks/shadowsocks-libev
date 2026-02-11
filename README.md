@@ -69,18 +69,48 @@ sudo snap install shadowsocks-libev --edge
 
 * * *
 
-### Initialise the build environment
+### Build from source (CMake)
 
-This repository uses submodules, so you should pull them before you start, using:
+shadowsocks-libev uses CMake as its sole build system. Start by pulling submodules:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-### Pre-build configure guide
+Then build:
 
-For a complete list of available configure-time options,
-try `cmake -LH` from a build directory.
+```bash
+mkdir -p build && cd build
+cmake ..
+make
+sudo make install
+```
+
+To run unit tests:
+
+```bash
+cd build
+ctest --output-on-failure
+```
+
+#### CMake options
+
+For a complete list of available options, run `cmake -LH` from a build directory.
+Commonly used options:
+
+| Option | Default | Description |
+|---|---|---|
+| `-DWITH_EMBEDDED_SRC=OFF` | `ON` | Use system libcork/libipset/libbloom instead of bundled submodules |
+| `-DWITH_DOC_MAN=OFF` | `ON` | Skip man page generation (removes asciidoc/xmlto dependency) |
+| `-DBUILD_TESTING=OFF` | `ON` | Disable unit tests |
+| `-DENABLE_CONNMARKTOS=ON` | `OFF` | Linux netfilter conntrack QoS support |
+| `-DENABLE_NFTABLES=ON` | `OFF` | nftables firewall integration |
+
+On macOS, if libraries are installed via Homebrew, specify paths:
+
+```bash
+cmake .. -DCMAKE_PREFIX_PATH="/usr/local/opt/mbedtls;/usr/local/opt/libsodium"
+```
 
 ### Debian & Ubuntu
 
@@ -98,11 +128,6 @@ sudo apt install shadowsocks-libev
 
 #### Build deb package from source
 
-Supported distributions:
-
-* Debian 8, 9 or higher
-* Ubuntu 14.04 LTS, 16.04 LTS, 16.10 or higher
-
 You can build shadowsocks-libev and all its dependencies by script:
 
 ```bash
@@ -114,39 +139,6 @@ cd ~/build-area
 
 For older systems, building `.deb` packages is not supported.
 Please try to build and install directly from source. See the [Linux](#linux) section below.
-
-**Note for Debian 8 (Jessie) users to build their own deb packages**:
-
-We strongly encourage you to install shadowsocks-libev from `jessie-backports-sloppy`. If you insist on building from source, you will need to manually install libsodium from `jessie-backports-sloppy`, **NOT** libsodium in main repository.
-
-For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
-
-``` bash
-cd shadowsocks-libev
-sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
-sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports-sloppy main" >> /etc/apt/sources.list.d/jessie-backports.list'
-sudo apt-get install --no-install-recommends devscripts equivs
-mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
-./autogen.sh && dpkg-buildpackage -b -us -uc
-cd ..
-sudo dpkg -i shadowsocks-libev*.deb
-```
-
-**Note for Debian 9 (Stretch) users to build their own deb packages**:
-
-We strongly encourage you to install shadowsocks-libev from `stretch-backports`. If you insist on building from source, you will need to manually install libsodium from `stretch-backports`, **NOT** libsodium in main repository.
-
-For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
-
-``` bash
-cd shadowsocks-libev
-sudo sh -c 'printf "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/stretch-backports.list'
-sudo apt-get install --no-install-recommends devscripts equivs
-mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
-./autogen.sh && dpkg-buildpackage -b -us -uc
-cd ..
-sudo dpkg -i shadowsocks-libev*.deb
-```
 
 #### Configure and start the service
 
@@ -214,59 +206,34 @@ In general, you need the following build dependencies:
 * asciidoc (for documentation only)
 * xmlto (for documentation only)
 
-Notes: Fedora 26  libsodium version >= 1.0.12, so you can install via dnf install libsodium instead build from source.
+If your system is too old to provide libmbedtls and libsodium (>= 1.0.4), you will need to either install those libraries manually or upgrade your system.
 
-If your system is too old to provide libmbedtls and libsodium (later than **v1.0.8**), you will need to either install those libraries manually or upgrade your system.
-
-If your system provides with those libraries, you **should not** install them from source. You should jump to this section and install them from the distribution repository instead.
-
-For some of the distributions, you might install build dependencies like this:
+Install build dependencies for your distribution:
 
 ```bash
-# Installation of basic build dependencies
-## Debian / Ubuntu
-sudo apt-get install --no-install-recommends build-essential cmake libpcre2-dev asciidoc xmlto libev-dev libc-ares-dev libmbedtls-dev libsodium-dev pkg-config
-## CentOS / Fedora / RHEL
-sudo yum install gcc cmake make asciidoc xmlto c-ares-devel libev-devel
-## Arch
-sudo pacman -S gcc cmake make asciidoc xmlto c-ares libev
+# Debian / Ubuntu
+sudo apt-get install --no-install-recommends build-essential cmake pkg-config \
+    libpcre2-dev libev-dev libc-ares-dev libmbedtls-dev libsodium-dev \
+    asciidoc xmlto
 
-# Installation of libsodium
-export LIBSODIUM_VER=1.0.16
-wget https://download.libsodium.org/libsodium/releases/old/libsodium-$LIBSODIUM_VER.tar.gz
-tar xvf libsodium-$LIBSODIUM_VER.tar.gz
-pushd libsodium-$LIBSODIUM_VER
-./configure --prefix=/usr && make
-sudo make install
-popd
-sudo ldconfig
+# CentOS / Fedora / RHEL
+sudo yum install gcc cmake make pkg-config pcre2-devel c-ares-devel \
+    libev-devel libsodium-devel mbedtls-devel asciidoc xmlto
 
-# Installation of MbedTLS
-export MBEDTLS_VER=2.6.0
-wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/mbedtls-$MBEDTLS_VER.tar.gz
-tar xvf mbedtls-$MBEDTLS_VER.tar.gz
-pushd mbedtls-$MBEDTLS_VER
-make SHARED=1 CFLAGS="-O2 -fPIC"
-sudo make DESTDIR=/usr install
-popd
-sudo ldconfig
+# Arch
+sudo pacman -S gcc cmake make pkg-config pcre2 c-ares libev libsodium mbedtls \
+    asciidoc xmlto
+```
 
-# Start building
+Then build and install:
+
+```bash
 git submodule update --init --recursive
 mkdir -p build && cd build
 cmake ..
 make
 sudo make install
 ```
-
-To run unit tests:
-
-```bash
-cd build
-ctest --output-on-failure
-```
-
-You may need to manually install missing softwares.
 
 ### FreeBSD
 #### Install
@@ -460,9 +427,169 @@ you may refer to the man pages of the applications, respectively.
 
        [-v]                       Verbose mode.
 
-## Transparent proxy
+## Helper Scripts
+
+### ss-setup
+
+`ss-setup` is an interactive TUI (text user interface) tool for setting up shadowsocks-libev server and client configurations. It uses `whiptail` or `dialog` for the menu interface.
+
+It is installed automatically by `make install` and can also be run directly from `scripts/ss-setup.sh`.
+
+**Prerequisites:** `whiptail` or `dialog`, `openssl` (optional, for password generation)
+
+#### Server setup (with systemd service)
+
+Run as root for full functionality (config + systemd service installation):
+
+```bash
+sudo ss-setup
+```
+
+This launches an interactive menu that walks you through:
+1. Choosing a config instance name
+2. Setting the listen address and port (manual or random high port)
+3. Selecting an AEAD cipher (chacha20-ietf-poly1305, aes-256-gcm, etc.)
+4. Generating or entering a password
+5. Configuring timeout, network mode (TCP/UDP), and TCP Fast Open
+6. Optionally selecting a SIP003 plugin
+7. Installing and starting a systemd service
+
+The config is saved to `/etc/shadowsocks-libev/<name>.json` and a systemd template service `shadowsocks-libev-server@<name>.service` is created.
+
+At the end, it displays a `ss://` URI you can import into clients.
+
+#### Client config generation
+
+Select "Generate ss-local client config" from the main menu. The wizard prompts for the remote server address, port, cipher, password, and local SOCKS5 port, then writes a JSON config:
+
+```bash
+# Run without root to generate config in the current directory
+ss-setup
+# Select: client -> fill in server details -> save
+
+# Then start the client
+ss-local -c ~/ss-client.json
+```
+
+#### Config-only mode (non-root)
+
+When run without root, `ss-setup` skips service installation and plugin management, but still generates config files in the current directory:
+
+```bash
+ss-setup
+# Config saved to ./config.json (in current directory)
+# Start manually:
+ss-server -c ./config.json
+```
+
+#### Service management
+
+From the main menu, select "Manage running services" to start, stop, restart, enable/disable, or view logs for any configured instance:
+
+```
+sudo ss-setup
+# Select: service -> pick instance -> start/stop/restart/logs
+```
+
+#### Plugin installation
+
+Select "Install a SIP003 plugin" from the main menu (requires root). Supports automatic download of:
+- simple-obfs (build from source or package manager)
+- v2ray-plugin (GitHub release)
+- xray-plugin (GitHub release)
+- kcptun (GitHub release)
+- Custom plugin binary
+
+### ss-nat
+
+`ss-nat` is a helper script that sets up iptables NAT rules for `ss-redir` to provide transparent TCP/UDP redirection. It is installed on Linux systems by `make install`.
+
+**Prerequisites:** Linux with `iptables`, `ipset`, and optionally TPROXY kernel module for UDP
+
+#### Basic usage (TCP redirect)
+
+```bash
+# Start ss-redir first
+ss-redir -s YOUR_SERVER_IP -p 8388 -l 1080 -k PASSWORD -m chacha20-ietf-poly1305 -u
+
+# Set up NAT rules to redirect TCP traffic through ss-redir
+sudo ss-nat -s YOUR_SERVER_IP -l 1080
+```
+
+#### Enable UDP relay with TPROXY
+
+```bash
+sudo ss-nat -s YOUR_SERVER_IP -l 1080 -u
+```
+
+#### Apply rules to OUTPUT chain (proxy the local machine itself)
+
+```bash
+sudo ss-nat -s YOUR_SERVER_IP -l 1080 -u -o
+```
+
+#### Use separate TCP/UDP servers
+
+```bash
+sudo ss-nat -s TCP_SERVER_IP -l 1080 -S UDP_SERVER_IP -L 1080 -U
+```
+
+#### Bypass specific WAN IPs
+
+```bash
+sudo ss-nat -s YOUR_SERVER_IP -l 1080 -b "1.2.3.4 5.6.7.8"
+```
+
+#### Use a bypass IP list file
+
+```bash
+# Create a file with one IP/CIDR per line
+echo "1.2.3.0/24" > /etc/ss-bypass.list
+echo "5.6.7.0/24" >> /etc/ss-bypass.list
+
+sudo ss-nat -s YOUR_SERVER_IP -l 1080 -i /etc/ss-bypass.list
+```
+
+#### LAN access control
+
+```bash
+# Whitelist mode: only proxy traffic from these LAN IPs
+sudo ss-nat -s YOUR_SERVER_IP -l 1080 -a "w192.168.1.10 192.168.1.20"
+
+# Blacklist mode: proxy all LAN traffic except these IPs
+sudo ss-nat -s YOUR_SERVER_IP -l 1080 -a "b192.168.1.100"
+```
+
+#### Flush all rules
+
+```bash
+sudo ss-nat -f
+```
+
+#### Complete example: transparent proxy gateway
+
+Set up a Linux box as a transparent proxy gateway for the entire LAN:
+
+```bash
+# 1. Start ss-redir with UDP relay
+ss-redir -s YOUR_SERVER_IP -p 8388 -l 1080 -k PASSWORD \
+    -m chacha20-ietf-poly1305 -u -f /var/run/ss-redir.pid
+
+# 2. Set up NAT rules (TCP + UDP, apply to local OUTPUT too)
+sudo ss-nat -s YOUR_SERVER_IP -l 1080 -u -o -I eth0
+
+# 3. Point other devices' default gateway to this machine's LAN IP
+#    and set their DNS to a public resolver (e.g., 1.1.1.1 or 8.8.8.8)
+
+# To tear down:
+sudo ss-nat -f
+```
+
+## Transparent proxy (manual iptables)
 
 The latest shadowsocks-libev has provided a *redir* mode. You can configure your Linux-based box or router to proxy all TCP traffic transparently, which is handy if you use an OpenWRT-powered router.
+
+Note: For most use cases, [`ss-nat`](#ss-nat) above is simpler than writing iptables rules manually.
 
     # Create new chain
     iptables -t nat -N SHADOWSOCKS
