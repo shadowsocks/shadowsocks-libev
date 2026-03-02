@@ -31,7 +31,7 @@ RUN set -x \
  && make install \
  && cd /usr/local/bin \
  && ls /usr/local/bin/ss-* | xargs -n1 setcap cap_net_bind_service+ep \
- && strip $(ls /usr/local/bin | grep -Ev 'ss-nat' | grep -Ev 'ss-setup') \
+ && strip $(scanelf --nobanner -E ET_DYN -E ET_EXEC /usr/local/bin/ss-* | awk '{print $2}') \
  && apk del .build-deps \
  # Runtime dependencies setup
  && apk add --no-cache \
