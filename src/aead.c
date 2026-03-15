@@ -180,11 +180,11 @@ aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
 #if MBEDTLS_VERSION_NUMBER < 0x03000000
         err = mbedtls_cipher_auth_encrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen, c, clen, c + mlen, tlen);
+        *clen += tlen;
 #else
         err = mbedtls_cipher_auth_encrypt_ext(cipher_ctx->evp, n, nlen, ad, adlen,
                                               m, mlen, c, mlen + tlen, clen, tlen);
 #endif
-        *clen += tlen;
         break;
     case CHACHA20POLY1305IETF:
         err = crypto_aead_chacha20poly1305_ietf_encrypt(c, &long_clen, m, mlen,
