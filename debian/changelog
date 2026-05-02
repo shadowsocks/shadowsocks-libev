@@ -1,3 +1,10 @@
+shadowsocks-libev (3.3.6-1) unstable; urgency=medium
+
+  * Reduce memory copies in crypto encrypt/decrypt paths.
+  * Fix unbounded buffer growth in aead_decrypt chunk reassembly.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 09 Feb 2026 08:00:00 +0800
+
 shadowsocks-libev (3.3.5-1) unstable; urgency=medium
 
   * Remove the SNI proxy function.

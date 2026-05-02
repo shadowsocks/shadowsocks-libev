@@ -2,51 +2,61 @@ name: build
 
 on:
   push:
-    push:
-      branches:
-        - master
-      tags:
-        - v*
-        - latest
+    branches: [master]
+  pull_request:
+    branches: [master]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
-      - uses: docker/setup-qemu-action@v1.1.0
-      - uses: docker/setup-buildx-action@v1.3.0
-      - uses: docker/login-action@v1.9.0
-        with:
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-
-      - name: check and set image version
-        id: prepare
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
-          case ${{ github.ref }} in
-            refs/heads/master)
-              echo ::set-output name=version::edge
-              echo ::set-output name=push::true
-            ;;
-            refs/tags/*)
-              echo ::set-output name=version::$(echo ${{ github.ref }} | sed -E 's|refs/tags/||')
-              echo ::set-output name=push::true
-            ;;
-            *)
-              echo ::set-output name=version::${{ github.sha }}
-              echo ::set-output name=push::false
-            ;;
-          esac;
+          sudo apt-get update
+          sudo apt-get install -y libpcre2-dev libmbedtls-dev libsodium-dev libev-dev libc-ares-dev
 
-      - name: build & push image
-        uses: docker/build-push-action@v2.4.0
-        with:
-          context: .
-          file: docker/alpine/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: ${{ steps.prepare.outputs.push }}
-          tags: ${{ github.repository }}:${{ steps.prepare.outputs.version }}
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install mbedtls@3 libsodium libev c-ares pcre2
+
+      - name: Build
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_STATIC=OFF
+          make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
+
+      - name: Unit tests
+        run: |
+          cd build
+          ctest --output-on-failure
+
+      - name: ss-setup TUI tests
+        run: bash tests/test_ss_setup.sh
+
+      - name: Stress test
+        run: |
+          python3 tests/stress_test.py --bin build/shared/bin/ --size 10
+
+      - name: ss-redir transparent proxy test (QEMU)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y qemu-system-x86
+          bash tests/test_redir_qemu.sh build/shared/bin/
+        timeout-minutes: 8
+
+      - name: Debian package build test
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            build-essential debhelper dpkg-dev fakeroot asciidoc-base xmlto pkg-config
+          bash tests/test_deb_build.sh
+        timeout-minutes: 10

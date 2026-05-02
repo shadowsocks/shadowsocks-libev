@@ -131,6 +131,18 @@ int balloc(buffer_t *, size_t);
 int brealloc(buffer_t *, size_t, size_t);
 int bprepend(buffer_t *, buffer_t *, size_t);
 void bfree(buffer_t *);
+
+static inline void
+bswap_data(buffer_t *a, buffer_t *b)
+{
+    char *tmp_data      = a->data;
+    size_t tmp_capacity = a->capacity;
+    a->data             = b->data;
+    a->capacity         = b->capacity;
+    b->data             = tmp_data;
+    b->capacity         = tmp_capacity;
+}
+
 int rand_bytes(void *, int);
 
 crypto_t *crypto_init(const char *, const char *, const char *);

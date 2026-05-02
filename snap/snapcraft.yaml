@@ -1,6 +1,6 @@
-base: core18
+base: core22
 name: shadowsocks-libev
-version: 3.3.5-1
+version: '3.3.6'
 summary: libev port of shadowsocks
 description: |
   Shadowsocks-libev is a lightweight and secure SOCKS5 proxy for embedded
@@ -13,48 +13,51 @@ confinement: strict
 
 apps:
   ss-local:
-    command: bin/ss-local
+    command: usr/bin/ss-local
     plugs: [network, network-bind]
 
   ss-local-daemon:
-    command: bin/ss-local
+    command: usr/bin/ss-local
     daemon: simple
     plugs: [network, network-bind]
 
   ss-server:
-    command: bin/ss-server
+    command: usr/bin/ss-server
     plugs: [network, network-bind]
 
   ss-server-daemon:
-    command: bin/ss-server
+    command: usr/bin/ss-server
     daemon: simple
     plugs: [network, network-bind]
 
   ss-redir:
-    command: bin/ss-redir
+    command: usr/bin/ss-redir
     plugs: [network, network-bind]
 
   ss-tunnel:
-    command: bin/ss-tunnel
+    command: usr/bin/ss-tunnel
     plugs: [network, network-bind]
 
   ss-manager:
-    command: bin/ss-manager
+    command: usr/bin/ss-manager
     plugs: [network]
 
-passthrough:
-  layout:
-    /etc/shadowsocks-libev:
-      bind: $SNAP_COMMON/etc/shadowsocks-libev
+layout:
+  /etc/shadowsocks-libev:
+    bind: $SNAP_COMMON/etc/shadowsocks-libev
 
 parts:
- shadowsocks-libev:
-    plugin: autotools
-    source: https://github.com/shadowsocks/shadowsocks-libev/releases/download/v3.3.5/shadowsocks-libev-3.3.5.tar.gz
+  shadowsocks-libev:
+    plugin: cmake
+    source: .
+    source-type: git
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DWITH_DOC_MAN=OFF
+      - -DBUILD_TESTING=OFF
     build-packages:
-      - libpcre3-dev
-      - asciidoc
-      - xmlto
+      - libpcre2-dev
       - libev-dev
       - libc-ares-dev
       - libmbedtls-dev
@@ -62,8 +65,11 @@ parts:
     stage-packages:
       - libc-ares2
       - libev4
-      - libmbedtls10
+      - libmbedcrypto7
+      - libmbedtls14
+      - libmbedx509-1
+      - libpcre2-8-0
       - libsodium23
     override-build: |
-      snapcraftctl build
+      craftctl default
       rm -rf $SNAPCRAFT_PART_INSTALL/usr/share/doc

@@ -117,7 +117,8 @@ Specify the executable path of ss-server.
 +
 Only available in manager mode.
 
---executable <path_to_server_executable>::
+-D <path>::
+--workdir <path>::
 Specify the working directory of ss-manager.
 +
 Only available in manager mode.

@@ -439,8 +439,7 @@ aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
 
     assert(ciphertext->len == clen);
 
-    brealloc(plaintext, salt_len + ciphertext->len, capacity);
-    memcpy(plaintext->data, ciphertext->data, salt_len + ciphertext->len);
+    bswap_data(plaintext, ciphertext);
     plaintext->len = salt_len + ciphertext->len;
 
     return CRYPTO_OK;
@@ -490,8 +489,7 @@ aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 
     ppbloom_add((void *)salt, salt_len);
 
-    brealloc(ciphertext, plaintext->len, capacity);
-    memcpy(ciphertext->data, plaintext->data, plaintext->len);
+    bswap_data(ciphertext, plaintext);
     ciphertext->len = plaintext->len;
 
     return CRYPTO_OK;
@@ -579,8 +577,7 @@ aead_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
     if (err)
         return err;
 
-    brealloc(plaintext, ciphertext->len, capacity);
-    memcpy(plaintext->data, ciphertext->data, ciphertext->len);
+    bswap_data(plaintext, ciphertext);
     plaintext->len = ciphertext->len;
 
     return 0;
@@ -634,9 +631,7 @@ aead_chunk_decrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c, uint8_t *n,
 int
 aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 {
-    int err             = CRYPTO_OK;
-    static buffer_t tmp = { 0, 0, 0, NULL };
-
+    int err          = CRYPTO_OK;
     cipher_t *cipher = cipher_ctx->cipher;
 
     size_t salt_len = cipher->key_len;
@@ -647,20 +642,32 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         balloc(cipher_ctx->chunk, capacity);
     }
 
-    brealloc(cipher_ctx->chunk,
-             cipher_ctx->chunk->len + ciphertext->len, capacity);
-    memcpy(cipher_ctx->chunk->data + cipher_ctx->chunk->len,
-           ciphertext->data, ciphertext->len);
-    cipher_ctx->chunk->len += ciphertext->len;
+    buffer_t *chunk = cipher_ctx->chunk;
 
-    brealloc(&tmp, cipher_ctx->chunk->len, capacity);
-    buffer_t *plaintext = &tmp;
+    if (chunk->len == 0) {
+        bswap_data(chunk, ciphertext);
+        chunk->len = ciphertext->len;
+        chunk->idx = 0;
+        ciphertext->len = 0;
+    } else {
+        if (chunk->idx > 0) {
+            memmove(chunk->data, chunk->data + chunk->idx, chunk->len);
+            chunk->idx = 0;
+        }
+        brealloc(chunk, chunk->len + ciphertext->len, capacity);
+        memcpy(chunk->data + chunk->len,
+               ciphertext->data, ciphertext->len);
+        chunk->len += ciphertext->len;
+    }
+
+    // Write plaintext directly into the (now-free) ciphertext buffer.
+    brealloc(ciphertext, chunk->len, capacity);
 
     if (!cipher_ctx->init) {
-        if (cipher_ctx->chunk->len <= salt_len)
+        if (chunk->len <= salt_len)
             return CRYPTO_NEED_MORE;
 
-        memcpy(cipher_ctx->salt, cipher_ctx->chunk->data, salt_len);
+        memcpy(cipher_ctx->salt, chunk->data + chunk->idx, salt_len);
 
         if (ppbloom_check((void *)cipher_ctx->salt, salt_len) == 1) {
             LOGE("crypto: AEAD: repeat salt detected");
@@ -669,38 +676,40 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 
         aead_cipher_ctx_set_key(cipher_ctx, 0);
 
-        memmove(cipher_ctx->chunk->data, cipher_ctx->chunk->data + salt_len,
-                cipher_ctx->chunk->len - salt_len);
-        cipher_ctx->chunk->len -= salt_len;
+        chunk->idx += salt_len;
+        chunk->len -= salt_len;
 
         cipher_ctx->init = 1;
     }
 
     size_t plen = 0;
     size_t cidx = 0;
-    while (cipher_ctx->chunk->len > 0) {
-        size_t chunk_clen = cipher_ctx->chunk->len;
+    while (chunk->len > 0) {
+        size_t chunk_clen = chunk->len;
         size_t chunk_plen = 0;
         err = aead_chunk_decrypt(cipher_ctx,
-                                 (uint8_t *)plaintext->data + plen,
-                                 (uint8_t *)cipher_ctx->chunk->data + cidx,
+                                 (uint8_t *)ciphertext->data + plen,
+                                 (uint8_t *)chunk->data + chunk->idx + cidx,
                                  cipher_ctx->nonce, &chunk_plen, &chunk_clen);
         if (err == CRYPTO_ERROR) {
             return err;
         } else if (err == CRYPTO_NEED_MORE) {
             if (plen == 0)
                 return err;
-            else{
-                memmove((uint8_t *)cipher_ctx->chunk->data, 
-			(uint8_t *)cipher_ctx->chunk->data + cidx, chunk_clen);
+            else {
+                chunk->idx += cidx;
                 break;
             }
         }
-        cipher_ctx->chunk->len = chunk_clen;
+        chunk->len = chunk_clen;
         cidx += cipher_ctx->cipher->tag_len * 2 + CHUNK_SIZE_LEN + chunk_plen;
-        plen                  += chunk_plen;
+        plen += chunk_plen;
     }
-    plaintext->len = plen;
+
+    if (chunk->len == 0)
+        chunk->idx = 0;
+
+    ciphertext->len = plen;
 
     // Add the salt to bloom filter
     if (cipher_ctx->init == 1) {
@@ -711,10 +720,6 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         ppbloom_add((void *)cipher_ctx->salt, salt_len);
         cipher_ctx->init = 2;
     }
-
-    brealloc(ciphertext, plaintext->len, capacity);
-    memcpy(ciphertext->data, plaintext->data, plaintext->len);
-    ciphertext->len = plaintext->len;
 
     return CRYPTO_OK;
 }

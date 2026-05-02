@@ -2,9 +2,6 @@
 # -------------------------------------------------------------
 # config.h
 
-# If we generate config.h by automake
-#include_directories(.)
-
 # Use cmake to generate config.h
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
@@ -12,14 +9,20 @@ include(CheckSymbolExists)
 include(CheckLibraryExists)
 include(CheckTypeSize)
 include(CheckCSourceCompiles)
+include(CheckCCompilerFlag)
 
 # Define if building universal (internal helper macro)
 # AC_APPLE_UNIVERSAL_BUILD
-set(CONNECT_IN_PROGRESS "EINPROGRESS")
-set(CONNECT_IN_PROGRESS "EINPROGRESS" CACHE STRING "")
+
+# Set CONNECT_IN_PROGRESS based on platform
+if(MINGW)
+    set(CONNECT_IN_PROGRESS "WSAEWOULDBLOCK")
+else()
+    set(CONNECT_IN_PROGRESS "EINPROGRESS")
+endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(CMAKE_REQUIRED_INCLUDES "/usr/local/include" "/usr/include")
+    set(CMAKE_REQUIRED_INCLUDES "/usr/local/include" "/usr/include" "/opt/homebrew/include")
 endif ()
 
 check_include_files(dlfcn.h HAVE_DLFCN_H)
@@ -53,8 +56,10 @@ else ()
 endif ()
 check_include_files(linux/tcp.h HAVE_LINUX_TCP_H)
 check_include_files(net/if.h HAVE_NET_IF_H)
-check_include_files(pcre.h HAVE_PCRE_H)
-check_include_files(pcre/pcre.h HAVE_PCRE_PCRE_H)
+set(CMAKE_REQUIRED_DEFINITIONS_SAVE ${CMAKE_REQUIRED_DEFINITIONS})
+set(CMAKE_REQUIRED_DEFINITIONS "-DPCRE2_CODE_UNIT_WIDTH=8")
+check_include_files(pcre2.h HAVE_PCRE2_H)
+set(CMAKE_REQUIRED_DEFINITIONS ${CMAKE_REQUIRED_DEFINITIONS_SAVE})
 check_symbol_exists(PTHREAD_PRIO_INHERIT pthread.h HAVE_PTHREAD_PRIO_INHERIT)
 
 check_function_exists(select HAVE_SELECT)
@@ -78,6 +83,8 @@ check_include_files(sys/types.h HAVE_SYS_TYPES_H)
 check_include_files(sys/wait.h HAVE_SYS_WAIT_H)
 check_include_files(ares.h HAVE_ARES_H)
 check_include_files(unistd.h HAVE_UNISTD_H)
+check_include_files(arpa/inet.h HAVE_ARPA_INET_H)
+check_include_files(linux/random.h HAVE_LINUX_RANDOM_H)
 
 check_function_exists(fork HAVE_FORK)
 check_function_exists(vfork HAVE_VFORK)
@@ -89,6 +96,9 @@ if (HAVE_FORK)
     set(HAVE_WORKING_FORK 1)
 endif ()
 
+# Additional function checks
+check_function_exists(get_current_dir_name HAVE_GET_CURRENT_DIR_NAME)
+check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)
 
 # Define to the sub-directory where libtool stores uninstalled libraries.
 set(LT_OBJDIR ".libs/")
@@ -100,8 +110,6 @@ set(PACKAGE_VERSION ${PROJECT_VERSION})
 set(PACKAGE_STRING "${PROJECT_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_TARNAME ${PROJECT_NAME})
 set(PACKAGE_URL "")
-
-#message(${PACKAGE_NAME} - v${PACKAGE_VERSION} - v${PROJECT_VERSION})
 
 # PTHREAD_CREATE_JOINABLE
 
@@ -140,31 +148,7 @@ set(_TANDEM_SOURCE 1)
 set(__EXTENSIONS__ 1)
 # USE_SYSTEM_SHARED_LIB
 set(VERSION ${PACKAGE_VERSION})
-# TODO WORDS_BIGENDIAN
-# _MINIX
-# _POSIX_1_SOURCE
-# _POSIX_SOURCE
-# _UINT8_T
 
-# Define to empty if `const' does not conform to ANSI C.
-# undef const
-
-# Define to `__inline__' or `__inline' if that's what the C compiler
-# calls it, or to nothing if 'inline' is not supported under any name.
-#ifndef __cplusplus
-#undef inline
-#endif
-# TODO Assume we got inline support
-# https://cmake.org/Wiki/CMakeTestInline
-
-# Define to `int' if <sys/types.h> does not define.
-# undef pid_t
-# Define to the type of an unsigned integer type of width exactly 16 bits if
-# such a type exists and the standard includes do not define it.
-# undef uint16_t
-# Define to the type of an unsigned integer type of width exactly 8 bits if
-# such a type exists and the standard includes do not define it.
-# undef uint8_t
 set(CMAKE_EXTRA_INCLUDE_FILES sys/types.h)
 check_type_size(pid_t PID_T)
 check_type_size(size_t SIZE_T)
@@ -197,3 +181,18 @@ endif ()
 if (NOT HAVE_WORKING_VFORK)
     set(vfork fork)
 endif ()
+
+# Stack protector detection
+option(DISABLE_SSP "Disable -fstack-protector" OFF)
+if(NOT DISABLE_SSP)
+    check_c_compiler_flag(-fstack-protector HAS_STACK_PROTECTOR)
+    if(HAS_STACK_PROTECTOR)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector")
+        message(STATUS "Stack protector enabled")
+    endif()
+endif()
+
+# MinGW/Cygwin compiler flags
+if(MINGW OR CYGWIN)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mno-ms-bitfields")
+endif()

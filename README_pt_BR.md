@@ -11,7 +11,7 @@ proxy para dispositivos embutidos e caixas de baixo custo.
 criado por [@clowwindy](https://github.com/clowwindy) e mantido por
 [@madeye](https://github.com/madeye) e [@linusyang](https://github.com/linusyang).
 
-Versão atual: 3.3.5 | [Changelog](debian/changelog)
+Versão atual: 3.3.6 | [Changelog](debian/changelog)
 
 ## Características
 
