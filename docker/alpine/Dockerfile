@@ -1,14 +1,7 @@
-FROM alpine:3.19
-LABEL maintainer="kev <noreply@datageek.info>, Sah <contact@leesah.name>, vndroid <waveworkshop@outlook.com>"
+FROM alpine:3.23 AS builder
 
-ENV SERVER_ADDR=0.0.0.0
-ENV SERVER_PORT=8388
-ENV PASSWORD=
-ENV METHOD=aes-256-gcm
-ENV TIMEOUT=300
-ENV DNS_ADDRS="8.8.8.8,8.8.4.4"
-ENV TZ=UTC
-ENV ARGS=
+# Temporary root directory for build output
+ENV DEST_DIR=/tmp/dest
 
 COPY . /tmp/repo
 RUN set -x \
@@ -28,11 +21,29 @@ RUN set -x \
  && mkdir -p build && cd build \
  && cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_TESTING=OFF -DWITH_STATIC=OFF -DCMAKE_BUILD_TYPE=Release \
  && make -j$(getconf _NPROCESSORS_ONLN) \
- && make install \
- && cd /usr/local/bin \
- && ls /usr/local/bin/ss-* | xargs -n1 setcap cap_net_bind_service+ep \
- && strip $(scanelf --nobanner -E ET_DYN -E ET_EXEC /usr/local/bin/ss-* | awk '{print $2}') \
- && apk del .build-deps \
+ && mkdir -p ${DEST_DIR} \
+ && make install DESTDIR=${DEST_DIR} \
+ && cd ${DEST_DIR}/usr/local/bin \
+ && ls ${DEST_DIR}/usr/local/bin/ss-* | xargs -n1 setcap cap_net_bind_service+ep \
+ && strip $(scanelf --nobanner -E ET_DYN -E ET_EXEC ${DEST_DIR}/usr/local/bin/ss-* | awk '{print $2}')
+
+# Final runtime environment
+FROM alpine:3.23
+LABEL maintainer="kev <noreply@datageek.info>, Sah <contact@leesah.name>, vndroid <waveworkshop@outlook.com>"
+
+ENV SERVER_ADDR=0.0.0.0
+ENV SERVER_PORT=8388
+ENV PASSWORD=
+ENV METHOD=aes-256-gcm
+ENV TIMEOUT=300
+ENV DNS_ADDRS="8.8.8.8,8.8.4.4"
+ENV TZ=UTC
+ENV ARGS=
+
+# Import build artifacts from the builder stage
+COPY --from=builder /tmp/dest/ /
+
+RUN set -x \
  # Runtime dependencies setup
  && apk add --no-cache \
       ca-certificates \
@@ -40,8 +51,7 @@ RUN set -x \
       tzdata \
       $(scanelf --needed --nobanner /usr/local/bin/ss-* \
       | awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
-      | sort -u) \
- && rm -rf /tmp/repo
+      | sort -u)
 
 COPY ./docker/alpine/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT ["docker-entrypoint.sh"]
