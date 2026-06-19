@@ -78,16 +78,21 @@ int
 init_rule(rule_t *rule)
 {
     if (rule->pattern_re == NULL) {
-        const char *reerr;
-        int reerroffset;
+        int errcode;
+        PCRE2_SIZE erroffset;
 
         rule->pattern_re =
-            pcre_compile(rule->pattern, 0, &reerr, &reerroffset, NULL);
+            pcre2_compile((PCRE2_SPTR)rule->pattern, PCRE2_ZERO_TERMINATED,
+                          0, &errcode, &erroffset, NULL);
         if (rule->pattern_re == NULL) {
+            PCRE2_UCHAR errbuf[256];
+            pcre2_get_error_message(errcode, errbuf, sizeof(errbuf));
             LOGE("Regex compilation of \"%s\" failed: %s, offset %d",
-                 rule->pattern, reerr, reerroffset);
+                 rule->pattern, errbuf, (int)erroffset);
             return 0;
         }
+        rule->match_data = pcre2_match_data_create_from_pattern(
+            rule->pattern_re, NULL);
     }
 
     return 1;
@@ -105,8 +110,8 @@ lookup_rule(const struct cork_dllist *rules, const char *name, size_t name_len)
 
     cork_dllist_foreach_void(rules, curr, next) {
         rule_t *rule = cork_container_of(curr, rule_t, entries);
-        if (pcre_exec(rule->pattern_re, NULL,
-                      name, name_len, 0, 0, NULL, 0) >= 0)
+        if (pcre2_match(rule->pattern_re, (PCRE2_SPTR)name,
+                        name_len, 0, 0, rule->match_data, NULL) >= 0)
             return rule;
     }
 
@@ -127,7 +132,9 @@ free_rule(rule_t *rule)
         return;
 
     ss_free(rule->pattern);
+    if (rule->match_data != NULL)
+        pcre2_match_data_free(rule->match_data);
     if (rule->pattern_re != NULL)
-        pcre_free(rule->pattern_re);
+        pcre2_code_free(rule->pattern_re);
     ss_free(rule);
 }

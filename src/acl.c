@@ -57,7 +57,7 @@ static void
 parse_addr_cidr(const char *str, char *host, int *cidr)
 {
     int ret = -1;
-    char *pch;
+    const char *pch;
 
     pch = strchr(str, '/');
     while (pch != NULL) {
@@ -100,8 +100,7 @@ trimwhitespace(char *str)
 int
 init_acl(const char *path)
 {
-    if (path == NULL)
-    {
+    if (path == NULL) {
         return -1;
     }
 

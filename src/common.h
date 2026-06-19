@@ -51,7 +51,6 @@ int send_traffic_stat(uint64_t tx, uint64_t rx);
 #define STAGE_ERROR     -1  /* Error detected                   */
 #define STAGE_INIT       0  /* Initial stage                    */
 #define STAGE_HANDSHAKE  1  /* Handshake with client            */
-#define STAGE_SNI        3  /* Parse HTTP/SNI header            */
 #define STAGE_RESOLVE    4  /* Resolve the hostname             */
 #define STAGE_STREAM     5  /* Stream between client and server */
 #define STAGE_STOP       6  /* Server stop to response          */
@@ -72,6 +71,11 @@ enum {
     GETOPT_VAL_MANAGER_ADDRESS,
     GETOPT_VAL_EXECUTABLE,
     GETOPT_VAL_WORKDIR,
+    GETOPT_VAL_TCP_INCOMING_SNDBUF,
+    GETOPT_VAL_TCP_INCOMING_RCVBUF,
+    GETOPT_VAL_TCP_OUTGOING_SNDBUF,
+    GETOPT_VAL_TCP_OUTGOING_RCVBUF,
+    GETOPT_VAL_NFTABLES_SETS
 };
 
 #endif // _COMMON_H

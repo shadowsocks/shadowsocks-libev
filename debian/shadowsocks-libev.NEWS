@@ -1,0 +1,20 @@
+shadowsocks-libev (3.2.0+ds-5) unstable; urgency=medium
+
+  There is a mode setting to choose whether to enable both TCP and
+  UDP, or only one of them. This setting was set to "tcp_and_udp" in
+  /etc/default/shadowsocks-libev, /etc/init.d/shadowsocks-libev
+  (for init system only), and maybe also in config.json added by user,
+  which is quite confusing.
+
+  So we moved this setting to config.json. Since we won't update
+  config.json on package upgrade, please add the following to your
+  /etc/shadowsocks-libev/config.json.
+
+     "mode":"tcp_and_udp",
+
+  Otherwise you setting will be TCP only.
+  For more about TCP/UDP mode, please refer the ticket upstream:
+
+   - https://github.com/shadowsocks/shadowsocks-libev/issues/1870
+
+ -- Roger Shimizu <rosh@debian.org>  Sun, 07 Oct 2018 00:48:07 +0900

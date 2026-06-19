@@ -15,7 +15,7 @@ START=yes
 CONFFILE="/etc/shadowsocks-libev/config.json"
 
 # Extra command line arguments
-DAEMON_ARGS="-u"
+DAEMON_ARGS=
 
 # User and group to run the server as
 USER=nobody

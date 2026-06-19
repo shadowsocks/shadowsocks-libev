@@ -25,9 +25,9 @@
 #define MAX_PORT_NUM 1024
 #define MAX_REMOTE_NUM 10
 #define MAX_DSCP_NUM 64
-#define MAX_CONF_SIZE 128 * 1024
+#define MAX_CONF_SIZE (128 * 1024)
 #define MAX_CONNECT_TIMEOUT 10
-#define MAX_REQUEST_TIMEOUT 30
+#define MIN_TCP_IDLE_TIMEOUT (24 * 3600)
 #define MIN_UDP_TIMEOUT 10
 
 #define DSCP_EF      0x2E
@@ -72,6 +72,10 @@ typedef struct {
     char *plugin_opts;
     int fast_open;
     int reuse_port;
+    int tcp_incoming_sndbuf;
+    int tcp_incoming_rcvbuf;
+    int tcp_outgoing_sndbuf;
+    int tcp_outgoing_rcvbuf;
     int nofile;
     char *nameserver;
     int dscp_num;
@@ -82,8 +86,10 @@ typedef struct {
     int mptcp;
     int ipv6_first;
     int no_delay;
+    int tcp_tproxy;
     char *workdir;
     char *acl;
+    char *manager_address;
 } jconf_t;
 
 jconf_t *read_jconf(const char *file);

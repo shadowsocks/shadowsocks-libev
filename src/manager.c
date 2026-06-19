@@ -127,6 +127,8 @@ build_config(char *prefix, struct manager_ctx *manager, struct server *server)
         fprintf(f, ",\n\"no_delay\": %s", server->no_delay);
     else if (manager->no_delay)
         fprintf(f, ",\n\"no_delay\": true");
+    if (manager->reuse_port)
+        fprintf(f, ",\n\"reuse_port\": true");
     if (server->mode)
         fprintf(f, ",\n\"mode\":\"%s\"", server->mode);
     if (server->plugin)
@@ -184,6 +186,10 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -u");
     }
+    if (manager->iface) {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " -i \"%s\"", manager->iface);
+    }
     if (server->fast_open[0] == 0 && manager->fast_open) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --fast-open");
@@ -211,11 +217,6 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
     if (manager->nameservers) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -d \"%s\"", manager->nameservers);
-    }
-    if (manager->workdir)
-    {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -D \"%s\"", manager->workdir);
     }
     for (i = 0; i < manager->host_num; i++) {
         int len = strlen(cmd);
@@ -441,7 +442,7 @@ create_and_bind(const char *host, const char *port, int protocol)
         }
     }
 
-    if (!result) {
+    if (result != NULL) {
         freeaddrinfo(result);
     }
 
@@ -613,6 +614,9 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
+    // properly terminate string which recvfrom does not do
+    buf[r] = '\0';
+
     char *action = get_action(buf, r);
     if (action == NULL) {
         return;
@@ -705,15 +709,11 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (parse_traffic(buf, r, port, &traffic) == -1) {
             LOGE("invalid command: %s:%s", buf, get_data(buf, r));
-	    goto ERROR_MSG;
+            return;
         }
 
         update_stat(port, traffic);
 
-	char msg[3] = "ok";
-        if (sendto(manager->fd, msg, 2, 0, (struct sockaddr *)&claddr, len) != 2) {
-            ERROR("stat_sendto");
-        }
     } else if (strcmp(action, "ping") == 0) {
         struct cork_hash_table_entry *entry;
         struct cork_hash_table_iterator server_iter;
@@ -840,12 +840,14 @@ create_server_socket(const char *host, const char *port)
         close(server_sock);
     }
 
+    if (result != NULL) {
+        freeaddrinfo(result);
+    }
+
     if (rp == NULL) {
         LOGE("cannot bind");
         return -1;
     }
-
-    freeaddrinfo(result);
 
     return server_sock;
 }
@@ -901,7 +903,7 @@ main(int argc, char **argv)
         { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD    },
         { "workdir",         required_argument, NULL, GETOPT_VAL_WORKDIR     },
         { "help",            no_argument,       NULL, GETOPT_VAL_HELP        },
-        { NULL,                              0, NULL,                      0 }
+        { NULL,              0,                 NULL, 0                      }
     };
 
     opterr = 0;
@@ -1055,12 +1057,14 @@ main(int argc, char **argv)
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
         }
-        if (workdir == NULL)
-        {
+        if (workdir == NULL) {
             workdir = conf->workdir;
         }
         if (acl == NULL) {
             acl = conf->acl;
+        }
+        if (manager_address == NULL) {
+            manager_address = conf->manager_address;
         }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
@@ -1086,12 +1090,7 @@ main(int argc, char **argv)
         daemonize(pid_path);
     }
 
-    if (manager_address == NULL) {
-        manager_address = "127.0.0.1:8839";
-        LOGI("using the default manager address: %s", manager_address);
-    }
-
-    if (server_num == 0 || manager_address == NULL) {
+    if (server_num == 0) {
         usage();
         exit(EXIT_FAILURE);
     }
@@ -1106,6 +1105,51 @@ main(int argc, char **argv)
 
     if (no_delay == 1) {
         LOGI("using tcp no-delay");
+    }
+
+#ifndef __MINGW32__
+    // setuid
+    if (user != NULL && !run_as(user)) {
+        FATAL("failed to switch user");
+    }
+
+    if (geteuid() == 0) {
+        LOGI("running from root user");
+    }
+#endif
+
+    struct passwd *pw = getpwuid(getuid());
+
+    if (workdir == NULL || strlen(workdir) == 0) {
+        workdir = pw->pw_dir;
+        // If home dir is still not defined or set to nologin/nonexistent, fall back to /tmp
+        if (workdir == NULL || strlen(workdir) == 0 || strstr(workdir, "nologin") || 
+            strstr(workdir, "nonexistent") || strcmp(workdir, "/") == 0) {
+            workdir = "/tmp";
+        }
+
+        working_dir_size = strlen(workdir) + 15;
+        working_dir      = ss_malloc(working_dir_size);
+        snprintf(working_dir, working_dir_size, "%s/.shadowsocks", workdir);
+    } else {
+        working_dir_size = strlen(workdir) + 2;
+        working_dir      = ss_malloc(working_dir_size);
+        snprintf(working_dir, working_dir_size, "%s", workdir);
+    }
+    LOGI("working directory points to %s", working_dir);
+
+    int err = mkdir(working_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    if (err != 0 && errno != EEXIST) {
+        ERROR("mkdir");
+        ss_free(working_dir);
+        FATAL("unable to create working directory");
+    }
+
+    if (manager_address == NULL) {
+        size_t manager_address_size = strlen(workdir) + 20;
+        manager_address = ss_malloc(manager_address_size);
+        snprintf(manager_address, manager_address_size, "%s/.ss-manager.socks", workdir);
+        LOGI("using the default manager address: %s", manager_address);
     }
 
     // ignore SIGPIPE
@@ -1149,43 +1193,6 @@ main(int argc, char **argv)
 
     // initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
-
-#ifndef __MINGW32__
-    // setuid
-    if (user != NULL && !run_as(user)) {
-        FATAL("failed to switch user");
-    }
-
-    if (geteuid() == 0) {
-        LOGI("running from root user");
-    }
-#endif
-
-    struct passwd *pw   = getpwuid(getuid());
-
-    if (workdir == NULL || strlen(workdir) == 0) {
-        workdir = pw->pw_dir;
-        // If home dir is still not defined or set to nologin/nonexistent, fall back to /tmp
-        if (strstr(workdir, "nologin") || strstr(workdir, "nonexistent") || workdir == NULL || strlen(workdir) == 0) {
-            workdir = "/tmp";
-        }
-
-        working_dir_size = strlen(workdir) + 15;
-        working_dir = ss_malloc(working_dir_size);
-        snprintf(working_dir, working_dir_size, "%s/.shadowsocks", workdir);
-    } else {
-        working_dir_size = strlen(workdir) + 2;
-        working_dir = ss_malloc(working_dir_size);
-        snprintf(working_dir, working_dir_size, "%s", workdir);
-    }
-    LOGI("working directory points to %s", working_dir);
-
-    int err = mkdir(working_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    if (err != 0 && errno != EEXIST) {
-        ERROR("mkdir");
-        ss_free(working_dir);
-        FATAL("unable to create working directory");
-    }
 
     // Clean up all existed processes
     DIR *dp;
@@ -1280,6 +1287,7 @@ main(int argc, char **argv)
     ev_signal_stop(EV_DEFAULT, &sigint_watcher);
     ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
     ss_free(working_dir);
+    free_addr(&ip_addr);
 
     return 0;
 }

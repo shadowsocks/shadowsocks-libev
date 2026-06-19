@@ -56,13 +56,14 @@ Not available in manager mode.
 -m <encrypt_method>::
 Set the cipher.
 +
-*Shadowsocks-libev* accepts 18 different ciphers:
+*Shadowsocks-libev* accepts 19 different ciphers:
 +
 aes-128-gcm, aes-192-gcm, aes-256-gcm,
 rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb,
 aes-128-ctr, aes-192-ctr, aes-256-ctr, bf-cfb,
 camellia-128-cfb, camellia-192-cfb, camellia-256-cfb,
-chacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf.
+chacha20-ietf-poly1305, xchacha20-ietf-poly1305,
+salsa20, chacha20 and chacha20-ietf.
 +
 The default cipher is 'chacha20-ietf-poly1305'.
 +
@@ -121,6 +122,11 @@ Enable UDP relay and disable TCP relay.
 +
 Not available in local mode.
 
+-T::
+Use tproxy instead of redirect (for tcp).
++
+Only available in redir mode.
+
 -L <addr:port>::
 Specify destination server address and port for local port forwarding.
 +
@@ -145,6 +151,26 @@ Only available with Linux kernel > 3.9.0.
 --no-delay::
 Enable TCP_NODELAY.
 
+--tcp-incoming-sndbuf <size>::
+Set TCP send buffer size for incoming connections.
++
+Not available in manager mode.
+
+--tcp-incoming-rcvbuf <size>::
+Set TCP receive buffer size for incoming connections.
++
+Not available in manager mode.
+
+--tcp-outgoing-sndbuf <size>::
+Set TCP send buffer size for outgoing connections.
++
+Not available in manager mode.
+
+--tcp-outgoing-rcvbuf <size>::
+Set TCP receive buffer size for outgoing connections.
++
+Not available in manager mode.
+
 --acl <acl_config>::
 Enable ACL (Access Control List) and specify config file.
 +
@@ -159,6 +185,17 @@ Only available in server and manager mode.
 Specify the executable path of `ss-server`.
 +
 Only available in manager mode.
+
+-D <path>::
+--workdir <path>::
+Specify the working directory of ss-manager.
++
+Only available in manager mode.
+
+--nftables-sets <family:table:set>::
+Specify nftables sets for reporting malicious IPs.
++
+Only available in server mode, when built with nftables support.
 
 -v::
 Enable verbose mode.
@@ -198,6 +235,7 @@ The config file equivalent of command line options is listed as example below.
 | -u                                  | "mode": "tcp_and_udp"
 | -U                                  | "mode": "udp_only"
 | no "-u" nor "-U" options (default)  | "mode": "tcp_only"
+| -T                                  | "tcp_tproxy": true
 | (only in ss-manager's config)       | "port_password": {"1234":"PasSworD"}
 |============================================================================
 

@@ -1,3 +1,39 @@
+shadowsocks-libev (3.3.5-1) unstable; urgency=medium
+
+  * Remove the SNI proxy function.
+  * Minor bug fixes. (#2581, #2582, #2590, #2595, #2599,
+    #2600, #2620, #2687, #2692)
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 15 Sep 2020 10:24:43 +0800
+
+shadowsocks-libev (3.3.4-1) unstable; urgency=medium
+
+  * Minor bug fixes. (#2539, #2565, #2566, #2577)
+  * Security bug fixes. (CVE-2019-5163, CVE-2019-5164)
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 10 Jan 2020 09:28:25 +0800
+
+shadowsocks-libev (3.3.3-1) unstable; urgency=medium
+
+  * Refine the handling of suspicious connections.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 31 Oct 2019 15:06:04 +0800
+
+shadowsocks-libev (3.3.2-1) unstable; urgency=medium
+
+  * Refine the handling of fragment request.
+  * Minor bug fixes. (#2463, #2481, #2508)
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 12 Oct 2019 08:42:24 +0800
+
+shadowsocks-libev (3.3.1-1) unstable; urgency=high
+
+  * Fix a high CPU bug introduced in 3.3.0. (#2449)
+  * Fix MinGW build. (#2438)
+  * Minor bug fixes. (#2402, #2412, #2427, #2443)
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 09 Aug 2019 15:02:34 +0800
+
 shadowsocks-libev (3.3.0-1) unstable; urgency=medium
 
   * Enlarge the socket buffer size to 16KB.

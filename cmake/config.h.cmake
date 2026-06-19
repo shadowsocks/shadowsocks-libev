@@ -87,11 +87,8 @@
 /* Define to 1 if you have the <net/if.h> header file. */
 #cmakedefine HAVE_NET_IF_H 1
 
-/* Define to 1 if you have the <pcre.h> header file. */
-#cmakedefine HAVE_PCRE_H 1
-
-/* Define to 1 if you have the <pcre/pcre.h> header file. */
-#cmakedefine HAVE_PCRE_PCRE_H 1
+/* Define to 1 if you have the <pcre2.h> header file. */
+#cmakedefine HAVE_PCRE2_H 1
 
 /* Have PTHREAD_PRIO_INHERIT. */
 #cmakedefine HAVE_PTHREAD_PRIO_INHERIT 1
@@ -235,6 +232,21 @@
 #cmakedefine __EXTENSIONS__ 1
 #endif
 
+
+/* Enable support for QOS netfilter mark preservation */
+#cmakedefine USE_NFCONNTRACK_TOS 1
+
+/* Enable support for nftables firewall */
+#cmakedefine USE_NFTABLES 1
+
+/* Define to 1 if you have the <linux/random.h> header file. */
+#cmakedefine HAVE_LINUX_RANDOM_H 1
+
+/* Define to 1 if you have the `get_current_dir_name' function. */
+#cmakedefine HAVE_GET_CURRENT_DIR_NAME 1
+
+/* Define to 1 if you have the `posix_memalign' function. */
+#cmakedefine HAVE_POSIX_MEMALIGN 1
 
 /* Define if use system shared lib. */
 #cmakedefine USE_SYSTEM_SHARED_LIB 1

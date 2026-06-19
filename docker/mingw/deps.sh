@@ -53,6 +53,7 @@ build_deps() {
 
     # sodium
     cd "$SRC/$SODIUM_SRC"
+    ./autogen.sh
     ./configure $args
     make clean
     make -j$cpu install

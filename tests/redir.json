@@ -1,0 +1,8 @@
+{
+    "server":"10.0.2.2",
+    "server_port":8389,
+    "local_port":1080,
+    "password":"test_redir_password",
+    "timeout":60,
+    "method":"aes-256-gcm"
+}

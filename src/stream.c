@@ -174,33 +174,6 @@ crypto_stream_xor_ic(uint8_t *c, const uint8_t *m, uint64_t mlen,
     return 0;
 }
 
-int
-cipher_nonce_size(const cipher_t *cipher)
-{
-    if (cipher == NULL) {
-        return 0;
-    }
-    return cipher->info->iv_size;
-}
-
-int
-cipher_key_size(const cipher_t *cipher)
-{
-    /*
-     * Semi-API changes (technically public, morally prnonceate)
-     * Renamed a few headers to include _internal in the name. Those headers are
-     * not supposed to be included by users.
-     * Changed md_info_t into an opaque structure (use md_get_xxx() accessors).
-     * Changed pk_info_t into an opaque structure.
-     * Changed cipher_base_t into an opaque structure.
-     */
-    if (cipher == NULL) {
-        return 0;
-    }
-    /* From Version 1.2.7 released 2013-04-13 Default Blowfish keysize is now 128-bits */
-    return cipher->info->key_bitlen / 8;
-}
-
 const cipher_kt_t *
 stream_get_cipher_type(int method)
 {
@@ -377,8 +350,7 @@ stream_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
     dump("NONCE", ciphertext->data, nonce_len);
 #endif
 
-    brealloc(plaintext, nonce_len + ciphertext->len, capacity);
-    memcpy(plaintext->data, ciphertext->data, nonce_len + ciphertext->len);
+    bswap_data(plaintext, ciphertext);
     plaintext->len = nonce_len + ciphertext->len;
 
     return CRYPTO_OK;
@@ -391,6 +363,19 @@ stream_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
         return CRYPTO_ERROR;
 
     cipher_t *cipher = cipher_ctx->cipher;
+
+    // In-place fast path for non-Salsa20 ciphers after init.
+    // mbedtls_cipher_update supports output == input for CFB/CTR stream modes.
+    if (cipher_ctx->init && cipher->method < SALSA20) {
+        size_t out_len = plaintext->len;
+        int err = cipher_ctx_update(cipher_ctx,
+                                    (uint8_t *)plaintext->data, &out_len,
+                                    (const uint8_t *)plaintext->data, plaintext->len);
+        if (err)
+            return CRYPTO_ERROR;
+        plaintext->len = out_len;
+        return CRYPTO_OK;
+    }
 
     static buffer_t tmp = { 0, 0, 0, NULL };
 
@@ -449,8 +434,7 @@ stream_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
     dump("CIPHER", ciphertext->data + nonce_len, ciphertext->len);
 #endif
 
-    brealloc(plaintext, nonce_len + ciphertext->len, capacity);
-    memcpy(plaintext->data, ciphertext->data, nonce_len + ciphertext->len);
+    bswap_data(plaintext, ciphertext);
     plaintext->len = nonce_len + ciphertext->len;
 
     return CRYPTO_OK;
@@ -508,8 +492,7 @@ stream_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 
     ppbloom_add((void *)nonce, nonce_len);
 
-    brealloc(ciphertext, plaintext->len, capacity);
-    memcpy(ciphertext->data, plaintext->data, plaintext->len);
+    bswap_data(ciphertext, plaintext);
     ciphertext->len = plaintext->len;
 
     return CRYPTO_OK;
@@ -522,6 +505,29 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         return CRYPTO_ERROR;
 
     cipher_t *cipher = cipher_ctx->cipher;
+
+    // In-place fast path for non-Salsa20 ciphers after init.
+    // mbedtls_cipher_update supports output == input for CFB/CTR stream modes.
+    if (cipher_ctx->init && cipher->method < SALSA20) {
+        if (ciphertext->len <= 0)
+            return CRYPTO_NEED_MORE;
+        size_t out_len = ciphertext->len;
+        int err = cipher_ctx_update(cipher_ctx,
+                                    (uint8_t *)ciphertext->data, &out_len,
+                                    (const uint8_t *)ciphertext->data, ciphertext->len);
+        if (err)
+            return CRYPTO_ERROR;
+        ciphertext->len = out_len;
+        if (cipher_ctx->init == 1 && cipher->method >= RC4_MD5) {
+            if (ppbloom_check((void *)cipher_ctx->nonce, cipher->nonce_len) == 1) {
+                LOGE("crypto: stream: repeat IV detected");
+                return CRYPTO_ERROR;
+            }
+            ppbloom_add((void *)cipher_ctx->nonce, cipher->nonce_len);
+            cipher_ctx->init = 2;
+        }
+        return CRYPTO_OK;
+    }
 
     static buffer_t tmp = { 0, 0, 0, NULL };
 
@@ -618,8 +624,7 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         }
     }
 
-    brealloc(ciphertext, plaintext->len, capacity);
-    memcpy(ciphertext->data, plaintext->data, plaintext->len);
+    bswap_data(ciphertext, plaintext);
     ciphertext->len = plaintext->len;
 
     return CRYPTO_OK;
@@ -648,34 +653,22 @@ stream_key_init(int method, const char *pass, const char *key)
     cipher_t *cipher = (cipher_t *)ss_malloc(sizeof(cipher_t));
     memset(cipher, 0, sizeof(cipher_t));
 
-    if (method == SALSA20 || method == CHACHA20 || method == CHACHA20IETF) {
-        cipher_kt_t *cipher_info = (cipher_kt_t *)ss_malloc(sizeof(cipher_kt_t));
-        cipher->info             = cipher_info;
-        cipher->info->base       = NULL;
-        cipher->info->key_bitlen = supported_stream_ciphers_key_size[method] * 8;
-        cipher->info->iv_size    = supported_stream_ciphers_nonce_size[method];
-    } else {
-        cipher->info = (cipher_kt_t *)stream_get_cipher_type(method);
-    }
-
-    if (cipher->info == NULL && cipher->key_len == 0) {
+    if (method < SALSA20 && stream_get_cipher_type(method) == NULL) {
         LOGE("Cipher %s not found in crypto library", supported_stream_ciphers[method]);
         FATAL("Cannot initialize cipher");
     }
 
     if (key != NULL)
-        cipher->key_len = crypto_parse_key(key, cipher->key, cipher_key_size(cipher));
+        cipher->key_len = crypto_parse_key(key, cipher->key,
+                                           supported_stream_ciphers_key_size[method]);
     else
-        cipher->key_len = crypto_derive_key(pass, cipher->key, cipher_key_size(cipher));
+        cipher->key_len = crypto_derive_key(pass, cipher->key,
+                                            supported_stream_ciphers_key_size[method]);
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and NONCE");
     }
-    if (method == RC4_MD5) {
-        cipher->nonce_len = 16;
-    } else {
-        cipher->nonce_len = cipher_nonce_size(cipher);
-    }
+    cipher->nonce_len = supported_stream_ciphers_nonce_size[method];
     cipher->method = method;
 
     return cipher;

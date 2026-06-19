@@ -362,6 +362,10 @@ usage()
 #endif
     printf(
         "       [-U]                       Enable UDP relay and disable TCP relay.\n");
+#ifdef MODULE_REDIR
+    printf(
+        "       [-T]                       Use tproxy instead of redirect (for tcp).\n");
+#endif
 #ifdef MODULE_REMOTE
     printf(
         "       [-6]                       Resovle hostname to IPv6 address first.\n");
@@ -385,6 +389,14 @@ usage()
     printf(
         "                                  with Linux kernel > 3.7.0.\n");
 #endif
+    printf(
+        "       [--tcp-incoming-sndbuf]    Size of the incoming connection TCP send buffer.\n");
+    printf(
+        "       [--tcp-incoming-rcvbuf]    Size of the incoming connection TCP receive buffer.\n");
+    printf(
+        "       [--tcp-outgoing-sndbuf]    Size of the outgoing connection TCP send buffer.\n");
+    printf(
+        "       [--tcp-outgoing-rcvbuf]    Size of the outgoing connection TCP receive buffer.\n");
 #if defined(MODULE_REMOTE) || defined(MODULE_LOCAL)
     printf(
         "       [--acl <acl_file>]         Path to ACL (Access Control List).\n");
@@ -404,6 +416,12 @@ usage()
 #ifdef __linux__
     printf(
         "       [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.\n");
+#ifdef USE_NFTABLES
+    printf(
+        "       [--nftables-sets <sets>]   Add malicious IP into nftables sets.\n");
+    printf(
+        "                                  sets spec: [<table1>:]<set1>[,[<table2>:]<set2>...]\n");
+#endif
 #endif
 #ifndef MODULE_MANAGER
     printf(
@@ -468,7 +486,7 @@ daemonize(const char *path)
     }
 
     int dev_null = open("/dev/null", O_WRONLY);
-    if (dev_null) {
+    if (dev_null > 0) {
         /* Redirect to null device  */
         dup2(dev_null, STDOUT_FILENO);
         dup2(dev_null, STDERR_FILENO);
@@ -548,15 +566,34 @@ get_default_conf(void)
         return userconf;
 
     // If not, fall back to the system-wide config.
+    free(userconf);
     return sysconf;
 #else
     return "config.json";
 #endif
 }
 
-uint16_t load16_be(const void *s)
+uint16_t
+load16_be(const void *s)
 {
     const uint8_t *in = (const uint8_t *)s;
     return ((uint16_t)in[0] << 8)
-        | ((uint16_t)in[1]);
+           | ((uint16_t)in[1]);
+}
+
+int
+get_mptcp(int enable)
+{
+    const char oldpath[] = "/proc/sys/net/mptcp/mptcp_enabled";
+
+    if (enable) {
+        // Check if kernel has out-of-tree MPTCP support.
+        if (access(oldpath, F_OK) != -1)
+            return 1;
+
+        // Otherwise, just use IPPROTO_MPTCP.
+        return -1;
+    }
+
+    return 0;
 }

@@ -1,0 +1,62 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcre2-dev libmbedtls-dev libsodium-dev libev-dev libc-ares-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install mbedtls@3 libsodium libev c-ares pcre2
+
+      - name: Build
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
+
+      - name: Unit tests
+        run: |
+          cd build
+          ctest --output-on-failure
+
+      - name: ss-setup TUI tests
+        run: bash tests/test_ss_setup.sh
+
+      - name: Stress test
+        run: |
+          python3 tests/stress_test.py --bin build/shared/bin/ --size 10
+
+      - name: ss-redir transparent proxy test (QEMU)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y qemu-system-x86
+          bash tests/test_redir_qemu.sh build/shared/bin/
+        timeout-minutes: 8
+
+      - name: Debian package build test
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            build-essential debhelper dpkg-dev fakeroot asciidoc-base xmlto pkg-config
+          bash tests/test_deb_build.sh
+        timeout-minutes: 10

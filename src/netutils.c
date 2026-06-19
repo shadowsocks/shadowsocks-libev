@@ -99,18 +99,18 @@ parse_local_addr(struct sockaddr_storage *storage_v4,
                 inet_pton(AF_INET, host, &addr->sin_addr);
                 addr->sin_family = AF_INET;
                 LOGI("binding to outbound IPv4 addr: %s", host);
-                return 0;
+                return AF_INET;
             } else if (ip.version == 6) {
                 memset(storage_v6, 0, sizeof(struct sockaddr_storage));
                 struct sockaddr_in6 *addr = (struct sockaddr_in6 *)storage_v6;
                 inet_pton(AF_INET6, host, &addr->sin6_addr);
                 addr->sin6_family = AF_INET6;
                 LOGI("binding to outbound IPv6 addr: %s", host);
-                return 0;
+                return AF_INET6;
             }
         }
     }
-    return -1;
+    return 0;
 }
 
 int
@@ -275,7 +275,7 @@ validate_hostname(const char *hostname, const int hostname_len)
     const char *label = hostname;
     while (label < hostname + hostname_len) {
         size_t label_len = hostname_len - (label - hostname);
-        char *next_dot   = strchr(label, '.');
+        const char *next_dot = strchr(label, '.');
         if (next_dot != NULL)
             label_len = next_dot - label;
 
@@ -301,8 +301,7 @@ int
 is_ipv6only(ss_addr_t *servers, size_t server_num, int ipv6first)
 {
     int i;
-    for (i = 0; i < server_num; i++)
-    {
+    for (i = 0; i < server_num; i++) {
         struct sockaddr_storage storage;
         memset(&storage, 0, sizeof(struct sockaddr_storage));
         if (get_sockaddr(servers[i].host, servers[i].port, &storage, 1, ipv6first) == -1) {

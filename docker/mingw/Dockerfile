@@ -18,17 +18,19 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-FROM debian:testing
+FROM debian:stretch
 
 ARG REPO=shadowsocks
 ARG REV=master
 
-ADD docker/mingw/prepare.sh /
+ADD docker/mingw/apt.sh /
 
 RUN \
-  /bin/bash -c "source /prepare.sh && dk_prepare" && \
+  /bin/bash -c "source /apt.sh && dk_prepare" && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /build
+
+ADD docker/mingw/prepare.sh /
 
 RUN /bin/bash -c "source /prepare.sh && dk_download"
 

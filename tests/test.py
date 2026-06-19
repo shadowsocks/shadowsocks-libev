@@ -103,8 +103,10 @@ try:
                 if stage == 4 and fd == p4.stdout:
                     stage = 5
             if bytes != str:
-                line = str(line, 'utf8')
-            sys.stderr.write(line)
+                line = bytes(line)
+                sys.stderr.buffer.write(line)
+            else:
+                sys.stderr.write(line)
 
         if stage == 3 and p3 is not None:
             fdset.remove(p3.stdout)

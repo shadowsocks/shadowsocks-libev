@@ -97,7 +97,8 @@ extern char *stat_path;
 int
 send_traffic_stat(uint64_t tx, uint64_t rx)
 {
-    if (!stat_path) return 0;
+    if (!stat_path)
+        return 0;
     int sock;
     struct sockaddr_un addr;
 

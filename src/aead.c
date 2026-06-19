@@ -171,19 +171,24 @@ aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
     switch (cipher_ctx->cipher->method) {
     case AES256GCM: // Only AES-256-GCM is supported by libsodium.
         if (cipher_ctx->aes256gcm_ctx != NULL) { // Use it if availble
-            err =  crypto_aead_aes256gcm_encrypt_afternm(c, &long_clen, m, mlen,
-                                          ad, adlen, NULL, n,
-                                          (const aes256gcm_ctx *)cipher_ctx->aes256gcm_ctx);
+            err = crypto_aead_aes256gcm_encrypt_afternm(c, &long_clen, m, mlen,
+                                                        ad, adlen, NULL, n,
+                                                        (const aes256gcm_ctx *)cipher_ctx->aes256gcm_ctx);
             *clen = (size_t)long_clen; // it's safe to cast 64bit to 32bit length here
             break;
         }
-        // Otherwise, just use the mbedTLS one with crappy AES-NI.
+    // Otherwise, just use the mbedTLS one with crappy AES-NI.
     case AES192GCM:
     case AES128GCM:
     case SM4128GCM:
+#if MBEDTLS_VERSION_NUMBER < 0x03000000
         err = mbedtls_cipher_auth_encrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen, c, clen, c + mlen, tlen);
         *clen += tlen;
+#else
+        err = mbedtls_cipher_auth_encrypt_ext(cipher_ctx->evp, n, nlen, ad, adlen,
+                                              m, mlen, c, mlen + tlen, clen, tlen);
+#endif
         break;
     case CHACHA20POLY1305IETF:
         err = crypto_aead_chacha20poly1305_ietf_encrypt(c, &long_clen, m, mlen,
@@ -221,17 +226,22 @@ aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
     case AES256GCM: // Only AES-256-GCM is supported by libsodium.
         if (cipher_ctx->aes256gcm_ctx != NULL) { // Use it if availble
             err = crypto_aead_aes256gcm_decrypt_afternm(p, &long_plen, NULL, m, mlen,
-                                          ad, adlen, n,
-                                          (const aes256gcm_ctx *)cipher_ctx->aes256gcm_ctx);
+                                                        ad, adlen, n,
+                                                        (const aes256gcm_ctx *)cipher_ctx->aes256gcm_ctx);
             *plen = (size_t)long_plen; // it's safe to cast 64bit to 32bit length here
             break;
         }
-        // Otherwise, just use the mbedTLS one with crappy AES-NI.
+    // Otherwise, just use the mbedTLS one with crappy AES-NI.
     case AES192GCM:
     case AES128GCM:
     case SM4128GCM:
+#if MBEDTLS_VERSION_NUMBER < 0x03000000
         err = mbedtls_cipher_auth_decrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen - tlen, p, plen, m + mlen - tlen, tlen);
+#else
+        err = mbedtls_cipher_auth_decrypt_ext(cipher_ctx->evp, n, nlen, ad, adlen,
+                                              m, mlen, p, mlen - tlen, plen, tlen);
+#endif
         break;
     case CHACHA20POLY1305IETF:
         err = crypto_aead_chacha20poly1305_ietf_decrypt(p, &long_plen, NULL, m, mlen,
@@ -248,6 +258,12 @@ aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
     default:
         return CRYPTO_ERROR;
     }
+
+    // The success return value ln libsodium and mbedTLS are both 0
+    if (err != 0)
+        // Although we never return any library specific value in the caller,
+        // here we still set the error code to CRYPTO_ERROR to avoid confusion.
+        err = CRYPTO_ERROR;
 
     return err;
 }
@@ -339,7 +355,7 @@ aead_cipher_ctx_init(cipher_ctx_t *cipher_ctx, int method, int enc)
         memset(cipher_ctx->aes256gcm_ctx, 0, sizeof(aes256gcm_ctx));
     } else {
         cipher_ctx->aes256gcm_ctx = NULL;
-        cipher_ctx->evp = ss_malloc(sizeof(cipher_evp_t));
+        cipher_ctx->evp           = ss_malloc(sizeof(cipher_evp_t));
         memset(cipher_ctx->evp, 0, sizeof(cipher_evp_t));
         cipher_evp_t *evp = cipher_ctx->evp;
         mbedtls_cipher_init(evp);
@@ -352,7 +368,6 @@ aead_cipher_ctx_init(cipher_ctx_t *cipher_ctx, int method, int enc)
         LOGE("Cipher %s not found in mbed TLS library", ciphername);
         FATAL("Cannot initialize mbed TLS cipher");
     }
-
 
 #ifdef SS_DEBUG
     dump("KEY", (char *)cipher_ctx->cipher->key, cipher_ctx->cipher->key_len);
@@ -429,8 +444,7 @@ aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
 
     assert(ciphertext->len == clen);
 
-    brealloc(plaintext, salt_len + ciphertext->len, capacity);
-    memcpy(plaintext->data, ciphertext->data, salt_len + ciphertext->len);
+    bswap_data(plaintext, ciphertext);
     plaintext->len = salt_len + ciphertext->len;
 
     return CRYPTO_OK;
@@ -480,8 +494,7 @@ aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 
     ppbloom_add((void *)salt, salt_len);
 
-    brealloc(ciphertext, plaintext->len, capacity);
-    memcpy(ciphertext->data, plaintext->data, plaintext->len);
+    bswap_data(ciphertext, plaintext);
     ciphertext->len = plaintext->len;
 
     return CRYPTO_OK;
@@ -569,8 +582,7 @@ aead_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
     if (err)
         return err;
 
-    brealloc(plaintext, ciphertext->len, capacity);
-    memcpy(plaintext->data, ciphertext->data, ciphertext->len);
+    bswap_data(plaintext, ciphertext);
     plaintext->len = ciphertext->len;
 
     return 0;
@@ -616,9 +628,6 @@ aead_chunk_decrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c, uint8_t *n,
 
     sodium_increment(n, nlen);
 
-    if (*clen > chunk_len)
-        memmove(c, c + chunk_len, *clen - chunk_len);
-
     *clen = *clen - chunk_len;
 
     return CRYPTO_OK;
@@ -627,9 +636,7 @@ aead_chunk_decrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c, uint8_t *n,
 int
 aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 {
-    int err             = CRYPTO_OK;
-    static buffer_t tmp = { 0, 0, 0, NULL };
-
+    int err          = CRYPTO_OK;
     cipher_t *cipher = cipher_ctx->cipher;
 
     size_t salt_len = cipher->key_len;
@@ -640,55 +647,74 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         balloc(cipher_ctx->chunk, capacity);
     }
 
-    brealloc(cipher_ctx->chunk,
-             cipher_ctx->chunk->len + ciphertext->len, capacity);
-    memcpy(cipher_ctx->chunk->data + cipher_ctx->chunk->len,
-           ciphertext->data, ciphertext->len);
-    cipher_ctx->chunk->len += ciphertext->len;
+    buffer_t *chunk = cipher_ctx->chunk;
 
-    brealloc(&tmp, cipher_ctx->chunk->len, capacity);
-    buffer_t *plaintext = &tmp;
+    if (chunk->len == 0) {
+        bswap_data(chunk, ciphertext);
+        chunk->len = ciphertext->len;
+        chunk->idx = 0;
+        ciphertext->len = 0;
+    } else {
+        if (chunk->idx > 0) {
+            memmove(chunk->data, chunk->data + chunk->idx, chunk->len);
+            chunk->idx = 0;
+        }
+        brealloc(chunk, chunk->len + ciphertext->len, capacity);
+        memcpy(chunk->data + chunk->len,
+               ciphertext->data, ciphertext->len);
+        chunk->len += ciphertext->len;
+    }
+
+    // Write plaintext directly into the (now-free) ciphertext buffer.
+    brealloc(ciphertext, chunk->len, capacity);
 
     if (!cipher_ctx->init) {
-        if (cipher_ctx->chunk->len <= salt_len)
+        if (chunk->len <= salt_len)
             return CRYPTO_NEED_MORE;
 
-        memcpy(cipher_ctx->salt, cipher_ctx->chunk->data, salt_len);
-
-        aead_cipher_ctx_set_key(cipher_ctx, 0);
+        memcpy(cipher_ctx->salt, chunk->data + chunk->idx, salt_len);
 
         if (ppbloom_check((void *)cipher_ctx->salt, salt_len) == 1) {
             LOGE("crypto: AEAD: repeat salt detected");
             return CRYPTO_ERROR;
         }
 
-        memmove(cipher_ctx->chunk->data, cipher_ctx->chunk->data + salt_len,
-                cipher_ctx->chunk->len - salt_len);
-        cipher_ctx->chunk->len -= salt_len;
+        aead_cipher_ctx_set_key(cipher_ctx, 0);
+
+        chunk->idx += salt_len;
+        chunk->len -= salt_len;
 
         cipher_ctx->init = 1;
     }
 
     size_t plen = 0;
-    while (cipher_ctx->chunk->len > 0) {
-        size_t chunk_clen = cipher_ctx->chunk->len;
+    size_t cidx = 0;
+    while (chunk->len > 0) {
+        size_t chunk_clen = chunk->len;
         size_t chunk_plen = 0;
         err = aead_chunk_decrypt(cipher_ctx,
-                                 (uint8_t *)plaintext->data + plen,
-                                 (uint8_t *)cipher_ctx->chunk->data,
+                                 (uint8_t *)ciphertext->data + plen,
+                                 (uint8_t *)chunk->data + chunk->idx + cidx,
                                  cipher_ctx->nonce, &chunk_plen, &chunk_clen);
         if (err == CRYPTO_ERROR) {
             return err;
         } else if (err == CRYPTO_NEED_MORE) {
             if (plen == 0)
                 return err;
-            else
+            else {
+                chunk->idx += cidx;
                 break;
+            }
         }
-        cipher_ctx->chunk->len = chunk_clen;
-        plen                  += chunk_plen;
+        chunk->len = chunk_clen;
+        cidx += cipher_ctx->cipher->tag_len * 2 + CHUNK_SIZE_LEN + chunk_plen;
+        plen += chunk_plen;
     }
-    plaintext->len = plen;
+
+    if (chunk->len == 0)
+        chunk->idx = 0;
+
+    ciphertext->len = plen;
 
     // Add the salt to bloom filter
     if (cipher_ctx->init == 1) {
@@ -699,10 +725,6 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         ppbloom_add((void *)cipher_ctx->salt, salt_len);
         cipher_ctx->init = 2;
     }
-
-    brealloc(ciphertext, plaintext->len, capacity);
-    memcpy(ciphertext->data, plaintext->data, plaintext->len);
-    ciphertext->len = plaintext->len;
 
     return CRYPTO_OK;
 }
@@ -718,17 +740,7 @@ aead_key_init(int method, const char *pass, const char *key)
     cipher_t *cipher = (cipher_t *)ss_malloc(sizeof(cipher_t));
     memset(cipher, 0, sizeof(cipher_t));
 
-    if (method >= CHACHA20POLY1305IETF) {
-        cipher_kt_t *cipher_info = (cipher_kt_t *)ss_malloc(sizeof(cipher_kt_t));
-        cipher->info             = cipher_info;
-        cipher->info->base       = NULL;
-        cipher->info->key_bitlen = supported_aead_ciphers_key_size[method] * 8;
-        cipher->info->iv_size    = supported_aead_ciphers_nonce_size[method];
-    } else {
-        cipher->info = (cipher_kt_t *)aead_get_cipher_type(method);
-    }
-
-    if (cipher->info == NULL && cipher->key_len == 0) {
+    if (method < CHACHA20POLY1305IETF && aead_get_cipher_type(method) == NULL) {
         LOGE("Cipher %s not found in crypto library", supported_aead_ciphers[method]);
         FATAL("Cannot initialize cipher");
     }

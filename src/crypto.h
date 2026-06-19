@@ -80,7 +80,7 @@ typedef mbedtls_md_info_t digest_type_t;
 #endif
 
 #ifndef BF_ERROR_RATE_FOR_SERVER
-#define BF_ERROR_RATE_FOR_SERVER 1e-6
+#define BF_ERROR_RATE_FOR_SERVER 1e-10
 #endif
 
 #ifndef BF_ERROR_RATE_FOR_CLIENT
@@ -97,7 +97,6 @@ typedef struct buffer {
 typedef struct {
     int method;
     int skey;
-    cipher_kt_t *info;
     size_t nonce_len;
     size_t key_len;
     size_t tag_len;
@@ -132,6 +131,18 @@ int balloc(buffer_t *, size_t);
 int brealloc(buffer_t *, size_t, size_t);
 int bprepend(buffer_t *, buffer_t *, size_t);
 void bfree(buffer_t *);
+
+static inline void
+bswap_data(buffer_t *a, buffer_t *b)
+{
+    char *tmp_data      = a->data;
+    size_t tmp_capacity = a->capacity;
+    a->data             = b->data;
+    a->capacity         = b->capacity;
+    b->data             = tmp_data;
+    b->capacity         = tmp_capacity;
+}
+
 int rand_bytes(void *, int);
 
 crypto_t *crypto_init(const char *, const char *, const char *);

@@ -37,7 +37,6 @@
 
 #include "crypto.h"
 #include "jconf.h"
-#include "protocol.h"
 
 #include "common.h"
 

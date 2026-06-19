@@ -97,3 +97,7 @@ doc/*.html
 
 # Visual Studio Code
 .vscode/*
+.devcontainer/*
+
+# CMake objection
+obj-*

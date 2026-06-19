@@ -107,8 +107,7 @@ parse_addr(const char *str_in, ss_addr_t *addr)
         } else {
             addr->host = ss_strndup(str, ret);
         }
-        if (ret < len - 1)
-        {
+        if (ret < len - 1) {
             addr->port = strdup(str + ret + 1);
         } else {
             addr->port = NULL;
@@ -219,8 +218,10 @@ read_jconf(const char *file)
                         conf.remote_num = j + 1;
                     }
                 } else if (value->type == json_string) {
-                    parse_addr(to_string(value), conf.remote_addr);
-                    conf.remote_num          = 1;
+                    char* tmp_str = to_string(value);
+                    parse_addr(tmp_str, conf.remote_addr);
+                    ss_free(tmp_str);
+                    conf.remote_num = 1;
                 }
             } else if (strcmp(name, "port_password") == 0) {
                 if (value->type == json_object) {
@@ -273,6 +274,22 @@ read_jconf(const char *file)
                 check_json_value_type(value, json_boolean,
                                       "invalid config file: option 'reuse_port' must be a boolean");
                 conf.reuse_port = value->u.boolean;
+            } else if (strcmp(name, "tcp_incoming_sndbuf") == 0) {
+                check_json_value_type(value, json_integer,
+                                      "invalid config file: option 'tcp_incoming_sndbuf' must be an integer");
+                conf.tcp_incoming_sndbuf = value->u.integer;
+            } else if (strcmp(name, "tcp_incoming_rcvbuf") == 0) {
+                check_json_value_type(value, json_integer,
+                                      "invalid config file: option 'tcp_incoming_rcvbuf' must be an integer");
+                conf.tcp_incoming_rcvbuf = value->u.integer;
+            } else if (strcmp(name, "tcp_outgoing_sndbuf") == 0) {
+                check_json_value_type(value, json_integer,
+                                      "invalid config file: option 'tcp_outgoing_sndbuf' must be an integer");
+                conf.tcp_outgoing_sndbuf = value->u.integer;
+            } else if (strcmp(name, "tcp_outgoing_rcvbuf") == 0) {
+                check_json_value_type(value, json_integer,
+                                      "invalid config file: option 'tcp_outgoing_rcvbuf' must be an integer");
+                conf.tcp_outgoing_rcvbuf = value->u.integer;
             } else if (strcmp(name, "auth") == 0) {
                 FATAL("One time auth has been deprecated. Try AEAD ciphers instead.");
             } else if (strcmp(name, "nofile") == 0) {
@@ -323,7 +340,7 @@ read_jconf(const char *file)
             } else if (strcmp(name, "mptcp") == 0) {
                 check_json_value_type(value, json_boolean,
                                       "invalid config file: option 'mptcp' must be a boolean");
-                conf.mptcp = value->u.boolean;
+                conf.mptcp = get_mptcp(value->u.boolean);
             } else if (strcmp(name, "ipv6_first") == 0) {
                 check_json_value_type(value, json_boolean,
                                       "invalid config file: option 'ipv6_first' must be a boolean");
@@ -339,10 +356,17 @@ read_jconf(const char *file)
                     value, json_boolean,
                     "invalid config file: option 'no_delay' must be a boolean");
                 conf.no_delay = value->u.boolean;
+            } else if (strcmp(name, "tcp_tproxy") == 0) {
+                check_json_value_type(
+                    value, json_boolean,
+                    "invalid config file: option 'tcp_tproxy' must be a boolean");
+                conf.tcp_tproxy = value->u.boolean;
             } else if (strcmp(name, "workdir") == 0) {
                 conf.workdir = to_string(value);
             } else if (strcmp(name, "acl") == 0) {
                 conf.acl = to_string(value);
+            } else if (strcmp(name, "manager_address") == 0) {
+                conf.manager_address = to_string(value);
             }
         }
     } else {

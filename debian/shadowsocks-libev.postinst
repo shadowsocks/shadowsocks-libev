@@ -20,19 +20,20 @@ pathfind() {
 
 case "$1" in
 	configure|reconfigure)
-		pathfind setcap && setcap \
-			cap_net_bind_service+ep /usr/bin/ss-local \
-			cap_net_bind_service,cap_net_admin+ep /usr/bin/ss-redir \
-			cap_net_bind_service+ep /usr/bin/ss-server \
-			cap_net_bind_service+ep /usr/bin/ss-tunnel
+		if pathfind setcap; then
+			if ! setcap \
+				cap_net_bind_service+ep /usr/bin/ss-local \
+				cap_net_bind_service,cap_net_admin+ep /usr/bin/ss-redir \
+				cap_net_bind_service+ep /usr/bin/ss-server \
+				cap_net_bind_service+ep /usr/bin/ss-tunnel; then
+				echo "Failed to set capabilities; ss-* will only be runnable by root."
+			fi
+		else
+			echo "setcap not installed; ss-* will only be runnable by root."
+		fi
 		if [ ! -f /etc/shadowsocks-libev/config.json ]; then
 			set +e
-			pathfind apg
-			if [ $? -eq 0 ]; then
-				passwd=$(apg -n 1 -M ncl)
-			else
-				passwd=$(pwgen 12 1)
-			fi
+			passwd=$(perl -e 'print map{("a".."z","A".."Z",0..9)[int(rand(62))]}(1..12)')
 			set -e
 			mkdir -p /etc/shadowsocks-libev
 			sed "s/barfoo!/$passwd/" /usr/share/shadowsocks-libev/config.json \

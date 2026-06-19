@@ -14,6 +14,9 @@
 %global use_systemd 0
 %endif
 
+# https://fedoraproject.org/wiki/Changes/RemoveLaFiles
+%global __brp_remove_la_files %nil
+
 Name:		    @NAME@
 Version:	    @VERSION@
 Release:	    @RELEASE@%{?dist}

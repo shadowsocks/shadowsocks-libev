@@ -22,10 +22,10 @@ if (EXISTS ${XMLTO_CATALOG_DIR_MACOS})
     message(STATUS "Detect xmlto catalog dir ${XMLTO_CATALOG_DIR_MACOS}")
 endif ()
 
-set(CMAKE_MANPAGE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/man)
-set(CMAKE_HTML_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/html)
+set(CMAKE_MANPAGE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/man)
+set(CMAKE_HTML_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/html)
 
-set(DOC_DIR ${CMAKE_SOURCE_DIR}/doc)
+set(DOC_DIR ${PROJECT_SOURCE_DIR}/doc)
 set(XMLTO_OPTS -m ${DOC_DIR}/manpage-normal.xsl -m ${DOC_DIR}/manpage-bold-literal.xsl man)
 set(ASCIIDOC_XML_OPTS -b docbook -d manpage -f ${DOC_DIR}/asciidoc.conf -aversion=${PROJECT_VERSION})
 set(ASCIIDOC_HTML_OPTS -b html4 -d article -f ${DOC_DIR}/asciidoc.conf -aversion=${PROJECT_VERSION})
@@ -50,7 +50,7 @@ foreach (manfile IN LISTS MAN_NAMES)
             # After we built the manpage, the xmlfile is nolongger needed
             COMMAND ${CMAKE_COMMAND} -E remove ${xmlfile}
             DEPENDS ${docfile}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/man
+            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/man
             COMMENT "Building manpage ${manfile}"
             VERBATIM)
     list(APPEND MAN_FILES ${manfile})
@@ -58,7 +58,7 @@ foreach (manfile IN LISTS MAN_NAMES)
     add_custom_command(OUTPUT ${htmlfile}
             COMMAND ${ASCIIDOC_EXECUTABLE} ${ASCIIDOC_HTML_OPTS} -o ${htmlfile} ${docfile}
             DEPENDS ${docfile}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/html
+            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/html
             COMMENT "Building htmlfile ${htmlfile}"
             VERBATIM)
     list(APPEND HTML_FILES ${htmlfile})
@@ -71,11 +71,11 @@ add_custom_target(doc-html ALL DEPENDS ${HTML_FILES})
 if (NOT WITH_DOC_MAN)
     set_target_properties(doc-man PROPERTIES EXCLUDE_FROM_ALL TRUE)
 else ()
-    install(DIRECTORY ${CMAKE_BINARY_DIR}/man/
+    install(DIRECTORY ${PROJECT_BINARY_DIR}/man/
             DESTINATION share/man/man1
             FILES_MATCHING PATTERN "*.1"
             )
-    install(DIRECTORY ${CMAKE_BINARY_DIR}/man/
+    install(DIRECTORY ${PROJECT_BINARY_DIR}/man/
             DESTINATION share/man/man8
             FILES_MATCHING PATTERN "*.8"
             )
@@ -83,10 +83,10 @@ endif ()
 if (NOT WITH_DOC_HTML)
     set_target_properties(doc-html PROPERTIES EXCLUDE_FROM_ALL TRUE)
 else ()
-    install(DIRECTORY ${CMAKE_BINARY_DIR}/html/
+    install(DIRECTORY ${PROJECT_BINARY_DIR}/html/
             DESTINATION share/doc/${PROJECT_NAME})
 endif ()
 
 # This is required for custom command
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/man)
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/html)
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/man)
+file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/html)

@@ -5,8 +5,15 @@ set -e
 case "$1" in
 	purge)
 		rm -f /etc/shadowsocks-libev/config.json
-		test -f /etc/shadowsocks-libev/* \
-			|| rm -r /etc/shadowsocks-libev/
+		if test ! -e /etc/shadowsocks-libev ; then
+			# If the config directory does not exist, do nothing
+			:
+		else
+			if test -d /etc/shadowsocks-libev ; then
+				# If it is an empty directory, remove it
+				rmdir /etc/shadowsocks-libev || true
+			fi
+		fi
 		;;
 	remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
 		exit 0

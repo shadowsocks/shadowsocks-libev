@@ -5,18 +5,18 @@ Source: https://github.com/shadowsocks/shadowsocks-libev
 
 Files: *
 Copyright: 2013-2015, Clow Windy <clowwindy42@gmail.com>
-           2013-2017, Max Lv <max.c.lv@gmail.com>
+           2013-2018, Max Lv <max.c.lv@gmail.com>
            2014, Linus Yang <linusyang@gmail.com>
 License: GPL-3+
 
 Files: debian/*
 Copyright: 2013-2015, Max Lv <max.c.lv@gmail.com>
-           2015-2017, Boyuan Yang <073plan@gmail.com>
-           2016-2017, Roger Shimizu <rogershimizu@gmail.com>
+           2015-2018, Boyuan Yang <073plan@gmail.com>
+           2016-2019, Roger Shimizu <rosh@debian.org>
 License: GPL-3+
 
 Files: doc/*
-Copyright: 2012-2017, Max Lv <max.c.lv@gmail.com>
+Copyright: 2012-2018, Max Lv <max.c.lv@gmail.com>
 License: GFDL-1.1+
 
 Files: m4/ax_pthread.m4
@@ -38,7 +38,7 @@ Copyright: 2007 Google Inc.
 License: Apache-2.0
 
 Files: scripts/build_deb.sh
-Copyright: 2017 Roger Shimizu <rogershimizu@gmail.com>
+Copyright: 2018 Roger Shimizu <rosh@debian.org>
 License: GPL-3+
 
 Files: src/base64.c src/base64.h
@@ -49,7 +49,7 @@ Files: src/json.c src/json.h
 Copyright: 2012-2014, James McLaughlin et al.
 License: BSD-2-clause
 
-Files: src/http.c src/http.h src/protocol.h src/resolv.c src/resolv.h src/tls.c src/tls.h
+Files: src/resolv.c src/resolv.h
 Copyright: 2011-2014, Dustin Lundquist <dustin@null-ptr.net>
 License: BSD-2-clause
 

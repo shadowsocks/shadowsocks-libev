@@ -12,4 +12,4 @@ if the user starts a service called "shadowsocks-libev-local@foobar.service",
 This service instance will start the "ss-local" client and read
 /etc/shadowsocks-libev/foobar.json as its configuration file.
 
- -- Boyuan Yang <073plan@gmail.com>  Thu, 08 Sep 2016 19:01:20 +0800
+ -- Boyuan Yang <byang@debian.org>  Thu, 08 Sep 2016 19:01:20 +0800

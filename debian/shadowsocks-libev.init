@@ -58,7 +58,7 @@ do_start()
     start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $USER:$GROUP --exec $DAEMON --test > /dev/null \
         || return 1
     start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $USER:$GROUP --exec $DAEMON -- \
-        -c "$CONFFILE" -u -f $PIDFILE $DAEMON_ARGS \
+        -c "$CONFFILE" -f $PIDFILE $DAEMON_ARGS \
         || return 2
 }
 

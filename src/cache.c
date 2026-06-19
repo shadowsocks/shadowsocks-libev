@@ -243,8 +243,6 @@ cache_key_exist(struct cache *cache, char *key, size_t key_len)
         tmp->ts = ev_time();
         HASH_ADD_KEYPTR(hh, cache->entries, tmp->key, key_len, tmp);
         return 1;
-    } else {
-        return 0;
     }
 
     return 0;

@@ -43,6 +43,7 @@ build_proj() {
       --with-pcre="$dep" \
       --with-cares="$dep" \
       CFLAGS="-DCARES_STATICLIB -DPCRE_STATIC"
+
     make clean
     make -j$cpu LDFLAGS="-all-static -L${dep}/lib"
     make install

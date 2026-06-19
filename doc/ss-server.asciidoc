@@ -48,13 +48,14 @@ Set the key directly. The key should be encoded with URL-safe Base64.
 -m <encrypt_method>::
 Set the cipher.
 +
-*Shadowsocks-libev* accepts 18 different ciphers:
+*Shadowsocks-libev* accepts 19 different ciphers:
 +
 aes-128-gcm, aes-192-gcm, aes-256-gcm,
 rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb,
 aes-128-ctr, aes-192-ctr, aes-256-ctr, bf-cfb,
 camellia-128-cfb, camellia-192-cfb, camellia-256-cfb,
-chacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf.
+chacha20-ietf-poly1305, xchacha20-ietf-poly1305,
+salsa20, chacha20 and chacha20-ietf.
 +
 If built with PolarSSL or custom OpenSSL libraries, some of
 these ciphers may not work.
@@ -98,7 +99,7 @@ Enable UDP relay.
 Enable UDP relay and disable TCP relay.
 
 -6::
-Resovle hostname to IPv6 address first.
+Resolve hostname to IPv6 address first.
 
 -d <addr>::
 Setup name servers for internal DNS resolver (libc-ares).
@@ -116,6 +117,18 @@ Only available with Linux kernel > 3.9.0.
 
 --no-delay::
 Enable TCP_NODELAY.
+
+--tcp-incoming-sndbuf <size>::
+Set TCP send buffer size for incoming connections.
+
+--tcp-incoming-rcvbuf <size>::
+Set TCP receive buffer size for incoming connections.
+
+--tcp-outgoing-sndbuf <size>::
+Set TCP send buffer size for outgoing connections.
+
+--tcp-outgoing-rcvbuf <size>::
+Set TCP receive buffer size for outgoing connections.
 
 --acl <acl_config>::
 Enable ACL (Access Control List) and specify config file.

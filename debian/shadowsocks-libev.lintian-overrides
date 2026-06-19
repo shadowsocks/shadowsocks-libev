@@ -1,0 +1,5 @@
+# False positive: systemd service templates cannot fallback to sysvinit script
+package-supports-alternative-init-but-no-init.d-script lib/systemd/system/shadowsocks-libev-local@.service
+package-supports-alternative-init-but-no-init.d-script lib/systemd/system/shadowsocks-libev-redir@.service
+package-supports-alternative-init-but-no-init.d-script lib/systemd/system/shadowsocks-libev-server@.service
+package-supports-alternative-init-but-no-init.d-script lib/systemd/system/shadowsocks-libev-tunnel@.service
