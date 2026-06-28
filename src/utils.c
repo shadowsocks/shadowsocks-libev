@@ -323,6 +323,8 @@ usage()
     printf(
         "                                  camellia-256-cfb, bf-cfb,\n");
     printf(
+        "                                  sm4-128-cbc, sm4-128-ctr, sm4-128-gcm,\n");
+    printf(
         "                                  chacha20-ietf-poly1305,\n");
 #ifdef FS_HAVE_XCHACHA20IETF
     printf(
