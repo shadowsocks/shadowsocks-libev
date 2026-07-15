@@ -399,6 +399,9 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
             sprintf(port, "%d", p);
         }
     } else if (atyp == SOCKS5_ATYP_DOMAIN) {
+        if (buf->len < request_len + 1) {
+            return -1;
+        }
         uint8_t name_len = *(uint8_t *)(buf->data + request_len);
         if (buf->len < request_len + 1 + name_len + 2) {
             return -1;
@@ -1428,6 +1431,7 @@ main(int argc, char **argv)
     int pid_flags    = 0;
     int mtu          = 0;
     int mptcp        = 0;
+    int timeout_secs = 0;
     char *user       = NULL;
     char *local_port = NULL;
     char *local_addr = NULL;
@@ -1491,7 +1495,9 @@ main(int argc, char **argv)
             acl = !init_acl(optarg);
             break;
         case GETOPT_VAL_MTU:
-            mtu = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &mtu) == -1) {
+                FATAL("invalid MTU");
+            }
             LOGI("set MTU to %d", mtu);
             break;
         case GETOPT_VAL_MPTCP:
@@ -1516,16 +1522,24 @@ main(int argc, char **argv)
             reuse_port = 1;
             break;
         case GETOPT_VAL_TCP_INCOMING_SNDBUF:
-            tcp_incoming_sndbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_incoming_sndbuf) == -1) {
+                FATAL("invalid TCP incoming send buffer size");
+            }
             break;
         case GETOPT_VAL_TCP_INCOMING_RCVBUF:
-            tcp_incoming_rcvbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_incoming_rcvbuf) == -1) {
+                FATAL("invalid TCP incoming receive buffer size");
+            }
             break;
         case GETOPT_VAL_TCP_OUTGOING_SNDBUF:
-            tcp_outgoing_sndbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_outgoing_sndbuf) == -1) {
+                FATAL("invalid TCP outgoing send buffer size");
+            }
             break;
         case GETOPT_VAL_TCP_OUTGOING_RCVBUF:
-            tcp_outgoing_rcvbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_outgoing_rcvbuf) == -1) {
+                FATAL("invalid TCP outgoing receive buffer size");
+            }
             break;
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
@@ -1566,7 +1580,9 @@ main(int argc, char **argv)
             break;
 #ifdef HAVE_SETRLIMIT
         case 'n':
-            nofile = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &nofile) == -1) {
+                FATAL("invalid nofile");
+            }
             break;
 #endif
         case 'u':
@@ -1781,6 +1797,9 @@ main(int argc, char **argv)
     if (timeout == NULL) {
         timeout = "60";
     }
+    if (ss_parse_int(timeout, 1, INT_MAX, &timeout_secs) == -1) {
+        FATAL("invalid timeout");
+    }
 
 #ifdef HAVE_SETRLIMIT
     /*
@@ -1918,7 +1937,7 @@ main(int argc, char **argv)
         if (plugin != NULL)
             break;
     }
-    listen_ctx.timeout = atoi(timeout);
+    listen_ctx.timeout = timeout_secs;
     listen_ctx.iface   = iface;
     listen_ctx.mptcp   = mptcp;
 
@@ -1974,6 +1993,9 @@ main(int argc, char **argv)
         struct sockaddr *addr = (struct sockaddr *)storage;
         udp_fd = init_udprelay(local_addr, local_port, addr,
                                get_sockaddr_len(addr), mtu, crypto, listen_ctx.timeout, iface);
+        if (udp_fd == -1) {
+            FATAL("failed to initialize UDP relay");
+        }
     }
 
 #ifdef HAVE_LAUNCHD
@@ -2146,6 +2168,9 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
         struct sockaddr *addr = (struct sockaddr *)(&storage);
         udp_fd = init_udprelay(local_addr, local_port_str, addr,
                                get_sockaddr_len(addr), mtu, crypto, timeout, NULL);
+        if (udp_fd == -1) {
+            return -1;
+        }
     }
 
     // Init connections

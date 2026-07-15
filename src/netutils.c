@@ -20,7 +20,10 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
+#include <limits.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include <libcork/core.h>
 
@@ -52,6 +55,26 @@ extern int verbose;
 
 static const char valid_label_bytes[] =
     "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+
+static int
+parse_numeric_port(const char *port, in_port_t *port_out)
+{
+    char *endptr;
+    unsigned long value;
+
+    if (port == NULL || *port == '\0') {
+        return -1;
+    }
+
+    errno = 0;
+    value = strtoul(port, &endptr, 10);
+    if (errno == ERANGE || *endptr != '\0' || value > UINT16_MAX) {
+        return -1;
+    }
+
+    *port_out = (in_port_t)value;
+    return 0;
+}
 
 int
 set_reuseport(int socket)
@@ -132,26 +155,34 @@ get_sockaddr(char *host, char *port,
 {
     struct cork_ip ip;
     if (cork_ip_init(&ip, host) != -1) {
+        in_port_t numeric_port = 0;
+        if (port != NULL && parse_numeric_port(port, &numeric_port) == -1) {
+            LOGE("invalid port: %s", port);
+            return -1;
+        }
         if (ip.version == 4) {
             struct sockaddr_in *addr = (struct sockaddr_in *)storage;
             addr->sin_family = AF_INET;
             inet_pton(AF_INET, host, &(addr->sin_addr));
             if (port != NULL) {
-                addr->sin_port = htons(atoi(port));
+                addr->sin_port = htons(numeric_port);
             }
         } else if (ip.version == 6) {
             struct sockaddr_in6 *addr = (struct sockaddr_in6 *)storage;
             addr->sin6_family = AF_INET6;
             inet_pton(AF_INET6, host, &(addr->sin6_addr));
             if (port != NULL) {
-                addr->sin6_port = htons(atoi(port));
+                addr->sin6_port = htons(numeric_port);
             }
         }
         return 0;
     } else {
 #ifdef __ANDROID__
         extern int vpn;
-        assert(!vpn);   // protecting DNS packets isn't supported yet
+        if (vpn) {
+            LOGE("protecting DNS packets isn't supported yet");
+            return -1;
+        }
 #endif
         struct addrinfo hints;
         struct addrinfo *result, *rp;
@@ -263,6 +294,8 @@ sockaddr_cmp_addr(struct sockaddr_storage *addr1,
 int
 validate_hostname(const char *hostname, const int hostname_len)
 {
+    const char *hostname_end;
+
     if (hostname == NULL)
         return 0;
 
@@ -272,14 +305,15 @@ validate_hostname(const char *hostname, const int hostname_len)
     if (hostname[0] == '.')
         return 0;
 
+    hostname_end = hostname + hostname_len;
     const char *label = hostname;
-    while (label < hostname + hostname_len) {
-        size_t label_len = hostname_len - (label - hostname);
-        const char *next_dot = strchr(label, '.');
+    while (label < hostname_end) {
+        size_t label_len = hostname_end - label;
+        const char *next_dot = memchr(label, '.', label_len);
         if (next_dot != NULL)
             label_len = next_dot - label;
 
-        if (label + label_len > hostname + hostname_len)
+        if (label + label_len > hostname_end)
             return 0;
 
         if (label_len > 63 || label_len < 1)
@@ -288,8 +322,12 @@ validate_hostname(const char *hostname, const int hostname_len)
         if (label[0] == '-' || label[label_len - 1] == '-')
             return 0;
 
-        if (strspn(label, valid_label_bytes) < label_len)
-            return 0;
+        for (size_t i = 0; i < label_len; i++) {
+            if (memchr(valid_label_bytes, label[i],
+                       sizeof(valid_label_bytes) - 1) == NULL) {
+                return 0;
+            }
+        }
 
         label += label_len + 1;
     }

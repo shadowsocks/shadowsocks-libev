@@ -53,25 +53,40 @@ static struct ip_set outbound_block_list_ipv4;
 static struct ip_set outbound_block_list_ipv6;
 static struct cork_dllist outbound_block_list_rules;
 
-static void
-parse_addr_cidr(const char *str, char *host, int *cidr)
+static int
+parse_addr_cidr(const char *str, char *host, size_t host_len, int *cidr)
 {
     int ret = -1;
     const char *pch;
+    size_t addr_len;
+
+    if (host_len == 0) {
+        return -1;
+    }
 
     pch = strchr(str, '/');
     while (pch != NULL) {
         ret = pch - str;
         pch = strchr(pch + 1, '/');
     }
+    addr_len = ret == -1 ? strlen(str) : (size_t)ret;
+    if (addr_len >= host_len) {
+        return -1;
+    }
+
     if (ret == -1) {
-        strcpy(host, str);
+        memcpy(host, str, addr_len);
+        host[addr_len] = '\0';
         *cidr = -1;
     } else {
-        memcpy(host, str, ret);
-        host[ret] = '\0';
-        *cidr     = atoi(str + ret + 1);
+        memcpy(host, str, addr_len);
+        host[addr_len] = '\0';
+        if (ss_parse_int(str + ret + 1, 0, 128, cidr) == -1) {
+            *cidr = -2;
+        }
     }
+
+    return 0;
 }
 
 char *
@@ -194,18 +209,29 @@ init_acl(const char *path)
 
             char host[MAX_HOSTNAME_LEN];
             int cidr;
-            parse_addr_cidr(line, host, &cidr);
+            if (parse_addr_cidr(line, host, sizeof(host), &cidr) == -1) {
+                LOGE("invalid ACL entry: %s", line);
+                continue;
+            }
 
             struct cork_ip addr;
             int err = cork_ip_init(&addr, host);
             if (!err) {
                 if (addr.version == 4) {
+                    if (cidr > 32 || cidr == -2) {
+                        LOGE("invalid ACL IPv4 CIDR: %s", line);
+                        continue;
+                    }
                     if (cidr >= 0) {
                         ipset_ipv4_add_network(list_ipv4, &(addr.ip.v4), cidr);
                     } else {
                         ipset_ipv4_add(list_ipv4, &(addr.ip.v4));
                     }
                 } else if (addr.version == 6) {
+                    if (cidr > 128 || cidr == -2) {
+                        LOGE("invalid ACL IPv6 CIDR: %s", line);
+                        continue;
+                    }
                     if (cidr >= 0) {
                         ipset_ipv6_add_network(list_ipv6, &(addr.ip.v6), cidr);
                     } else {
@@ -214,8 +240,13 @@ init_acl(const char *path)
                 }
             } else {
                 rule_t *rule = new_rule();
-                accept_rule_arg(rule, line);
-                init_rule(rule);
+                if (rule == NULL) {
+                    continue;
+                }
+                if (accept_rule_arg(rule, line) != 1 || init_rule(rule) != 1) {
+                    free_rule(rule);
+                    continue;
+                }
                 add_rule(rules, rule);
             }
         }
@@ -242,9 +273,12 @@ free_acl(void)
     ipset_done(&black_list_ipv6);
     ipset_done(&white_list_ipv4);
     ipset_done(&white_list_ipv6);
+    ipset_done(&outbound_block_list_ipv4);
+    ipset_done(&outbound_block_list_ipv6);
 
     free_rules(&black_list_rules);
     free_rules(&white_list_rules);
+    free_rules(&outbound_block_list_rules);
 }
 
 int

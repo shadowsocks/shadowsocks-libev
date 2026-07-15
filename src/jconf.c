@@ -24,6 +24,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <inttypes.h>
+#include <limits.h>
 
 #include "netutils.h"
 #include "utils.h"
@@ -45,7 +47,9 @@ to_string(const json_value *value)
     if (value->type == json_string) {
         return ss_strndup(value->u.string.ptr, value->u.string.length);
     } else if (value->type == json_integer) {
-        return strdup(ss_itoa(value->u.integer));
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%" PRId64, value->u.integer);
+        return strdup(buf);
     } else if (value->type == json_null) {
         return NULL;
     } else {
@@ -53,6 +57,18 @@ to_string(const json_value *value)
         FATAL("Invalid config format.");
     }
     return 0;
+}
+
+static int
+to_nonnegative_int(const json_value *value, const char *option)
+{
+    check_json_value_type(value, json_integer,
+                          "invalid config file: option must be an integer");
+    if (value->u.integer < 0 || value->u.integer > INT_MAX) {
+        LOGE("invalid config file: option '%s' is out of range", option);
+        FATAL("invalid config file: integer option is out of range");
+    }
+    return (int)value->u.integer;
 }
 
 void
@@ -68,8 +84,7 @@ parse_addr(const char *str_in, ss_addr_t *addr)
     if (str_in == NULL)
         return;
 
-    int ipv6 = 0, ret = -1, n = 0, len;
-    char *pch;
+    int ret = -1, n = 0, len;
     char *str = strdup(str_in);
     len = strlen(str_in);
 
@@ -80,33 +95,36 @@ parse_addr(const char *str_in, ss_addr_t *addr)
         return;
     }
 
-    pch = strchr(str, ':');
+    if (str[0] == '[') {
+        char *end = strchr(str, ']');
+        if (end != NULL) {
+            addr->host = ss_strndup(str + 1, end - str - 1);
+            if (end[1] == ':' && end[2] != '\0') {
+                addr->port = strdup(end + 2);
+            } else {
+                addr->port = NULL;
+            }
+            free(str);
+            return;
+        }
+
+        addr->host = str;
+        addr->port = NULL;
+        return;
+    }
+
+    char *pch = strchr(str, ':');
     while (pch != NULL) {
         n++;
         ret = pch - str;
         pch = strchr(pch + 1, ':');
     }
 
-    if (n > 1) {
-        ipv6 = 1;
-        if (str[ret - 1] != ']') {
-            ret = -1;
-        }
-    }
-
-    if (ret == -1) {
-        if (ipv6) {
-            addr->host = ss_strndup(str + 1, strlen(str) - 2);
-        } else {
-            addr->host = strdup(str);
-        }
+    if (ret == -1 || n != 1) {
+        addr->host = strdup(str);
         addr->port = NULL;
     } else {
-        if (ipv6) {
-            addr->host = ss_strndup(str + 1, ret - 2);
-        } else {
-            addr->host = ss_strndup(str, ret);
-        }
+        addr->host = ss_strndup(str, ret);
         if (ret < len - 1) {
             addr->port = strdup(str + ret + 1);
         } else {
@@ -275,27 +293,17 @@ read_jconf(const char *file)
                                       "invalid config file: option 'reuse_port' must be a boolean");
                 conf.reuse_port = value->u.boolean;
             } else if (strcmp(name, "tcp_incoming_sndbuf") == 0) {
-                check_json_value_type(value, json_integer,
-                                      "invalid config file: option 'tcp_incoming_sndbuf' must be an integer");
-                conf.tcp_incoming_sndbuf = value->u.integer;
+                conf.tcp_incoming_sndbuf = to_nonnegative_int(value, name);
             } else if (strcmp(name, "tcp_incoming_rcvbuf") == 0) {
-                check_json_value_type(value, json_integer,
-                                      "invalid config file: option 'tcp_incoming_rcvbuf' must be an integer");
-                conf.tcp_incoming_rcvbuf = value->u.integer;
+                conf.tcp_incoming_rcvbuf = to_nonnegative_int(value, name);
             } else if (strcmp(name, "tcp_outgoing_sndbuf") == 0) {
-                check_json_value_type(value, json_integer,
-                                      "invalid config file: option 'tcp_outgoing_sndbuf' must be an integer");
-                conf.tcp_outgoing_sndbuf = value->u.integer;
+                conf.tcp_outgoing_sndbuf = to_nonnegative_int(value, name);
             } else if (strcmp(name, "tcp_outgoing_rcvbuf") == 0) {
-                check_json_value_type(value, json_integer,
-                                      "invalid config file: option 'tcp_outgoing_rcvbuf' must be an integer");
-                conf.tcp_outgoing_rcvbuf = value->u.integer;
+                conf.tcp_outgoing_rcvbuf = to_nonnegative_int(value, name);
             } else if (strcmp(name, "auth") == 0) {
                 FATAL("One time auth has been deprecated. Try AEAD ciphers instead.");
             } else if (strcmp(name, "nofile") == 0) {
-                check_json_value_type(value, json_integer,
-                                      "invalid config file: option 'nofile' must be an integer");
-                conf.nofile = value->u.integer;
+                conf.nofile = to_nonnegative_int(value, name);
             } else if (strcmp(name, "nameserver") == 0) {
                 conf.nameserver = to_string(value);
             } else if (strcmp(name, "dscp") == 0) {
@@ -306,12 +314,14 @@ read_jconf(const char *file)
                         }
                         json_value *v = value->u.object.values[j].value;
                         if (v->type == json_string) {
-                            int dscp   = parse_dscp(to_string(v));
+                            char *dscp_str = to_string(v);
+                            int dscp   = parse_dscp(dscp_str);
                             char *port = ss_strndup(value->u.object.values[j].name,
                                                     value->u.object.values[j].name_length);
                             conf.dscp[j].port = port;
                             conf.dscp[j].dscp = dscp;
                             conf.dscp_num     = j + 1;
+                            ss_free(dscp_str);
                         }
                     }
                 }
@@ -334,9 +344,7 @@ read_jconf(const char *file)
 
                 ss_free(mode_str);
             } else if (strcmp(name, "mtu") == 0) {
-                check_json_value_type(value, json_integer,
-                                      "invalid config file: option 'mtu' must be an integer");
-                conf.mtu = value->u.integer;
+                conf.mtu = to_nonnegative_int(value, name);
             } else if (strcmp(name, "mptcp") == 0) {
                 check_json_value_type(value, json_boolean,
                                       "invalid config file: option 'mptcp' must be a boolean");

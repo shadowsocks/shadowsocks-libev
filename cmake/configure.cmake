@@ -102,7 +102,6 @@ check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)
 
 # Define to the sub-directory where libtool stores uninstalled libraries.
 set(LT_OBJDIR ".libs/")
-set(NDEBUG 1)
 set(PACKAGE ${PROJECT_NAME})
 set(PACKAGE_BUGREPORT max.c.lv@gmail.com)
 set(PACKAGE_NAME ${PROJECT_NAME})

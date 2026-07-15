@@ -280,6 +280,7 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
                 char tmp[MAX_HOSTNAME_LEN] = { 0 };
                 struct cork_ip ip;
                 memcpy(tmp, buf + offset + 1, name_len);
+                tmp[name_len] = '\0';
                 if (cork_ip_init(&ip, tmp) != -1) {
                     if (ip.version == 4) {
                         struct sockaddr_in *addr = (struct sockaddr_in *)storage;
@@ -288,14 +289,18 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
                         addr->sin_family = AF_INET;
                     } else if (ip.version == 6) {
                         struct sockaddr_in6 *addr = (struct sockaddr_in6 *)storage;
-                        inet_pton(AF_INET, tmp, &(addr->sin6_addr));
+                        inet_pton(AF_INET6, tmp, &(addr->sin6_addr));
                         memcpy(&addr->sin6_port, buf + offset + 1 + name_len, sizeof(uint16_t));
                         addr->sin6_family = AF_INET6;
                     }
+                } else if (!validate_hostname(tmp, name_len)) {
+                    LOGE("[udp] invalid host name");
+                    return 0;
                 }
             }
             if (host != NULL) {
                 memcpy(host, buf + offset + 1, name_len);
+                host[name_len] = '\0';
             }
             offset += 1 + name_len;
         }
@@ -1060,6 +1065,10 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef __ANDROID__
     tx += buf->len;
 #endif
+    if (buf->len < 3) {
+        LOGE("[udp] invalid SOCKS5 UDP header");
+        goto CLEAN_UP;
+    }
     uint8_t frag = *(uint8_t *)(buf->data + 2);
     offset += 3;
 #endif
@@ -1124,7 +1133,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     char addr_header[MAX_ADDR_HEADER_SIZE] = { 0 };
     char *host                             = server_ctx->tunnel_addr.host;
     char *port                             = server_ctx->tunnel_addr.port;
-    uint16_t port_num                      = (uint16_t)atoi(port);
+    uint16_t port_num                      = 0;
+    if (ss_parse_uint16_port(port, &port_num) == -1) {
+        LOGE("[udp] invalid tunnel port");
+        goto CLEAN_UP;
+    }
     uint16_t port_net_num                  = htons(port_num);
     int addr_header_len                    = 0;
 
@@ -1161,6 +1174,10 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         // send as domain
         int host_len = strlen(host);
 
+        if (host_len > UINT8_MAX) {
+            LOGE("[udp] tunnel host name is too long");
+            goto CLEAN_UP;
+        }
         addr_header[addr_header_len++] = 3;
         addr_header[addr_header_len++] = host_len;
         memcpy(addr_header + addr_header_len, host, host_len);
@@ -1428,7 +1445,13 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             query_ctx->remote_ctx = remote_ctx;
         }
 
-        resolv_start(host, htons(atoi(port)), resolv_cb, resolv_free_cb, query_ctx);
+        int port_num = 0;
+        if (ss_parse_int(port, 0, UINT16_MAX, &port_num) == -1) {
+            LOGE("[udp] invalid target port");
+            resolv_free_cb(query_ctx);
+            goto CLEAN_UP;
+        }
+        resolv_start(host, htons((uint16_t)port_num), resolv_cb, resolv_free_cb, query_ctx);
     }
 #endif
 
@@ -1465,6 +1488,10 @@ init_udprelay(const char *server_host, const char *server_port,
 
     // Initialize MTU
     if (mtu > 0) {
+        if (mtu <= PACKET_HEADER_SIZE) {
+            LOGE("MTU must be greater than %d", PACKET_HEADER_SIZE);
+            return -1;
+        }
         packet_size = mtu - PACKET_HEADER_SIZE;
         buf_size    = packet_size * 2;
     }

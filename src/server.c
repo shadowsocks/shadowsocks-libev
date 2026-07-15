@@ -208,6 +208,12 @@ stat_update_cb(EV_P_ ev_timer *watcher, int revents)
 
         memset(&svaddr, 0, sizeof(struct sockaddr_un));
         svaddr.sun_family = AF_UNIX;
+        if (strlen(manager_addr) >= sizeof(svaddr.sun_path)) {
+            LOGE("manager unix socket path is too long");
+            close(sfd);
+            unlink(claddr.sun_path);
+            return;
+        }
         strncpy(svaddr.sun_path, manager_addr, sizeof(svaddr.sun_path) - 1);
 
         if (sendto(sfd, resp, strlen(resp) + 1, 0, (struct sockaddr *)&svaddr,
@@ -1031,8 +1037,13 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
         int offset     = 0;
         int need_query = 0;
+        if (server->buf->len < 1) {
+            report_addr(server->fd, "missing address type");
+            stop_server(EV_A_ server);
+            return;
+        }
         char atyp      = server->buf->data[offset++];
-        char host[255] = { 0 };
+        char host[256] = { 0 };
         uint16_t port  = 0;
         struct addrinfo info;
         struct sockaddr_storage storage;
@@ -1063,9 +1074,15 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             info.ai_addr     = (struct sockaddr *)addr;
         } else if ((atyp & ADDRTYPE_MASK) == 3) {
             // Domain name
+            if (server->buf->len < offset + 1) {
+                report_addr(server->fd, "missing host name length");
+                stop_server(EV_A_ server);
+                return;
+            }
             uint8_t name_len = *(uint8_t *)(server->buf->data + offset);
             if (name_len + 4 <= server->buf->len) {
                 memcpy(host, server->buf->data + offset + 1, name_len);
+                host[name_len] = '\0';
                 offset += name_len + 1;
             } else {
                 report_addr(server->fd, "invalid host name length");
@@ -1791,6 +1808,7 @@ main(int argc, char **argv)
     int pid_flags   = 0;
     int mptcp       = 0;
     int mtu         = 0;
+    int timeout_secs = 0;
     char *user      = NULL;
     char *password  = NULL;
     char *key       = NULL;
@@ -1861,7 +1879,9 @@ main(int argc, char **argv)
             manager_addr = optarg;
             break;
         case GETOPT_VAL_MTU:
-            mtu = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &mtu) == -1) {
+                FATAL("invalid MTU");
+            }
             LOGI("set MTU to %d", mtu);
             break;
         case GETOPT_VAL_PLUGIN:
@@ -1882,16 +1902,24 @@ main(int argc, char **argv)
             reuse_port = 1;
             break;
         case GETOPT_VAL_TCP_INCOMING_SNDBUF:
-            tcp_incoming_sndbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_incoming_sndbuf) == -1) {
+                FATAL("invalid TCP incoming send buffer size");
+            }
             break;
         case GETOPT_VAL_TCP_INCOMING_RCVBUF:
-            tcp_incoming_rcvbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_incoming_rcvbuf) == -1) {
+                FATAL("invalid TCP incoming receive buffer size");
+            }
             break;
         case GETOPT_VAL_TCP_OUTGOING_SNDBUF:
-            tcp_outgoing_sndbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_outgoing_sndbuf) == -1) {
+                FATAL("invalid TCP outgoing send buffer size");
+            }
             break;
         case GETOPT_VAL_TCP_OUTGOING_RCVBUF:
-            tcp_outgoing_rcvbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_outgoing_rcvbuf) == -1) {
+                FATAL("invalid TCP outgoing receive buffer size");
+            }
             break;
 #ifdef USE_NFTABLES
         case GETOPT_VAL_NFTABLES_SETS:
@@ -1937,7 +1965,9 @@ main(int argc, char **argv)
             break;
 #ifdef HAVE_SETRLIMIT
         case 'n':
-            nofile = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &nofile) == -1) {
+                FATAL("invalid nofile");
+            }
             break;
 #endif
         case 'u':
@@ -2142,6 +2172,9 @@ main(int argc, char **argv)
     if (timeout == NULL) {
         timeout = "60";
     }
+    if (ss_parse_int(timeout, 1, INT_MAX, &timeout_secs) == -1) {
+        FATAL("invalid timeout");
+    }
 
 #ifdef HAVE_SETRLIMIT
     /*
@@ -2313,7 +2346,7 @@ main(int argc, char **argv)
             listen_ctx_t *listen_ctx = &listen_ctx_list[i];
 
             // Setup proxy context
-            listen_ctx->timeout = atoi(timeout);
+            listen_ctx->timeout = timeout_secs;
             listen_ctx->fd      = listenfd;
             listen_ctx->iface   = iface;
             listen_ctx->loop    = loop;
@@ -2345,7 +2378,7 @@ main(int argc, char **argv)
             else
                 LOGI("udp server listening at %s:%s", host ? host : "0.0.0.0", port);
             // Setup UDP
-            int err = init_udprelay(host, port, mtu, crypto, atoi(timeout), iface);
+            int err = init_udprelay(host, port, mtu, crypto, timeout_secs, iface);
             if (err == -1)
                 continue;
             num_listen_ctx++;

@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <locale.h>
 #include <signal.h>
+#include <ctype.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
@@ -75,6 +76,28 @@ static void free_remote(remote_t *remote);
 static void close_and_free_remote(EV_P_ remote_t *remote);
 static void free_server(server_t *server);
 static void close_and_free_server(EV_P_ server_t *server);
+
+static int
+validate_tunnel_addr(const ss_addr_t *addr)
+{
+    struct cork_ip ip;
+    uint16_t port;
+
+    if (addr->host == NULL || addr->port == NULL) {
+        return -1;
+    }
+    if (ss_parse_uint16_port(addr->port, &port) == -1) {
+        return -1;
+    }
+    if (cork_ip_init(&ip, addr->host) == -1) {
+        size_t host_len = strlen(addr->host);
+        if (!validate_hostname(addr->host, host_len)) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
 
 #ifdef __ANDROID__
 int vpn = 0;
@@ -410,7 +433,12 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         if (r == 0) {
             remote_send_ctx->connected = 1;
 
-            assert(remote->buf->len == 0);
+            if (remote->buf->len != 0) {
+                LOGE("unexpected pending tunnel data");
+                close_and_free_remote(EV_A_ remote);
+                close_and_free_server(EV_A_ server);
+                return;
+            }
             buffer_t *abuf = remote->buf;
 
             ss_addr_t *sa = &server->destaddr;
@@ -447,13 +475,26 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 // send as domain
                 int host_len = strlen(sa->host);
 
+                if (host_len > UINT8_MAX) {
+                    LOGE("tunnel host name is too long");
+                    close_and_free_remote(EV_A_ remote);
+                    close_and_free_server(EV_A_ server);
+                    return;
+                }
                 abuf->data[abuf->len++] = 3;
                 abuf->data[abuf->len++] = host_len;
                 memcpy(abuf->data + abuf->len, sa->host, host_len);
                 abuf->len += host_len;
             }
 
-            uint16_t port = htons(atoi(sa->port));
+            uint16_t port_num;
+            if (ss_parse_uint16_port(sa->port, &port_num) == -1) {
+                LOGE("invalid tunnel port");
+                close_and_free_remote(EV_A_ remote);
+                close_and_free_server(EV_A_ server);
+                return;
+            }
+            uint16_t port = htons(port_num);
             memcpy(abuf->data + abuf->len, &port, 2);
             abuf->len += 2;
 
@@ -889,6 +930,7 @@ main(int argc, char **argv)
     int pid_flags    = 0;
     int mptcp        = 0;
     int mtu          = 0;
+    int timeout_secs = 0;
     char *user       = NULL;
     char *local_port = NULL;
     char *local_addr = NULL;
@@ -949,7 +991,9 @@ main(int argc, char **argv)
             fast_open = 1;
             break;
         case GETOPT_VAL_MTU:
-            mtu = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &mtu) == -1) {
+                FATAL("invalid MTU");
+            }
             LOGI("set MTU to %d", mtu);
             break;
         case GETOPT_VAL_MPTCP:
@@ -974,16 +1018,24 @@ main(int argc, char **argv)
             reuse_port = 1;
             break;
         case GETOPT_VAL_TCP_INCOMING_SNDBUF:
-            tcp_incoming_sndbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_incoming_sndbuf) == -1) {
+                FATAL("invalid TCP incoming send buffer size");
+            }
             break;
         case GETOPT_VAL_TCP_INCOMING_RCVBUF:
-            tcp_incoming_rcvbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_incoming_rcvbuf) == -1) {
+                FATAL("invalid TCP incoming receive buffer size");
+            }
             break;
         case GETOPT_VAL_TCP_OUTGOING_SNDBUF:
-            tcp_outgoing_sndbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_outgoing_sndbuf) == -1) {
+                FATAL("invalid TCP outgoing send buffer size");
+            }
             break;
         case GETOPT_VAL_TCP_OUTGOING_RCVBUF:
-            tcp_outgoing_rcvbuf = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &tcp_outgoing_rcvbuf) == -1) {
+                FATAL("invalid TCP outgoing receive buffer size");
+            }
             break;
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
@@ -1033,7 +1085,9 @@ main(int argc, char **argv)
             break;
 #ifdef HAVE_SETRLIMIT
         case 'n':
-            nofile = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &nofile) == -1) {
+                FATAL("invalid nofile");
+            }
             break;
 #endif
         case 'v':
@@ -1223,6 +1277,9 @@ main(int argc, char **argv)
     if (timeout == NULL) {
         timeout = "60";
     }
+    if (ss_parse_int(timeout, 1, INT_MAX, &timeout_secs) == -1) {
+        FATAL("invalid timeout");
+    }
 
 #ifdef HAVE_SETRLIMIT
     /*
@@ -1269,6 +1326,9 @@ main(int argc, char **argv)
     if (tunnel_addr.port == NULL) {
         FATAL("tunnel port is not defined");
     }
+    if (validate_tunnel_addr(&tunnel_addr) == -1) {
+        FATAL("invalid tunnel address");
+    }
 
 #ifdef __MINGW32__
     // Listen on plugin control port
@@ -1310,6 +1370,7 @@ main(int argc, char **argv)
         char *remote_str = ss_malloc(buf_size);
 
         snprintf(remote_str, buf_size, "%s", remote_addr[0].host);
+        len = strlen(remote_str);
         for (int i = 1; i < remote_num; i++) {
             snprintf(remote_str + len, buf_size - len, "|%s", remote_addr[i].host);
             len = strlen(remote_str);
@@ -1371,7 +1432,7 @@ main(int argc, char **argv)
         if (plugin != NULL)
             break;
     }
-    listen_ctx.timeout = atoi(timeout);
+    listen_ctx.timeout = timeout_secs;
     listen_ctx.iface   = iface;
     listen_ctx.mptcp   = mptcp;
 
@@ -1408,8 +1469,10 @@ main(int argc, char **argv)
             FATAL("failed to resolve the provided hostname");
         }
         struct sockaddr *addr = (struct sockaddr *)storage;
-        init_udprelay(local_addr, local_port, addr, get_sockaddr_len(addr),
-                      tunnel_addr, mtu, crypto, listen_ctx.timeout, iface);
+        if (init_udprelay(local_addr, local_port, addr, get_sockaddr_len(addr),
+                          tunnel_addr, mtu, crypto, listen_ctx.timeout, iface) == -1) {
+            FATAL("failed to initialize UDP relay");
+        }
     }
 
     if (mode == UDP_ONLY) {

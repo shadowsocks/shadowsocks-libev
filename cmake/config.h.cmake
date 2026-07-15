@@ -162,9 +162,6 @@
 /* Define to the sub-directory where libtool stores uninstalled libraries. */
 #cmakedefine LT_OBJDIR "@LT_OBJDIR@"
 
-/* Define to 1 if assertions should be disabled. */
-#cmakedefine NDEBUG 1
-
 /* Name of package */
 #define PACKAGE "@PROJECT_NAME@"
 

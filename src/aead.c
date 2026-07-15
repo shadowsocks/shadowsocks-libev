@@ -470,6 +470,7 @@ aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 
     if (ppbloom_check((void *)salt, salt_len) == 1) {
         LOGE("crypto: AEAD: repeat salt detected");
+        aead_ctx_release(&cipher_ctx);
         return CRYPTO_ERROR;
     }
 

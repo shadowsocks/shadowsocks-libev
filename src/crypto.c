@@ -206,6 +206,10 @@ int
 crypto_derive_key(const char *pass, uint8_t *key, size_t key_len)
 {
     size_t datal;
+
+    if (pass == NULL)
+        return 0;
+
     datal = strlen((const char *)pass);
 
     const digest_type_t *md = mbedtls_md_info_from_string("MD5");
@@ -221,8 +225,6 @@ crypto_derive_key(const char *pass, uint8_t *key, size_t key_len)
     mds = mbedtls_md_get_size(md);
     memset(&c, 0, sizeof(mbedtls_md_context_t));
 
-    if (pass == NULL)
-        return key_len;
     if (mbedtls_md_setup(&c, md, 0))
         return 0;
 

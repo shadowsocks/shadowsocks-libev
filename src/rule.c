@@ -35,8 +35,6 @@
 #include "rule.h"
 #include "utils.h"
 
-static void free_rule(rule_t *);
-
 rule_t *
 new_rule()
 {
@@ -108,7 +106,9 @@ lookup_rule(const struct cork_dllist *rules, const char *name, size_t name_len)
         name_len = 0;
     }
 
-    cork_dllist_foreach_void(rules, curr, next) {
+    for (curr = cork_dllist_start(rules); !cork_dllist_is_end(rules, curr);
+         curr = next) {
+        next = curr->next;
         rule_t *rule = cork_container_of(curr, rule_t, entries);
         if (pcre2_match(rule->pattern_re, (PCRE2_SPTR)name,
                         name_len, 0, 0, rule->match_data, NULL) >= 0)
@@ -125,7 +125,7 @@ remove_rule(rule_t *rule)
     free_rule(rule);
 }
 
-static void
+void
 free_rule(rule_t *rule)
 {
     if (rule == NULL)

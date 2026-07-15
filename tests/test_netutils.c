@@ -102,6 +102,28 @@ test_validate_hostname(void)
     memset(long_name, 'a', 259);
     long_name[259] = '\0';
     assert(validate_hostname(long_name, 259) == 0);
+
+    /* Explicit length must be honored; callers may pass non-NUL data. */
+    char raw_name[3] = { 'a', 'b', 'c' };
+    assert(validate_hostname(raw_name, 3) == 1);
+}
+
+static void
+test_get_sockaddr_rejects_invalid_ip_literal_ports(void)
+{
+    struct sockaddr_storage storage;
+    struct sockaddr_in *addr4 = (struct sockaddr_in *)&storage;
+
+    memset(&storage, 0, sizeof(storage));
+    assert(get_sockaddr("127.0.0.1", "8388", &storage, 0, 0) == 0);
+    assert(addr4->sin_family == AF_INET);
+    assert(ntohs(addr4->sin_port) == 8388);
+
+    memset(&storage, 0, sizeof(storage));
+    assert(get_sockaddr("127.0.0.1", "70000", &storage, 0, 0) == -1);
+
+    memset(&storage, 0, sizeof(storage));
+    assert(get_sockaddr("127.0.0.1", "12x", &storage, 0, 0) == -1);
 }
 
 int
@@ -111,5 +133,6 @@ main(void)
     test_sockaddr_cmp();
     test_sockaddr_cmp_addr();
     test_validate_hostname();
+    test_get_sockaddr_rejects_invalid_ip_literal_ports();
     return 0;
 }

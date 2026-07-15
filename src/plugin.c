@@ -245,11 +245,6 @@ start_plugin(const char *plugin,
 #endif
              enum plugin_mode mode)
 {
-#ifndef __MINGW32__
-    char *new_path = NULL;
-    const char *current_path;
-    size_t new_path_len;
-#endif
     int ret;
 
     if (plugin == NULL)
@@ -259,29 +254,7 @@ start_plugin(const char *plugin,
         return 0;
 
 #ifndef __MINGW32__
-    /*
-     * Add current dir to PATH, so we can search plugin in current dir
-     */
-    env          = cork_env_clone_current();
-    current_path = cork_env_get(env, "PATH");
-    if (current_path != NULL) {
-#ifdef HAVE_GET_CURRENT_DIR_NAME
-        char *cwd = get_current_dir_name();
-        if (cwd) {
-#else
-        char cwd[PATH_MAX];
-        if (getcwd(cwd, PATH_MAX) != NULL) {
-#endif
-            new_path_len = strlen(current_path) + strlen(cwd) + 2;
-            new_path     = ss_malloc(new_path_len);
-            snprintf(new_path, new_path_len, "%s:%s", cwd, current_path);
-#ifdef HAVE_GET_CURRENT_DIR_NAME
-            free(cwd);
-#endif
-        }
-    }
-    if (new_path != NULL)
-        cork_env_add(env, "PATH", new_path);
+    env = cork_env_clone_current();
 #else
     sub_control_port = control_port;
 #endif
@@ -292,9 +265,6 @@ start_plugin(const char *plugin,
     else
         ret = start_ss_plugin(plugin, plugin_opts, remote_host, remote_port,
                               local_host, local_port, mode);
-#ifndef __MINGW32__
-    ss_free(new_path);
-#endif
     env = NULL;
     return ret;
 }

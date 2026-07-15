@@ -64,6 +64,42 @@ test_ss_strndup(void)
     assert(s != NULL);
     assert(strcmp(s, "") == 0);
     free(s);
+
+    char raw[3] = { 'a', 'b', 'c' };
+    s = ss_strndup(raw, sizeof(raw));
+    assert(s != NULL);
+    assert(strcmp(s, "abc") == 0);
+    free(s);
+}
+
+static void
+test_ss_parse_int(void)
+{
+    int value = -1;
+    uint16_t port = 0;
+
+    assert(ss_parse_int("0", 0, 10, &value) == 0);
+    assert(value == 0);
+
+    assert(ss_parse_int("10", 0, 10, &value) == 0);
+    assert(value == 10);
+
+    assert(ss_parse_int("-1", 0, 10, &value) == -1);
+    assert(ss_parse_int("11", 0, 10, &value) == -1);
+    assert(ss_parse_int("12x", 0, 100, &value) == -1);
+    assert(ss_parse_int("", 0, 100, &value) == -1);
+    assert(ss_parse_int("999999999999999999999999", 0, INT_MAX, &value) == -1);
+    assert(ss_parse_int("1", 10, 0, &value) == -1);
+    assert(ss_parse_int("1", 0, 10, NULL) == -1);
+
+    assert(ss_parse_uint16_port("1", &port) == 0);
+    assert(port == 1);
+    assert(ss_parse_uint16_port("65535", &port) == 0);
+    assert(port == 65535);
+    assert(ss_parse_uint16_port("0", &port) == -1);
+    assert(ss_parse_uint16_port("65536", &port) == -1);
+    assert(ss_parse_uint16_port("22x", &port) == -1);
+    assert(ss_parse_uint16_port("22", NULL) == -1);
 }
 
 int
@@ -72,5 +108,6 @@ main(void)
     test_ss_itoa();
     test_ss_isnumeric();
     test_ss_strndup();
+    test_ss_parse_int();
     return 0;
 }

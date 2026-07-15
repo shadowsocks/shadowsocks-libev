@@ -111,7 +111,7 @@ static int new_value (json_state * state,
                       json_type type)
 {
    json_value * value;
-   int values_size;
+   unsigned long values_size;
 
    if (!state->first_pass)
    {
@@ -128,6 +128,9 @@ static int new_value (json_state * state,
             if (value->u.array.length == 0)
                break;
 
+            if (value->u.array.length > state->ulong_max / sizeof (json_value *))
+               return 0;
+
             if (! (value->u.array.values = (json_value **) json_alloc
                (state, value->u.array.length * sizeof (json_value *), 0)) )
             {
@@ -142,10 +145,16 @@ static int new_value (json_state * state,
             if (value->u.object.length == 0)
                break;
 
+            if (value->u.object.length > state->ulong_max / sizeof (*value->u.object.values))
+               return 0;
+
             values_size = sizeof (*value->u.object.values) * value->u.object.length;
 
+            if (value->object_mem_size > state->ulong_max - values_size)
+               return 0;
+
             if (! (value->u.object.values = (json_object_entry *) json_alloc
-                  (state, values_size + (CONV_PTR value->u.object.values), 0)) )
+                  (state, values_size + value->object_mem_size, 0)) )
             {
                return 0;
             }
@@ -412,7 +421,7 @@ json_value * json_parse_ex (json_settings * settings,
                   case json_object:
 
                      if (state.first_pass)
-                        (*(json_char **) &top->u.object.values) += string_length + 1;
+                        top->object_mem_size += string_length + 1;
                      else
                      {  
                         top->u.object.values [top->u.object.length].name

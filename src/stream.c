@@ -358,19 +358,6 @@ stream_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
 
     cipher_t *cipher = cipher_ctx->cipher;
 
-    // In-place fast path for non-Salsa20 ciphers after init.
-    // mbedtls_cipher_update supports output == input for CFB/CTR stream modes.
-    if (cipher_ctx->init && cipher->method < SALSA20) {
-        size_t out_len = plaintext->len;
-        int err = cipher_ctx_update(cipher_ctx,
-                                    (uint8_t *)plaintext->data, &out_len,
-                                    (const uint8_t *)plaintext->data, plaintext->len);
-        if (err)
-            return CRYPTO_ERROR;
-        plaintext->len = out_len;
-        return CRYPTO_OK;
-    }
-
     static buffer_t tmp = { 0, 0, 0, NULL };
 
     int err          = CRYPTO_OK;
@@ -500,29 +487,6 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 
     cipher_t *cipher = cipher_ctx->cipher;
 
-    // In-place fast path for non-Salsa20 ciphers after init.
-    // mbedtls_cipher_update supports output == input for CFB/CTR stream modes.
-    if (cipher_ctx->init && cipher->method < SALSA20) {
-        if (ciphertext->len <= 0)
-            return CRYPTO_NEED_MORE;
-        size_t out_len = ciphertext->len;
-        int err = cipher_ctx_update(cipher_ctx,
-                                    (uint8_t *)ciphertext->data, &out_len,
-                                    (const uint8_t *)ciphertext->data, ciphertext->len);
-        if (err)
-            return CRYPTO_ERROR;
-        ciphertext->len = out_len;
-        if (cipher_ctx->init == 1 && cipher->method >= RC4_MD5) {
-            if (ppbloom_check((void *)cipher_ctx->nonce, cipher->nonce_len) == 1) {
-                LOGE("crypto: stream: repeat IV detected");
-                return CRYPTO_ERROR;
-            }
-            ppbloom_add((void *)cipher_ctx->nonce, cipher->nonce_len);
-            cipher_ctx->init = 2;
-        }
-        return CRYPTO_OK;
-    }
-
     static buffer_t tmp = { 0, 0, 0, NULL };
 
     int err = CRYPTO_OK;
@@ -561,11 +525,20 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         cipher_ctx->counter = 0;
         cipher_ctx->init    = 1;
 
+        /*
+         * Register the IV as soon as it is known to be fresh. Deferring the
+         * add until after the payload is decrypted leaves a window in which a
+         * peer that sends exactly nonce_len bytes returns CRYPTO_NEED_MORE
+         * below with the IV checked but not yet recorded, so a concurrent
+         * connection replaying the same IV would pass ppbloom_check().
+         */
         if (cipher->method >= RC4_MD5) {
             if (ppbloom_check((void *)nonce, nonce_len) == 1) {
                 LOGE("crypto: stream: repeat IV detected");
                 return CRYPTO_ERROR;
             }
+            ppbloom_add((void *)nonce, nonce_len);
+            cipher_ctx->init = 2;
         }
     }
 
@@ -605,18 +578,6 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
     dump("PLAIN", plaintext->data, plaintext->len);
     dump("CIPHER", ciphertext->data, ciphertext->len);
 #endif
-
-    // Add to bloom filter
-    if (cipher_ctx->init == 1) {
-        if (cipher->method >= RC4_MD5) {
-            if (ppbloom_check((void *)cipher_ctx->nonce, cipher->nonce_len) == 1) {
-                LOGE("crypto: stream: repeat IV detected");
-                return CRYPTO_ERROR;
-            }
-            ppbloom_add((void *)cipher_ctx->nonce, cipher->nonce_len);
-            cipher_ctx->init = 2;
-        }
-    }
 
     bswap_data(ciphertext, plaintext);
     ciphertext->len = plaintext->len;

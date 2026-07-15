@@ -25,6 +25,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -218,6 +219,8 @@ void ERROR(const char *s);
 
 char *ss_itoa(int i);
 int ss_isnumeric(const char *s);
+int ss_parse_int(const char *s, int min_value, int max_value, int *out);
+int ss_parse_uint16_port(const char *s, uint16_t *out);
 int run_as(const char *user);
 void FATAL(const char *msg);
 void usage(void);

@@ -20,7 +20,7 @@ test_balloc(void)
     memset(&buf, 0, sizeof(buf));
 
     int ret = balloc(&buf, 100);
-    assert(ret == 0);
+    assert(ret == 100);
     (void)ret;
     assert(buf.data != NULL);
     assert(buf.capacity >= 100);
@@ -43,7 +43,7 @@ test_brealloc(void)
 
     /* Grow the buffer */
     int ret = brealloc(&buf, 10, 200);
-    assert(ret == 0);
+    assert(ret == 200);
     (void)ret;
     assert(buf.capacity >= 200);
     assert(buf.len == 10);
@@ -70,7 +70,7 @@ test_bprepend(void)
     dst.len = 4;
 
     int ret = bprepend(&dst, &src, 200);
-    assert(ret == 0);
+    assert(ret == 10);
     (void)ret;
     assert(dst.len == 10);
     assert(memcmp(dst.data, "HEADERBODY", 10) == 0);

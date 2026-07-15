@@ -50,7 +50,8 @@ static const uint8_t map2[] =
 
 int base64_decode(uint8_t *out, const char *in, int out_size)
 {
-    int i, v;
+    int i;
+    unsigned int v;
     uint8_t *dst = out;
 
     v = 0;

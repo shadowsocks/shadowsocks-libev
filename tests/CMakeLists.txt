@@ -83,6 +83,17 @@ ss_add_test(test_rule
     "test_rule.c;${PROJECT_SOURCE_DIR}/src/rule.c;${PROJECT_SOURCE_DIR}/src/utils.c"
     "${TEST_RULE_LIBS}")
 
+# test_acl - needs pcre, cork, and ipset
+set(TEST_ACL_LIBS ${TEST_RULE_LIBS})
+if(WITH_EMBEDDED_SRC)
+    list(APPEND TEST_ACL_LIBS ipset)
+else()
+    list(APPEND TEST_ACL_LIBS ${LIBCORKIPSET_SHARED})
+endif()
+ss_add_test(test_acl
+    "test_acl.c;${PROJECT_SOURCE_DIR}/src/acl.c;${PROJECT_SOURCE_DIR}/src/rule.c;${PROJECT_SOURCE_DIR}/src/utils.c"
+    "${TEST_ACL_LIBS}")
+
 # test_jconf - needs cork and json
 set(TEST_JCONF_LIBS
     ${LIBSODIUM_SHARED}

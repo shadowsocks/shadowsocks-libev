@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <locale.h>
 #include <signal.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <time.h>
@@ -38,6 +39,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <dirent.h>
+#include <inttypes.h>
 
 #include <netdb.h>
 #include <errno.h>
@@ -48,6 +50,7 @@
 #include <sys/un.h>
 #include <sys/socket.h>
 #include <pwd.h>
+#include <sys/wait.h>
 #include <libcork/core.h>
 
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
@@ -65,12 +68,39 @@
 #define BUF_SIZE 65535
 #endif
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+
 int verbose          = 0;
 char *executable     = "ss-server";
 char *working_dir    = NULL;
 int working_dir_size = 0;
 
 static struct cork_hash_table *server_table;
+
+static int
+copy_port(char *dst, size_t dst_len, const char *src, size_t src_len)
+{
+    if (dst_len == 0 || src == NULL || src_len == 0 || src_len >= dst_len) {
+        return -1;
+    }
+
+    for (size_t i = 0; i < src_len; i++) {
+        if (!isdigit((unsigned char)src[i])) {
+            return -1;
+        }
+    }
+
+    memcpy(dst, src, src_len);
+    dst[src_len] = '\0';
+
+    uint16_t port = 0;
+    if (ss_parse_uint16_port(dst, &port) == -1) {
+        dst[0] = '\0';
+        return -1;
+    }
+
+    return 0;
+}
 
 static int
 setnonblocking(int fd)
@@ -97,6 +127,180 @@ destroy_server(struct server *server)
 }
 
 static void
+write_json_string(FILE *f, const char *str)
+{
+    const unsigned char *p = (const unsigned char *)str;
+
+    fputc('"', f);
+    while (*p) {
+        switch (*p) {
+        case '"':
+            fputs("\\\"", f);
+            break;
+        case '\\':
+            fputs("\\\\", f);
+            break;
+        case '\b':
+            fputs("\\b", f);
+            break;
+        case '\f':
+            fputs("\\f", f);
+            break;
+        case '\n':
+            fputs("\\n", f);
+            break;
+        case '\r':
+            fputs("\\r", f);
+            break;
+        case '\t':
+            fputs("\\t", f);
+            break;
+        default:
+            if (*p < 0x20) {
+                fprintf(f, "\\u%04x", *p);
+            } else {
+                fputc(*p, f);
+            }
+            break;
+        }
+        p++;
+    }
+    fputc('"', f);
+}
+
+static int
+append_char(char *buf, size_t buf_size, size_t *pos, char ch)
+{
+    if (*pos >= buf_size - 1) {
+        return -1;
+    }
+    buf[(*pos)++] = ch;
+    buf[*pos]     = '\0';
+    return 0;
+}
+
+static int
+append_string(char *buf, size_t buf_size, size_t *pos, const char *str)
+{
+    while (*str) {
+        if (append_char(buf, buf_size, pos, *str++) == -1) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static int
+append_json_string(char *buf, size_t buf_size, size_t *pos, const char *str)
+{
+    const unsigned char *p = (const unsigned char *)str;
+
+    if (append_char(buf, buf_size, pos, '"') == -1) {
+        return -1;
+    }
+    while (*p) {
+        char escaped[7];
+
+        switch (*p) {
+        case '"':
+            if (append_string(buf, buf_size, pos, "\\\"") == -1) {
+                return -1;
+            }
+            break;
+        case '\\':
+            if (append_string(buf, buf_size, pos, "\\\\") == -1) {
+                return -1;
+            }
+            break;
+        case '\b':
+            if (append_string(buf, buf_size, pos, "\\b") == -1) {
+                return -1;
+            }
+            break;
+        case '\f':
+            if (append_string(buf, buf_size, pos, "\\f") == -1) {
+                return -1;
+            }
+            break;
+        case '\n':
+            if (append_string(buf, buf_size, pos, "\\n") == -1) {
+                return -1;
+            }
+            break;
+        case '\r':
+            if (append_string(buf, buf_size, pos, "\\r") == -1) {
+                return -1;
+            }
+            break;
+        case '\t':
+            if (append_string(buf, buf_size, pos, "\\t") == -1) {
+                return -1;
+            }
+            break;
+        default:
+            if (*p < 0x20) {
+                snprintf(escaped, sizeof(escaped), "\\u%04x", *p);
+                if (append_string(buf, buf_size, pos, escaped) == -1) {
+                    return -1;
+                }
+            } else if (append_char(buf, buf_size, pos, *p) == -1) {
+                return -1;
+            }
+            break;
+        }
+        p++;
+    }
+    return append_char(buf, buf_size, pos, '"');
+}
+
+static int
+append_list_entry(char *buf, size_t buf_size, size_t *pos,
+                  struct server *server, const char *method)
+{
+    if (append_string(buf, buf_size, pos, "\n\t{\"server_port\":") == -1 ||
+        append_json_string(buf, buf_size, pos, server->port) == -1 ||
+        append_string(buf, buf_size, pos, ",\"password\":") == -1 ||
+        append_json_string(buf, buf_size, pos, server->password) == -1 ||
+        append_string(buf, buf_size, pos, ",\"method\":") == -1 ||
+        append_json_string(buf, buf_size, pos, method) == -1 ||
+        append_string(buf, buf_size, pos, "},") == -1) {
+        return -1;
+    }
+    return 0;
+}
+
+static int
+prepare_sigchld_for_wait(struct sigaction *old_action)
+{
+    struct sigaction action;
+
+    if (sigaction(SIGCHLD, NULL, old_action) == -1) {
+        ERROR("sigaction");
+        return -1;
+    }
+    if (old_action->sa_handler != SIG_IGN) {
+        return 0;
+    }
+
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = SIG_DFL;
+    sigemptyset(&action.sa_mask);
+    if (sigaction(SIGCHLD, &action, NULL) == -1) {
+        ERROR("sigaction");
+        return -1;
+    }
+    return 1;
+}
+
+static void
+restore_sigchld_after_wait(int restore, const struct sigaction *old_action)
+{
+    if (restore == 1 && sigaction(SIGCHLD, old_action, NULL) == -1) {
+        ERROR("sigaction");
+    }
+}
+
+static int
 build_config(char *prefix, struct manager_ctx *manager, struct server *server)
 {
     char *path    = NULL;
@@ -110,15 +314,19 @@ build_config(char *prefix, struct manager_ctx *manager, struct server *server)
             LOGE("unable to open config file");
         }
         ss_free(path);
-        return;
+        return -1;
     }
     fprintf(f, "{\n");
-    fprintf(f, "\"server_port\":%d,\n", atoi(server->port));
-    fprintf(f, "\"password\":\"%s\"", server->password);
-    if (server->method)
-        fprintf(f, ",\n\"method\":\"%s\"", server->method);
-    else if (manager->method)
-        fprintf(f, ",\n\"method\":\"%s\"", manager->method);
+    fprintf(f, "\"server_port\":%s,\n", server->port);
+    fprintf(f, "\"password\":");
+    write_json_string(f, server->password);
+    if (server->method) {
+        fprintf(f, ",\n\"method\":");
+        write_json_string(f, server->method);
+    } else if (manager->method) {
+        fprintf(f, ",\n\"method\":");
+        write_json_string(f, manager->method);
+    }
     if (server->fast_open[0])
         fprintf(f, ",\n\"fast_open\": %s", server->fast_open);
     else if (manager->fast_open)
@@ -129,105 +337,212 @@ build_config(char *prefix, struct manager_ctx *manager, struct server *server)
         fprintf(f, ",\n\"no_delay\": true");
     if (manager->reuse_port)
         fprintf(f, ",\n\"reuse_port\": true");
-    if (server->mode)
-        fprintf(f, ",\n\"mode\":\"%s\"", server->mode);
-    if (server->plugin)
-        fprintf(f, ",\n\"plugin\":\"%s\"", server->plugin);
-    if (server->plugin_opts)
-        fprintf(f, ",\n\"plugin_opts\":\"%s\"", server->plugin_opts);
+    if (server->mode) {
+        fprintf(f, ",\n\"mode\":");
+        write_json_string(f, server->mode);
+    }
+    if (server->plugin) {
+        fprintf(f, ",\n\"plugin\":");
+        write_json_string(f, server->plugin);
+    }
+    if (server->plugin_opts) {
+        fprintf(f, ",\n\"plugin_opts\":");
+        write_json_string(f, server->plugin_opts);
+    }
     fprintf(f, "\n}\n");
     fclose(f);
     ss_free(path);
+    return 0;
 }
 
-static char *
-construct_command_line(struct manager_ctx *manager, struct server *server)
+static int
+add_server_arg(char **argv, int *argc, int max_argc, char *arg)
 {
-    static char cmd[BUF_SIZE];
-    int i;
+    if (*argc >= max_argc - 1) {
+        return -1;
+    }
+
+    argv[(*argc)++] = arg;
+    argv[*argc]     = NULL;
+    return 0;
+}
+
+static int
+start_server_process(struct manager_ctx *manager, struct server *server)
+{
     int port;
+    int argc = 0;
+    int status;
+    char *argv[64 + MAX_REMOTE_NUM * 2];
+    char *pid_path  = NULL;
+    char *conf_path = NULL;
+    char nofile[32];
+    char mtu[32];
+    struct sigaction old_sigchld;
+    int restore_sigchld = 0;
 
-    port = atoi(server->port);
-
-    build_config(working_dir, manager, server);
-
-    memset(cmd, 0, BUF_SIZE);
-    snprintf(cmd, BUF_SIZE,
-             "%s --manager-address %s -f %s/.shadowsocks_%d.pid -c %s/.shadowsocks_%d.conf",
-             executable, manager->manager_address, working_dir, port, working_dir, port);
-
-    if (manager->acl != NULL) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --acl %s", manager->acl);
+    if (ss_parse_int(server->port, 1, UINT16_MAX, &port) == -1) {
+        return -1;
     }
-    if (manager->timeout != NULL) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -t %s", manager->timeout);
+
+    if (build_config(working_dir, manager, server) == -1) {
+        return -1;
     }
+
+    int pid_path_size = strlen(working_dir) + strlen(server->port) + 20;
+    int conf_path_size = strlen(working_dir) + strlen(server->port) + 20;
+    pid_path           = ss_malloc(pid_path_size);
+    conf_path          = ss_malloc(conf_path_size);
+    snprintf(pid_path, pid_path_size, "%s/.shadowsocks_%d.pid", working_dir, port);
+    snprintf(conf_path, conf_path_size, "%s/.shadowsocks_%d.conf", working_dir, port);
+
+    argv[0] = NULL;
+
+    if (add_server_arg(argv, &argc, ARRAY_SIZE(argv), executable) == -1 ||
+        add_server_arg(argv, &argc, ARRAY_SIZE(argv), "--manager-address") == -1 ||
+        add_server_arg(argv, &argc, ARRAY_SIZE(argv), manager->manager_address) == -1 ||
+        add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-f") == -1 ||
+        add_server_arg(argv, &argc, ARRAY_SIZE(argv), pid_path) == -1 ||
+        add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-c") == -1 ||
+        add_server_arg(argv, &argc, ARRAY_SIZE(argv), conf_path) == -1) {
+        goto ERROR;
+    }
+
+    if (manager->acl != NULL &&
+        (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "--acl") == -1 ||
+         add_server_arg(argv, &argc, ARRAY_SIZE(argv), manager->acl) == -1)) {
+        goto ERROR;
+    }
+    if (manager->timeout != NULL &&
+        (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-t") == -1 ||
+         add_server_arg(argv, &argc, ARRAY_SIZE(argv), manager->timeout) == -1)) {
+        goto ERROR;
+    }
+
 #ifdef HAVE_SETRLIMIT
     if (manager->nofile) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -n %d", manager->nofile);
+        snprintf(nofile, sizeof(nofile), "%d", manager->nofile);
+        if (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-n") == -1 ||
+            add_server_arg(argv, &argc, ARRAY_SIZE(argv), nofile) == -1) {
+            goto ERROR;
+        }
     }
 #endif
-    if (manager->user != NULL) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -a %s", manager->user);
+    if (manager->user != NULL &&
+        (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-a") == -1 ||
+         add_server_arg(argv, &argc, ARRAY_SIZE(argv), manager->user) == -1)) {
+        goto ERROR;
     }
     if (manager->verbose) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -v");
+        if (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-v") == -1) {
+            goto ERROR;
+        }
     }
     if (server->mode == NULL && manager->mode == UDP_ONLY) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -U");
+        if (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-U") == -1) {
+            goto ERROR;
+        }
     }
     if (server->mode == NULL && manager->mode == TCP_AND_UDP) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -u");
+        if (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-u") == -1) {
+            goto ERROR;
+        }
     }
-    if (manager->iface) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -i \"%s\"", manager->iface);
+    if (manager->iface &&
+        (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-i") == -1 ||
+         add_server_arg(argv, &argc, ARRAY_SIZE(argv), manager->iface) == -1)) {
+        goto ERROR;
     }
     if (server->fast_open[0] == 0 && manager->fast_open) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --fast-open");
+        if (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "--fast-open") == -1) {
+            goto ERROR;
+        }
     }
     if (server->no_delay[0] == 0 && manager->no_delay) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --no-delay");
+        if (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "--no-delay") == -1) {
+            goto ERROR;
+        }
     }
     if (manager->ipv6first) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -6");
+        if (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-6") == -1) {
+            goto ERROR;
+        }
     }
     if (manager->mtu) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --mtu %d", manager->mtu);
+        snprintf(mtu, sizeof(mtu), "%d", manager->mtu);
+        if (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "--mtu") == -1 ||
+            add_server_arg(argv, &argc, ARRAY_SIZE(argv), mtu) == -1) {
+            goto ERROR;
+        }
     }
-    if (server->plugin == NULL && manager->plugin) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --plugin \"%s\"", manager->plugin);
+    if (server->plugin == NULL && manager->plugin &&
+        (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "--plugin") == -1 ||
+         add_server_arg(argv, &argc, ARRAY_SIZE(argv), manager->plugin) == -1)) {
+        goto ERROR;
     }
-    if (server->plugin_opts == NULL && manager->plugin_opts) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --plugin-opts \"%s\"", manager->plugin_opts);
+    if (server->plugin_opts == NULL && manager->plugin_opts &&
+        (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "--plugin-opts") == -1 ||
+         add_server_arg(argv, &argc, ARRAY_SIZE(argv), manager->plugin_opts) == -1)) {
+        goto ERROR;
     }
-    if (manager->nameservers) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -d \"%s\"", manager->nameservers);
+    if (manager->nameservers &&
+        (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-d") == -1 ||
+         add_server_arg(argv, &argc, ARRAY_SIZE(argv), manager->nameservers) == -1)) {
+        goto ERROR;
     }
-    for (i = 0; i < manager->host_num; i++) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -s %s", manager->hosts[i]);
+    for (int i = 0; i < manager->host_num; i++) {
+        if (add_server_arg(argv, &argc, ARRAY_SIZE(argv), "-s") == -1 ||
+            add_server_arg(argv, &argc, ARRAY_SIZE(argv), manager->hosts[i]) == -1) {
+            goto ERROR;
+        }
     }
 
     if (verbose) {
-        LOGI("cmd: %s", cmd);
+        LOGI("exec: %s", executable);
     }
 
-    return cmd;
+    restore_sigchld = prepare_sigchld_for_wait(&old_sigchld);
+    if (restore_sigchld == -1) {
+        goto ERROR;
+    }
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        ERROR("fork");
+        goto ERROR;
+    }
+
+    if (pid == 0) {
+        execvp(argv[0], argv);
+        ERROR("execvp");
+        _exit(127);
+    }
+
+    while (waitpid(pid, &status, 0) == -1) {
+        if (errno != EINTR) {
+            ERROR("waitpid");
+            goto ERROR;
+        }
+    }
+
+    restore_sigchld_after_wait(restore_sigchld, &old_sigchld);
+    restore_sigchld = 0;
+
+    ss_free(pid_path);
+    ss_free(conf_path);
+
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        return 0;
+    }
+
+    LOGE("server process exited unexpectedly");
+    return -1;
+
+ERROR:
+    restore_sigchld_after_wait(restore_sigchld, &old_sigchld);
+    ss_free(pid_path);
+    ss_free(conf_path);
+    return -1;
 }
 
 static char *
@@ -287,6 +602,7 @@ get_server(char *buf, int len)
 
     struct server *server = ss_malloc(sizeof(struct server));
     memset(server, 0, sizeof(struct server));
+    int valid = 1;
     if (obj->type == json_object) {
         int i = 0;
         for (i = 0; i < obj->u.object.length; i++) {
@@ -294,13 +610,30 @@ get_server(char *buf, int len)
             json_value *value = obj->u.object.values[i].value;
             if (strcmp(name, "server_port") == 0) {
                 if (value->type == json_string) {
-                    strncpy(server->port, value->u.string.ptr, 7);
+                    if (copy_port(server->port, sizeof(server->port),
+                                  value->u.string.ptr,
+                                  value->u.string.length) == -1) {
+                        LOGE("invalid server_port");
+                        valid = 0;
+                        break;
+                    }
                 } else if (value->type == json_integer) {
-                    snprintf(server->port, 8, "%" PRIu64 "", value->u.integer);
+                    if (value->u.integer <= 0 || value->u.integer > 65535) {
+                        LOGE("invalid server_port");
+                        valid = 0;
+                        break;
+                    }
+                    snprintf(server->port, sizeof(server->port), "%" PRId64, value->u.integer);
                 }
             } else if (strcmp(name, "password") == 0) {
                 if (value->type == json_string) {
-                    strncpy(server->password, value->u.string.ptr, 127);
+                    if (value->u.string.length >= sizeof(server->password)) {
+                        LOGE("password is too long");
+                        valid = 0;
+                        break;
+                    }
+                    memcpy(server->password, value->u.string.ptr, value->u.string.length);
+                    server->password[value->u.string.length] = '\0';
                 }
             } else if (strcmp(name, "method") == 0) {
                 if (value->type == json_string) {
@@ -328,12 +661,18 @@ get_server(char *buf, int len)
                 }
             } else {
                 LOGE("invalid data: %s", data);
+                valid = 0;
                 break;
             }
         }
     }
 
     json_value_free(obj);
+    if (!valid) {
+        destroy_server(server);
+        ss_free(server);
+        return NULL;
+    }
     return server;
 }
 
@@ -343,6 +682,9 @@ parse_traffic(char *buf, int len, char *port, uint64_t *traffic)
     char *data = get_data(buf, len);
     char error_buf[512];
     json_settings settings = { 0 };
+    int found = 0;
+
+    port[0] = '\0';
 
     if (data == NULL) {
         LOGE("No data found");
@@ -361,14 +703,19 @@ parse_traffic(char *buf, int len, char *port, uint64_t *traffic)
             char *name        = obj->u.object.values[i].name;
             json_value *value = obj->u.object.values[i].value;
             if (value->type == json_integer) {
-                strncpy(port, name, 7);
-                *traffic = value->u.integer;
+                if (value->u.integer < 0 ||
+                    copy_port(port, 8, name, obj->u.object.values[i].name_length) == -1) {
+                    json_value_free(obj);
+                    return -1;
+                }
+                *traffic = (uint64_t)value->u.integer;
+                found    = 1;
             }
         }
     }
 
     json_value_free(obj);
-    return 0;
+    return found ? 0 : -1;
 }
 
 static int
@@ -433,12 +780,11 @@ create_and_bind(const char *host, const char *port, int protocol)
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
         if (s == 0) {
             /* We managed to bind successfully! */
-
             close(listen_sock);
-
             break;
         } else {
             ERROR("bind");
+            close(listen_sock);
         }
     }
 
@@ -451,46 +797,36 @@ create_and_bind(const char *host, const char *port, int protocol)
         return -1;
     }
 
-    return listen_sock;
+    return 0;
 }
 
 static int
 check_port(struct manager_ctx *manager, struct server *server)
 {
     bool both_tcp_udp = manager->mode == TCP_AND_UDP;
-    int fd_count      = manager->host_num * (both_tcp_udp ? 2 : 1);
     int bind_err      = 0;
-
-    int *sock_fds = (int *)ss_malloc(fd_count * sizeof(int));
-    memset(sock_fds, 0, fd_count * sizeof(int));
 
     /* try to bind each interface */
     for (int i = 0; i < manager->host_num; i++) {
         LOGI("try to bind interface: %s, port: %s", manager->hosts[i], server->port);
 
+        int tcp_udp_ret;
         if (manager->mode == UDP_ONLY) {
-            sock_fds[i] = create_and_bind(manager->hosts[i], server->port, IPPROTO_UDP);
+            tcp_udp_ret = create_and_bind(manager->hosts[i], server->port, IPPROTO_UDP);
         } else {
-            sock_fds[i] = create_and_bind(manager->hosts[i], server->port, IPPROTO_TCP);
+            tcp_udp_ret = create_and_bind(manager->hosts[i], server->port, IPPROTO_TCP);
         }
 
+        int udp_ret = 0;
         if (both_tcp_udp) {
-            sock_fds[i + manager->host_num] = create_and_bind(manager->hosts[i], server->port, IPPROTO_UDP);
+            udp_ret = create_and_bind(manager->hosts[i], server->port, IPPROTO_UDP);
         }
 
-        if (sock_fds[i] == -1 || (both_tcp_udp && sock_fds[i + manager->host_num] == -1)) {
+        if (tcp_udp_ret == -1 || udp_ret == -1) {
             bind_err = -1;
             break;
         }
     }
-
-    /* clean socks */
-    for (int i = 0; i < fd_count; i++)
-        if (sock_fds[i] > 0) {
-            close(sock_fds[i]);
-        }
-
-    ss_free(sock_fds);
 
     return bind_err == -1 ? -1 : 0;
 }
@@ -505,14 +841,13 @@ add_server(struct manager_ctx *manager, struct server *server)
         return -1;
     }
 
-    bool new = false;
-    cork_hash_table_put(server_table, (void *)server->port, (void *)server, &new, NULL, NULL);
-
-    char *cmd = construct_command_line(manager, server);
-    if (system(cmd) == -1) {
-        ERROR("add_server_system");
+    if (start_server_process(manager, server) == -1) {
+        ERROR("add_server_process");
         return -1;
     }
+
+    bool new = false;
+    cork_hash_table_put(server_table, (void *)server->port, (void *)server, &new, NULL, NULL);
 
     return 0;
 }
@@ -643,12 +978,14 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         if (ret == -1) {
             msg     = "port is not available";
             msg_len = 21;
+            destroy_server(server);
+            ss_free(server);
         } else {
             msg     = "ok";
             msg_len = 2;
         }
 
-        if (sendto(manager->fd, msg, msg_len, 0, (struct sockaddr *)&claddr, len) != 2) {
+        if (sendto(manager->fd, msg, msg_len, 0, (struct sockaddr *)&claddr, len) != msg_len) {
             ERROR("add_sendto");
         }
     } else if (strcmp(action, "list") == 0) {
@@ -656,15 +993,21 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         struct cork_hash_table_entry  *entry;
         char buf[BUF_SIZE];
         memset(buf, 0, BUF_SIZE);
-        sprintf(buf, "[");
+        strcpy(buf, "[");
 
         cork_hash_table_iterator_init(server_table, &iter);
         while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
             struct server *server = (struct server *)entry->value;
             char *method          = server->method ? server->method : manager->method;
+            char entry_buf[BUF_SIZE];
+            size_t entry_pos      = 0;
             size_t pos            = strlen(buf);
-            size_t entry_len      = strlen(server->port) + strlen(server->password) + strlen(method);
-            if (pos > BUF_SIZE - entry_len - 50) {
+
+            if (append_list_entry(entry_buf, sizeof(entry_buf), &entry_pos, server, method) == -1) {
+                LOGE("list entry is too large");
+                continue;
+            }
+            if (pos >= BUF_SIZE - entry_pos) {
                 if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
                     != pos) {
                     ERROR("list_sendto");
@@ -672,8 +1015,7 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
                 memset(buf, 0, BUF_SIZE);
                 pos = 0;
             }
-            sprintf(buf + pos, "\n\t{\"server_port\":\"%s\",\"password\":\"%s\",\"method\":\"%s\"},",
-                    server->port, server->password, method);
+            memcpy(buf + pos, entry_buf, entry_pos + 1);
         }
 
         size_t pos = strlen(buf);
@@ -719,33 +1061,55 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         struct cork_hash_table_iterator server_iter;
 
         char buf[BUF_SIZE];
+        size_t pos = 0;
 
         memset(buf, 0, BUF_SIZE);
-        sprintf(buf, "stat: {");
+        if (append_string(buf, sizeof(buf), &pos, "stat: {") == -1) {
+            goto ERROR_MSG;
+        }
 
         cork_hash_table_iterator_init(server_table, &server_iter);
 
         while ((entry = cork_hash_table_iterator_next(&server_iter)) != NULL) {
             struct server *server = (struct server *)entry->value;
-            size_t pos            = strlen(buf);
-            if (pos > BUF_SIZE / 2) {
-                buf[pos - 1] = '}';
+            char entry_buf[64];
+            int entry_len = snprintf(entry_buf, sizeof(entry_buf),
+                                     "\"%s\":%" PRIu64 ",",
+                                     server->port, server->traffic);
+            if (entry_len < 0 || (size_t)entry_len >= sizeof(entry_buf)) {
+                LOGE("ping entry is too large");
+                continue;
+            }
+
+            if (pos >= BUF_SIZE - (size_t)entry_len) {
+                if (pos > 7) {
+                    buf[pos - 1] = '}';
+                } else if (append_char(buf, sizeof(buf), &pos, '}') == -1) {
+                    goto ERROR_MSG;
+                }
                 if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
                     != pos) {
                     ERROR("ping_sendto");
                 }
                 memset(buf, 0, BUF_SIZE);
-            } else {
-                sprintf(buf + pos, "\"%s\":%" PRIu64 ",", server->port, server->traffic);
+                pos = 0;
+                if (append_string(buf, sizeof(buf), &pos, "stat: {") == -1) {
+                    goto ERROR_MSG;
+                }
+            }
+
+            if (append_string(buf, sizeof(buf), &pos, entry_buf) == -1) {
+                LOGE("ping response is too large");
+                continue;
             }
         }
 
-        size_t pos = strlen(buf);
         if (pos > 7) {
             buf[pos - 1] = '}';
         } else {
-            buf[pos] = '}';
-            pos++;
+            if (append_char(buf, sizeof(buf), &pos, '}') == -1) {
+                goto ERROR_MSG;
+            }
         }
 
         if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
@@ -876,6 +1240,7 @@ main(int argc, char **argv)
     int mode       = TCP_ONLY;
     int mtu        = 0;
     int ipv6first  = 0;
+    int timeout_secs = 0;
 
 #ifdef HAVE_SETRLIMIT
     static int nofile = 0;
@@ -932,7 +1297,9 @@ main(int argc, char **argv)
             executable = optarg;
             break;
         case GETOPT_VAL_MTU:
-            mtu = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &mtu) == -1) {
+                FATAL("invalid MTU");
+            }
             break;
         case GETOPT_VAL_PLUGIN:
             plugin = optarg;
@@ -993,7 +1360,9 @@ main(int argc, char **argv)
             exit(EXIT_SUCCESS);
 #ifdef HAVE_SETRLIMIT
         case 'n':
-            nofile = atoi(optarg);
+            if (ss_parse_int(optarg, 0, INT_MAX, &nofile) == -1) {
+                FATAL("invalid nofile");
+            }
             break;
 #endif
         case 'A':
@@ -1084,6 +1453,10 @@ main(int argc, char **argv)
     if (timeout == NULL) {
         timeout = "60";
     }
+    if (ss_parse_int(timeout, 1, INT_MAX, &timeout_secs) == -1) {
+        FATAL("invalid timeout");
+    }
+    (void)timeout_secs;
 
     USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
@@ -1201,7 +1574,7 @@ main(int argc, char **argv)
     if (dp != NULL) {
         while ((ep = readdir(dp)) != NULL) {
             size_t len = strlen(ep->d_name);
-            if (strcmp(ep->d_name + len - 3, "pid") == 0) {
+            if (len >= 3 && strcmp(ep->d_name + len - 3, "pid") == 0) {
                 kill_server(working_dir, ep->d_name);
                 if (verbose)
                     LOGI("kill %s", ep->d_name);
@@ -1219,8 +1592,19 @@ main(int argc, char **argv)
         for (i = 0; i < conf->port_password_num; i++) {
             struct server *server = ss_malloc(sizeof(struct server));
             memset(server, 0, sizeof(struct server));
-            strncpy(server->port, conf->port_password[i].port, 7);
-            strncpy(server->password, conf->port_password[i].password, 127);
+            if (copy_port(server->port, sizeof(server->port),
+                          conf->port_password[i].port,
+                          strlen(conf->port_password[i].port)) == -1) {
+                LOGE("invalid port_password port");
+                ss_free(server);
+                continue;
+            }
+            if (strlen(conf->port_password[i].password) >= sizeof(server->password)) {
+                LOGE("port_password password is too long");
+                ss_free(server);
+                continue;
+            }
+            strcpy(server->password, conf->port_password[i].password);
             add_server(&manager, server);
         }
     }
@@ -1231,6 +1615,11 @@ main(int argc, char **argv)
 
     if (ip_addr.host == NULL || ip_addr.port == NULL) {
         struct sockaddr_un svaddr;
+        if (strlen(manager_address) >= sizeof(svaddr.sun_path)) {
+            ss_free(working_dir);
+            FATAL("manager unix socket path is too long");
+        }
+
         sfd = socket(AF_UNIX, SOCK_DGRAM, 0);       /*  Create server socket */
         if (sfd == -1) {
             ss_free(working_dir);

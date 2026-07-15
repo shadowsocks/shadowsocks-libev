@@ -159,6 +159,8 @@ typedef struct _json_value
 
    } _reserved;
 
+   unsigned long object_mem_size;
+
    #ifdef JSON_TRACK_SOURCE
 
       /* Location of the value in the source JSON
@@ -279,5 +281,4 @@ void json_value_free_ex (json_settings * settings,
 #endif
 
 #endif
-
 
