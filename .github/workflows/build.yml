@@ -22,7 +22,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpcre2-dev libmbedtls-dev libsodium-dev libev-dev libc-ares-dev
+          sudo apt-get install -y libpcre2-dev libmbedtls-dev libsodium-dev libev-dev libc-ares-dev valgrind
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
@@ -35,7 +35,11 @@ jobs:
           make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
       - name: CTest
-        run: ctest --test-dir build --output-on-failure --no-tests=error
+        run: ctest --test-dir build -LE memcheck --output-on-failure --no-tests=error
+
+      - name: Valgrind leak smoke tests
+        if: runner.os == 'Linux'
+        run: ctest --test-dir build -L memcheck --output-on-failure --no-tests=error
 
       - name: ss-setup TUI tests
         run: bash tests/test_ss_setup.sh
