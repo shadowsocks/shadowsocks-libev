@@ -526,7 +526,6 @@ start_server_process(struct manager_ctx *manager, struct server *server)
     }
 
     restore_sigchld_after_wait(restore_sigchld, &old_sigchld);
-    restore_sigchld = 0;
 
     ss_free(pid_path);
     ss_free(conf_path);
@@ -853,10 +852,26 @@ add_server(struct manager_ctx *manager, struct server *server)
 }
 
 static void
+kill_pid_from_file(FILE *f)
+{
+    char buf[16];
+    int pid;
+
+    if (fgets(buf, sizeof(buf), f) == NULL) {
+        return;
+    }
+    buf[strcspn(buf, "\r\n")] = '\0';
+    // Reject malformed pid file content instead of signaling a garbage pid
+    if (ss_parse_int(buf, 1, INT_MAX, &pid) == 0) {
+        kill(pid, SIGTERM);
+    }
+}
+
+static void
 kill_server(char *prefix, char *pid_file)
 {
     char *path = NULL;
-    int pid, path_size = strlen(prefix) + strlen(pid_file) + 2;
+    int path_size = strlen(prefix) + strlen(pid_file) + 2;
     path = ss_malloc(path_size);
     snprintf(path, path_size, "%s/%s", prefix, pid_file);
     FILE *f = fopen(path, "r");
@@ -867,9 +882,7 @@ kill_server(char *prefix, char *pid_file)
         ss_free(path);
         return;
     }
-    if (fscanf(f, "%d", &pid) != EOF) {
-        kill(pid, SIGTERM);
-    }
+    kill_pid_from_file(f);
     fclose(f);
     remove(path);
     ss_free(path);
@@ -879,7 +892,7 @@ static void
 stop_server(char *prefix, char *port)
 {
     char *path = NULL;
-    int pid, path_size = strlen(prefix) + strlen(port) + 20;
+    int path_size = strlen(prefix) + strlen(port) + 20;
     path = ss_malloc(path_size);
     snprintf(path, path_size, "%s/.shadowsocks_%s.pid", prefix, port);
     FILE *f = fopen(path, "r");
@@ -890,9 +903,7 @@ stop_server(char *prefix, char *port)
         ss_free(path);
         return;
     }
-    if (fscanf(f, "%d", &pid) != EOF) {
-        kill(pid, SIGTERM);
-    }
+    kill_pid_from_file(f);
     fclose(f);
     ss_free(path);
 }

@@ -767,7 +767,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
     setsockopt(serverfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
 
-    int index                    = rand() % listener->remote_num;
+    int index                    = (int)randombytes_uniform((uint32_t)listener->remote_num);
     struct sockaddr *remote_addr = listener->remote_addr[index];
 
     int protocol = IPPROTO_TCP;
@@ -891,8 +891,6 @@ signal_cb(EV_P_ ev_signal *w, int revents)
 int
 main(int argc, char **argv)
 {
-    srand(time(NULL));
-
     int i, c;
     int pid_flags    = 0;
     int mptcp        = 0;

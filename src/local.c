@@ -844,6 +844,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 struct sockaddr_in peer_addr;
                 socklen_t peer_addr_len = sizeof peer_addr;
                 if (getpeername(server->fd, (struct sockaddr *)&peer_addr, &peer_addr_len) == 0) {
+                    // NOLINTNEXTLINE(clang-analyzer-core.CallAndMessage): filled by getpeername() on success
                     LOGI("connection from %s:%hu", inet_ntoa(peer_addr.sin_addr), ntohs(peer_addr.sin_port));
                 }
             }
@@ -1276,7 +1277,7 @@ create_remote(listen_ctx_t *listener,
 {
     struct sockaddr *remote_addr;
 
-    int index = rand() % listener->remote_num;
+    int index = (int)randombytes_uniform((uint32_t)listener->remote_num);
     if (addr == NULL) {
         remote_addr = listener->remote_addr[index];
     } else {
@@ -1454,7 +1455,6 @@ main(int argc, char **argv)
     char *remote_port = NULL;
 
     memset(remote_addr, 0, sizeof(ss_addr_t) * MAX_REMOTE_NUM);
-    srand(time(NULL));
 
     static struct option long_options[] = {
         { "reuse-port",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT  },
@@ -2059,8 +2059,6 @@ main(int argc, char **argv)
 int
 _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udata)
 {
-    srand(time(NULL));
-
     char *remote_host = profile.remote_host;
     char *local_addr  = profile.local_addr;
     char *method      = profile.method;
@@ -2130,6 +2128,8 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
 
     struct sockaddr *remote_addr_tmp[MAX_REMOTE_NUM];
     listen_ctx_t listen_ctx;
+    // fd stays -1 in UDP_ONLY mode but is still passed to the callback below
+    listen_ctx.fd             = -1;
     listen_ctx.remote_num     = 1;
     listen_ctx.remote_addr    = remote_addr_tmp;
     listen_ctx.remote_addr[0] = (struct sockaddr *)(&storage);

@@ -222,7 +222,7 @@ int ss_isnumeric(const char *s);
 int ss_parse_int(const char *s, int min_value, int max_value, int *out);
 int ss_parse_uint16_port(const char *s, uint16_t *out);
 int run_as(const char *user);
-void FATAL(const char *msg);
+void FATAL(const char *msg) __attribute__((noreturn));
 void usage(void);
 void daemonize(const char *path);
 char *ss_strndup(const char *s, size_t n);

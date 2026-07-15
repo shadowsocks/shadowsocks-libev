@@ -570,27 +570,21 @@ get_default_conf(void)
 {
 #ifndef __MINGW32__
     static char sysconf[] = "/etc/shadowsocks-libev/config.json";
-    static char *userconf = NULL;
-    static int buf_size   = 0;
+    static char userconf[PATH_MAX];
     char *conf_home;
 
     conf_home = getenv("XDG_CONFIG_HOME");
 
-    // Memory of userconf only gets allocated once, and will not be
-    // freed. It is used as static buffer.
     if (!conf_home) {
-        if (buf_size == 0) {
-            buf_size = 50 + strlen(getenv("HOME"));
-            userconf = malloc(buf_size);
+        // HOME may be unset (e.g. when started by an init system)
+        const char *home = getenv("HOME");
+        if (home == NULL) {
+            return sysconf;
         }
-        snprintf(userconf, buf_size, "%s%s", getenv("HOME"),
+        snprintf(userconf, sizeof(userconf), "%s%s", home,
                  "/.config/shadowsocks-libev/config.json");
     } else {
-        if (buf_size == 0) {
-            buf_size = 50 + strlen(conf_home);
-            userconf = malloc(buf_size);
-        }
-        snprintf(userconf, buf_size, "%s%s", conf_home,
+        snprintf(userconf, sizeof(userconf), "%s%s", conf_home,
                  "/shadowsocks-libev/config.json");
     }
 
@@ -599,7 +593,6 @@ get_default_conf(void)
         return userconf;
 
     // If not, fall back to the system-wide config.
-    free(userconf);
     return sysconf;
 #else
     return "config.json";

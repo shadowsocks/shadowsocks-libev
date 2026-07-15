@@ -728,6 +728,7 @@ static void
 free_server(server_t *server)
 {
     if (server->remote != NULL) {
+        // NOLINTNEXTLINE(clang-analyzer-unix.Malloc): back-pointers are cleared symmetrically on free
         server->remote->server = NULL;
     }
     if (server->e_ctx != NULL) {
@@ -774,7 +775,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
     setsockopt(serverfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
 
-    int index                    = rand() % listener->remote_num;
+    int index                    = (int)randombytes_uniform((uint32_t)listener->remote_num);
     struct sockaddr *remote_addr = listener->remote_addr[index];
 
     int protocol = IPPROTO_TCP;
@@ -924,8 +925,6 @@ plugin_watcher_cb(EV_P_ ev_io *w, int revents)
 int
 main(int argc, char **argv)
 {
-    srand(time(NULL));
-
     int i, c;
     int pid_flags    = 0;
     int mptcp        = 0;

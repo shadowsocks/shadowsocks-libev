@@ -367,10 +367,11 @@ get_addr_str(const struct sockaddr *sa, bool has_port)
 
     int addr_len = strlen(addr);
     int port_len = strlen(port);
-    memcpy(s, addr, addr_len);
+    // s is a zeroed static buffer large enough for addr + ':' + port
+    memcpy(s, addr, addr_len);  // NOLINT(bugprone-not-null-terminated-result)
 
     if (has_port) {
-        memcpy(s + addr_len + 1, port, port_len);
+        memcpy(s + addr_len + 1, port, port_len);  // NOLINT(bugprone-not-null-terminated-result)
         s[addr_len] = ':';
     }
 
@@ -1023,8 +1024,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         LOGE("[udp] unable to get dest addr");
         goto CLEAN_UP;
     }
-
-    src_addr_len = msg.msg_namelen;
 #else
     ssize_t r;
     r = recvfrom(server_ctx->fd, buf->data, buf_size,
@@ -1180,7 +1179,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
         addr_header[addr_header_len++] = 3;
         addr_header[addr_header_len++] = host_len;
-        memcpy(addr_header + addr_header_len, host, host_len);
+        // addr_header is a binary protocol buffer, not a C string
+        memcpy(addr_header + addr_header_len, host, host_len);  // NOLINT(bugprone-not-null-terminated-result)
         addr_header_len += host_len;
     }
     memcpy(addr_header + addr_header_len, &port_net_num, 2);

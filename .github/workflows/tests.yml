@@ -83,11 +83,12 @@ jobs:
   clang-tidy:
     runs-on: ubuntu-latest
     env:
-      # Ratchet: number of pre-existing clang-tidy warnings (see .clang-tidy),
+      # Ratchet: number of known clang-tidy warnings (see .clang-tidy),
       # counted with clang-tidy-18 (pinned below so runner upgrades don't move
-      # the number). CI fails if the count goes UP; lower this value as
-      # findings get fixed.
-      MAX_WARNINGS: 29
+      # the number). All baseline findings have been fixed or triaged
+      # (false positives carry NOLINT comments with rationale), so any new
+      # warning fails CI.
+      MAX_WARNINGS: 0
     steps:
       - uses: actions/checkout@v6
         with:

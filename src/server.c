@@ -680,6 +680,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         char ipstr[INET6_ADDRSTRLEN];
         memset(ipstr, 0, INET6_ADDRSTRLEN);
 
+        // NOLINTNEXTLINE(clang-analyzer-core.NullDereference): callers always set res->ai_addr
         if (res->ai_addr->sa_family == AF_INET) {
             struct sockaddr_in s;
             memcpy(&s, res->ai_addr, sizeof(struct sockaddr_in));

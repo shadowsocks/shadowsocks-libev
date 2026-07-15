@@ -89,6 +89,7 @@ cache_delete(struct cache *cache, int keep_data)
         HASH_CLEAR(hh, cache->entries);
     } else {
         HASH_ITER(hh, cache->entries, entry, tmp){
+            // NOLINTNEXTLINE(clang-analyzer-unix.Malloc): uthash unlinks here; entry is freed afterwards
             HASH_DEL(cache->entries, entry);
             if (entry->data != NULL) {
                 if (cache->free_cb) {
@@ -129,6 +130,7 @@ cache_clear(struct cache *cache, ev_tstamp age)
 
     HASH_ITER(hh, cache->entries, entry, tmp){
         if (now - entry->ts > age) {
+            // NOLINTNEXTLINE(clang-analyzer-unix.Malloc): uthash unlinks here; entry is freed afterwards
             HASH_DEL(cache->entries, entry);
             if (entry->data != NULL) {
                 if (cache->free_cb) {
@@ -219,6 +221,7 @@ cache_lookup(struct cache *cache, char *key, size_t key_len, void *result)
     if (tmp) {
         HASH_DELETE(hh, cache->entries, tmp);
         tmp->ts = ev_time();
+        // NOLINTNEXTLINE(clang-analyzer-core.DivideZero): uthash bucket count is never zero
         HASH_ADD_KEYPTR(hh, cache->entries, tmp->key, key_len, tmp);
         *dirty_hack = tmp->data;
     } else {
@@ -241,6 +244,7 @@ cache_key_exist(struct cache *cache, char *key, size_t key_len)
     if (tmp) {
         HASH_DELETE(hh, cache->entries, tmp);
         tmp->ts = ev_time();
+        // NOLINTNEXTLINE(clang-analyzer-core.DivideZero): uthash bucket count is never zero
         HASH_ADD_KEYPTR(hh, cache->entries, tmp->key, key_len, tmp);
         return 1;
     }
@@ -284,6 +288,7 @@ cache_insert(struct cache *cache, char *key, size_t key_len, void *data)
 
     entry->data = data;
     entry->ts   = ev_time();
+    // NOLINTNEXTLINE(clang-analyzer-core.DivideZero): uthash bucket count is never zero
     HASH_ADD_KEYPTR(hh, cache->entries, entry->key, key_len, entry);
 
     if (HASH_COUNT(cache->entries) >= cache->max_entries) {
