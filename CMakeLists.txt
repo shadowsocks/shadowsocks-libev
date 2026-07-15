@@ -10,11 +10,31 @@ project(${PROJECT_NAME} VERSION ${PROJECT_VERSION})
 
 include(GNUInstallDirs)
 
+# Compilation database for clang-tidy and other tooling
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Compiler flags matching autotools
 # Note: -Werror is applied per-target in src/CMakeLists.txt to avoid
 # breaking bundled submodules (libcork, libipset, libbloom)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -D_GNU_SOURCE")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -Wall -Wno-deprecated-declarations -fno-strict-aliasing")
+
+option(ENABLE_SANITIZERS "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+if (ENABLE_SANITIZERS)
+    set(SANITIZER_FLAGS "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SANITIZER_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SANITIZER_FLAGS}")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${SANITIZER_FLAGS}")
+    message(STATUS "Sanitizers enabled (ASan + UBSan)")
+endif ()
+
+option(ENABLE_COVERAGE "Build with coverage instrumentation (gcov)" OFF)
+if (ENABLE_COVERAGE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 --coverage")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --coverage")
+    message(STATUS "Coverage instrumentation enabled")
+endif ()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
@@ -184,6 +204,29 @@ include(CTest)
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()
+
+# Coverage report (requires ENABLE_COVERAGE=ON, lcov and genhtml)
+# Usage: make coverage (after running ctest / integration tests)
+if (ENABLE_COVERAGE)
+    find_program(LCOV_EXECUTABLE lcov)
+    find_program(GENHTML_EXECUTABLE genhtml)
+    if (LCOV_EXECUTABLE AND GENHTML_EXECUTABLE)
+        add_custom_target(coverage
+                COMMAND ${LCOV_EXECUTABLE} --capture --directory ${PROJECT_BINARY_DIR}
+                        --output-file ${PROJECT_BINARY_DIR}/coverage.info
+                        --include ${PROJECT_SOURCE_DIR}/src/*
+                        --ignore-errors mismatch,unused,empty,gcov
+                COMMAND ${LCOV_EXECUTABLE} --list ${PROJECT_BINARY_DIR}/coverage.info
+                COMMAND ${GENHTML_EXECUTABLE} ${PROJECT_BINARY_DIR}/coverage.info
+                        --output-directory ${PROJECT_BINARY_DIR}/coverage-html
+                COMMAND ${CMAKE_COMMAND} -E echo "Coverage report: ${PROJECT_BINARY_DIR}/coverage-html/index.html"
+                WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+                VERBATIM
+                )
+    else ()
+        message(WARNING "lcov/genhtml not found - 'coverage' target unavailable")
+    endif ()
+endif ()
 
 # Install ss-nat on Linux
 if(LINUX)

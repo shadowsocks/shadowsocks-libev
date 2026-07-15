@@ -55,3 +55,109 @@ jobs:
           sudo apt-get install -y qemu-system-x86
           bash tests/test_redir_qemu.sh build/shared/bin/
         timeout-minutes: 8
+
+  asan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcre2-dev libmbedtls-dev libsodium-dev libev-dev libc-ares-dev
+
+      - name: Build with ASan + UBSan
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DENABLE_SANITIZERS=ON
+          make -j"$(nproc)"
+
+      - name: CTest (ASan + UBSan)
+        run: ctest --test-dir build -LE memcheck --output-on-failure --no-tests=error
+
+      - name: Stress test (ASan + UBSan)
+        run: python3 tests/stress_test.py --bin build/shared/bin/ --size 10
+
+  clang-tidy:
+    runs-on: ubuntu-latest
+    env:
+      # Ratchet: number of pre-existing clang-tidy warnings (see .clang-tidy),
+      # counted with clang-tidy-18 (pinned below so runner upgrades don't move
+      # the number). CI fails if the count goes UP; lower this value as
+      # findings get fixed.
+      MAX_WARNINGS: 29
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy-18 clang-tools-18 libpcre2-dev libmbedtls-dev libsodium-dev libev-dev libc-ares-dev
+
+      - name: Configure (compile_commands.json)
+        run: cmake -S . -B build
+
+      - name: Run clang-tidy on project sources
+        run: |
+          run-clang-tidy-18 -quiet -p build '/src/[^/]+\.c$' 2>/dev/null | tee tidy.log || true
+          grep 'warning:' tidy.log | sort -u > warnings.txt || true
+          count="$(wc -l < warnings.txt)"
+          echo "clang-tidy warnings: $count (max allowed: $MAX_WARNINGS)"
+          {
+            echo "### clang-tidy: $count warnings (budget: $MAX_WARNINGS)"
+            echo '```'
+            cat warnings.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if ! grep -q . warnings.txt && grep -qE 'error:' tidy.log; then
+            echo "clang-tidy produced errors:"; grep -E 'error:' tidy.log | sort -u
+            exit 1
+          fi
+          if [ "$count" -gt "$MAX_WARNINGS" ]; then
+            echo "FAIL: warning count $count exceeds budget $MAX_WARNINGS."
+            echo "Fix the new warnings (or, if a check is misfiring, adjust .clang-tidy)."
+            exit 1
+          fi
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lcov libpcre2-dev libmbedtls-dev libsodium-dev libev-dev libc-ares-dev
+
+      - name: Build with coverage instrumentation
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DENABLE_COVERAGE=ON
+          make -j"$(nproc)"
+
+      - name: Run tests
+        run: |
+          ctest --test-dir build -LE memcheck --output-on-failure --no-tests=error
+          python3 tests/stress_test.py --bin build/shared/bin/ --size 10
+
+      - name: Generate coverage report
+        run: |
+          cmake --build build --target coverage
+          {
+            echo '### Coverage (src/, unit + stress tests)'
+            echo '```'
+            lcov --list build/coverage.info --ignore-errors unused,empty
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: build/coverage-html/

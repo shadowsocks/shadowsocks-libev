@@ -69,6 +69,16 @@ python tests/test.py --bin build/bin/ -c tests/aes-gcm.json
 
 Uses **uncrustify** with the config at `.uncrustify.cfg`. Key settings: 4-space indent, no tabs, 120-column width, K&R brace style (braces on same line).
 
+## Code Quality Tooling
+
+- **clang-tidy**: config in `.clang-tidy` (clang-analyzer + bugprone + cert checks, scoped to `src/`). The build exports `compile_commands.json` automatically. Run locally:
+  ```bash
+  run-clang-tidy -quiet -p build '/src/[^/]+\.c$'
+  ```
+  On macOS with Homebrew LLVM, add `-extra-arg="-isysroot$(xcrun --show-sdk-path)"`. CI (`clang-tidy` job in `tests.yml`) enforces a warning-count ratchet via `MAX_WARNINGS` — lower it when fixing findings; never raise it without justification.
+- **Sanitizers**: `cmake .. -DENABLE_SANITIZERS=ON` builds with ASan + UBSan. CI runs ctest and the stress test under sanitizers on every PR.
+- **Coverage**: `cmake .. -DENABLE_COVERAGE=ON`, run tests, then `make coverage` (needs lcov). HTML report lands in `build/coverage-html/`. CI uploads it as the `coverage-html` artifact.
+
 ## Architecture
 
 ### Binaries (all in `src/`)

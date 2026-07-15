@@ -1,0 +1,36 @@
+# clang-tidy configuration for shadowsocks-libev project sources (src/ only).
+# Bundled submodules (libcork/, libipset/, libbloom/) are third-party code and
+# are excluded by the file regex used in CI:
+#   run-clang-tidy -p build '/src/[^/]+\.c$'
+#
+# The check set is intentionally conservative: the full clang static analyzer
+# plus the bugprone/cert checks that are actionable for this codebase.
+# Checks disabled below are either stylistic churn (macro-parentheses,
+# reserved-identifier: the codebase uses _prefixed names and vendored
+# uthash.h/generated config.h trip them ~600 times) or produce false
+# positives with the libev callback style (casting-through-void,
+# multi-level-implicit-pointer-conversion).
+Checks: >
+  clang-analyzer-*,
+  bugprone-*,
+  cert-*,
+  -bugprone-assignment-in-if-condition,
+  -bugprone-branch-clone,
+  -bugprone-casting-through-void,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-inc-dec-in-conditions,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -bugprone-macro-parentheses,
+  -bugprone-multi-level-implicit-pointer-conversion,
+  -bugprone-narrowing-conversions,
+  -bugprone-reserved-identifier,
+  -bugprone-signed-char-misuse,
+  -bugprone-switch-missing-default-case,
+  -cert-dcl37-c,
+  -cert-dcl51-cpp,
+  -cert-err33-c,
+  -cert-str34-c,
+  -clang-analyzer-security.insecureAPI.strcpy,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*/src/[^/]+\.h$'
