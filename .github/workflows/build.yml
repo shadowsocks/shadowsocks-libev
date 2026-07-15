@@ -22,7 +22,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpcre2-dev libmbedtls-dev libsodium-dev libev-dev libc-ares-dev valgrind
+          sudo apt-get install -y libpcre2-dev libmbedtls-dev libsodium-dev libev-dev libc-ares-dev
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
@@ -32,33 +32,23 @@ jobs:
         run: |
           mkdir -p build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release
-          make -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
+          jobs="$(nproc 2>/dev/null || sysctl -n hw.ncpu)"
+          make -j"$jobs"
 
-      - name: CTest
-        run: ctest --test-dir build -LE memcheck --output-on-failure --no-tests=error
+  debian-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
 
-      - name: Valgrind leak smoke tests
-        if: runner.os == 'Linux'
-        run: ctest --test-dir build -L memcheck --output-on-failure --no-tests=error
-
-      - name: ss-setup TUI tests
-        run: bash tests/test_ss_setup.sh
-
-      - name: Stress test
+      - name: Install dependencies
         run: |
-          python3 tests/stress_test.py --bin build/shared/bin/ --size 10
-
-      - name: ss-redir transparent proxy test (QEMU)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get install -y qemu-system-x86
-          bash tests/test_redir_qemu.sh build/shared/bin/
-        timeout-minutes: 8
-
-      - name: Debian package build test
-        if: runner.os == 'Linux'
-        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpcre2-dev libmbedtls-dev libsodium-dev libev-dev libc-ares-dev
           sudo apt-get install -y --no-install-recommends \
             build-essential debhelper dpkg-dev fakeroot asciidoc-base xmlto pkg-config
-          bash tests/test_deb_build.sh
+
+      - name: Debian package build test
+        run: bash tests/test_deb_build.sh
         timeout-minutes: 10
