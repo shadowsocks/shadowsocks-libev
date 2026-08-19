@@ -60,6 +60,11 @@ ss_add_test(test_json
     "test_json.c;${PROJECT_SOURCE_DIR}/src/json.c"
     "m")
 
+# test_ssurl - ss:// URI parsing (SIP002 and legacy)
+ss_add_test(test_ssurl
+    "test_ssurl.c;${PROJECT_SOURCE_DIR}/src/ssurl.c;${PROJECT_SOURCE_DIR}/src/base64.c;${PROJECT_SOURCE_DIR}/src/utils.c"
+    "${LIBSODIUM_SHARED}")
+
 # test_netutils - needs cork for ip address parsing
 set(TEST_NETUTILS_LIBS
     ${LIBSODIUM_SHARED}

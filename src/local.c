@@ -52,6 +52,7 @@
 #include <libcork/core.h>
 
 #include "netutils.h"
+#include "ssurl.h"
 #include "utils.h"
 #include "socks5.h"
 #include "acl.h"
@@ -1455,6 +1456,9 @@ main(int argc, char **argv)
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
     char *remote_port = NULL;
 
+    /* Lives until exit; its strings are handed to the config above. */
+    ss_url_t server_url = { 0 };
+
     memset(remote_addr, 0, sizeof(ss_addr_t) * MAX_REMOTE_NUM);
 
     static struct option long_options[] = {
@@ -1472,6 +1476,7 @@ main(int argc, char **argv)
         { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
         { "password",    required_argument, NULL, GETOPT_VAL_PASSWORD    },
         { "key",         required_argument, NULL, GETOPT_VAL_KEY         },
+        { "server-url",  required_argument, NULL, GETOPT_VAL_SERVER_URL  },
         { "help",        no_argument,       NULL, GETOPT_VAL_HELP        },
         { NULL,          0,                 NULL, 0                      }
     };
@@ -1518,6 +1523,30 @@ main(int argc, char **argv)
             break;
         case GETOPT_VAL_KEY:
             key = optarg;
+            break;
+        case GETOPT_VAL_SERVER_URL:
+            /*
+             * An ss:// URI carries the server, credentials and plugin in one
+             * argument. Options given later on the command line still win,
+             * since they are applied as getopt reaches them.
+             */
+            if (ss_url_parse(optarg, &server_url) != 0) {
+                FATAL("invalid ss:// server URL");
+            }
+            if (remote_num < MAX_REMOTE_NUM) {
+                remote_addr[remote_num].host = server_url.host;
+                remote_addr[remote_num].port = NULL;
+                remote_num++;
+            }
+            remote_port = server_url.port;
+            method      = server_url.method;
+            password    = server_url.password;
+            if (server_url.plugin != NULL)
+                plugin = server_url.plugin;
+            if (server_url.plugin_opts != NULL)
+                plugin_opts = server_url.plugin_opts;
+            if (server_url.tag != NULL)
+                LOGI("using server \"%s\"", server_url.tag);
             break;
         case GETOPT_VAL_REUSE_PORT:
             reuse_port = 1;

@@ -368,6 +368,12 @@ you may refer to the man pages of the applications, respectively.
                                   `openssl rand -base64 32` (or 16 for
                                   2022-blake3-aes-128-gcm).
 
+       [--server-url <ss_url>]    Take the server address, port, cipher,
+                                  password and SIP003 plugin from a single
+                                  ss:// URL (SIP002 or the legacy form).
+                                  ss-local only. Options given later on the
+                                  command line override the URL's values.
+
        [-a <user>]                Run as another user.
 
        [-f <pid_file>]            The file path to store pid.
