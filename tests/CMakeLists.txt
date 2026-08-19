@@ -174,6 +174,16 @@ ss_add_test(test_aead2022
     "test_aead2022.c;${SS_CRYPTO_TEST_SOURCES}"
     "${TEST_CRYPTO_LIBS};m")
 
+# test_interop_rust - interoperability against shadowsocks-rust.
+# Skips itself when shadowsocks-rust or the built binaries are absent.
+add_test(NAME test_interop_rust
+    COMMAND bash "${PROJECT_SOURCE_DIR}/tests/test_interop_rust.sh"
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+set_tests_properties(test_interop_rust PROPERTIES
+    LABELS "integration"
+    TIMEOUT 300
+    ENVIRONMENT "SS_BIN_DIR=${RUNTIME_SHARED_OUTPUT_DIRECTORY}")
+
 # test_ss_setup - bash unit tests for the ss-setup TUI tool
 add_test(NAME test_ss_setup
     COMMAND bash "${PROJECT_SOURCE_DIR}/tests/test_ss_setup.sh"
