@@ -638,6 +638,11 @@ close_and_free_remote(EV_P_ remote_ctx_t *ctx)
         ev_timer_stop(EV_A_ & ctx->watcher);
         ev_io_stop(EV_A_ & ctx->io);
         close(ctx->fd);
+        if (ctx->udp_session != NULL
+            && ctx->server_ctx != NULL
+            && ctx->server_ctx->crypto->udp_session_release != NULL) {
+            ctx->server_ctx->crypto->udp_session_release(ctx->udp_session);
+        }
         ss_free(ctx);
     }
 }
@@ -821,7 +826,10 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     buf->len = r;
 
 #ifdef MODULE_LOCAL
-    int err = server_ctx->crypto->decrypt_all(buf, server_ctx->crypto->cipher, buf_size);
+    int err = server_ctx->crypto->decrypt_udp != NULL
+              ? server_ctx->crypto->decrypt_udp(buf, server_ctx->crypto->cipher,
+                                                buf_size, &remote_ctx->udp_session)
+              : server_ctx->crypto->decrypt_all(buf, server_ctx->crypto->cipher, buf_size);
     if (err) {
         LOGE("failed to handshake with %s: %s",
                 get_addr_str((struct sockaddr *)&src_addr, false), "suspicious UDP packet");
@@ -880,7 +888,10 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     memcpy(buf->data, addr_header, addr_header_len);
     buf->len += addr_header_len;
 
-    int err = server_ctx->crypto->encrypt_all(buf, server_ctx->crypto->cipher, buf_size);
+    int err = server_ctx->crypto->encrypt_udp != NULL
+              ? server_ctx->crypto->encrypt_udp(buf, server_ctx->crypto->cipher,
+                                                buf_size, &remote_ctx->udp_session)
+              : server_ctx->crypto->encrypt_all(buf, server_ctx->crypto->cipher, buf_size);
     if (err) {
         // drop the packet silently
         goto CLEAN_UP;
@@ -1050,7 +1061,16 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef MODULE_REMOTE
     tx += buf->len;
 
-    int err = server_ctx->crypto->decrypt_all(buf, server_ctx->crypto->cipher, buf_size);
+    /*
+     * AEAD-2022 routes by client session ID, which is only known after
+     * decryption, so the crypto layer resolves the session itself and hands
+     * it back here to be attached to the relay context.
+     */
+    void *udp_session = NULL;
+    int err = server_ctx->crypto->decrypt_udp != NULL
+              ? server_ctx->crypto->decrypt_udp(buf, server_ctx->crypto->cipher,
+                                                buf_size, &udp_session)
+              : server_ctx->crypto->decrypt_all(buf, server_ctx->crypto->cipher, buf_size);
     if (err) {
         LOGE("failed to handshake with %s: %s",
                 get_addr_str((struct sockaddr *)&src_addr, false), "suspicious UDP packet");
@@ -1331,7 +1351,10 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         memmove(buf->data, buf->data + offset, buf->len);
     }
 
-    int err = server_ctx->crypto->encrypt_all(buf, server_ctx->crypto->cipher, buf_size);
+    int err = server_ctx->crypto->encrypt_udp != NULL
+              ? server_ctx->crypto->encrypt_udp(buf, server_ctx->crypto->cipher,
+                                                buf_size, &remote_ctx->udp_session)
+              : server_ctx->crypto->encrypt_all(buf, server_ctx->crypto->cipher, buf_size);
 
     if (err) {
         // drop the packet silently
@@ -1409,6 +1432,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 goto CLEAN_UP;
             }
         }
+    }
+
+    if (remote_ctx != NULL) {
+        // Attach the AEAD-2022 session so replies are encrypted with it
+        remote_ctx->udp_session = udp_session;
     }
 
     if (remote_ctx != NULL && !need_query) {

@@ -192,6 +192,11 @@ crypto_init(const char *password, const char *key, const char *method)
                 .decrypt     = &aead_decrypt,
                 .ctx_init    = &aead_ctx_init,
                 .ctx_release = &aead_ctx_release,
+                /* AEAD-2022 replaces the stateless UDP path with sessions */
+                .encrypt_udp = aead_is_2022(cipher) ? &aead_2022_encrypt_udp : NULL,
+                .decrypt_udp = aead_is_2022(cipher) ? &aead_2022_decrypt_udp : NULL,
+                .udp_session_release = aead_is_2022(cipher)
+                                       ? &aead_2022_udp_session_release : NULL,
             };
             memcpy(crypto, &tmp, sizeof(crypto_t));
             return crypto;
@@ -378,6 +383,39 @@ crypto_parse_key(const char *base64, uint8_t *key, size_t key_len)
     LOGE("It requires a " SIZE_FMT "-byte key encoded with URL-safe Base64", key_len);
     LOGE("Generating a new random key: %s", out_key);
     FATAL("Please use the key above or input a valid key");
+    return key_len;
+}
+
+/*
+ * SIP022 requires a base64-encoded pre-shared key of exactly the cipher's
+ * key size. Unlike crypto_parse_key there is no password fallback: a wrong
+ * size is a hard error, since deriving a key from a password is forbidden.
+ */
+int
+crypto_parse_psk(const char *base64, uint8_t *key, size_t key_len)
+{
+    size_t base64_len = strlen(base64);
+    int buf_len       = BASE64_SIZE(base64_len);
+    uint8_t out[buf_len];
+
+    int out_len = base64_decode(out, base64, buf_len);
+
+    if (out_len != (int)key_len) {
+        int enc_len = BASE64_SIZE(key_len);
+        char out_key[enc_len];
+        uint8_t rnd[MAX_KEY_LENGTH];
+        rand_bytes(rnd, key_len);
+        base64_encode(out_key, enc_len, rnd, key_len);
+        LOGE("Invalid pre-shared key for your chosen cipher!");
+        LOGE("AEAD-2022 requires exactly a " SIZE_FMT "-byte key in base64", key_len);
+        LOGE("Generating a new random key: %s", out_key);
+        FATAL("Please use the key above or input a valid key");
+    }
+
+    memcpy(key, out, key_len);
+#ifdef SS_DEBUG
+    dump("PSK", (char *)key, key_len);
+#endif
     return key_len;
 }
 

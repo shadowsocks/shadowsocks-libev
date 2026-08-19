@@ -71,6 +71,16 @@ typedef mbedtls_md_info_t digest_type_t;
 #define SUBKEY_INFO "ss-subkey"
 #define IV_INFO "ss-iv"
 
+/* SIP022 AEAD-2022 (Shadowsocks 2022 Edition) */
+#define SS2022_SUBKEY_CTX "shadowsocks 2022 session subkey"
+#define SS2022_TIME_WINDOW 30
+#define SS2022_SALT_RETENTION 60
+#define SS2022_MAX_PADDING 900
+#define SS2022_SESSION_ID_LEN 8
+
+#define CRYPTO_ROLE_CLIENT 0
+#define CRYPTO_ROLE_SERVER 1
+
 #ifndef BF_NUM_ENTRIES_FOR_SERVER
 #define BF_NUM_ENTRIES_FOR_SERVER 1e6
 #endif
@@ -103,7 +113,7 @@ typedef struct {
     uint8_t key[MAX_KEY_LENGTH];
 } cipher_t;
 
-typedef struct {
+typedef struct cipher_ctx {
     uint32_t init;
     uint64_t counter;
     cipher_evp_t *evp;
@@ -113,6 +123,13 @@ typedef struct {
     uint8_t salt[MAX_KEY_LENGTH];
     uint8_t skey[MAX_KEY_LENGTH];
     uint8_t nonce[MAX_NONCE_LENGTH];
+
+    /* AEAD-2022 state */
+    struct cipher_ctx *peer; /* paired enc/dec ctx of the same connection */
+    uint8_t role;            /* CRYPTO_ROLE_CLIENT or CRYPTO_ROLE_SERVER */
+    uint8_t hdr_stage;       /* TCP decrypt header state machine stage */
+    uint16_t hdr_varlen;     /* pending request variable-length header size */
+    uint16_t next_plen;      /* pending response first payload chunk size */
 } cipher_ctx_t;
 
 typedef struct crypto {
@@ -125,7 +142,26 @@ typedef struct crypto {
 
     void(*const ctx_init) (cipher_t *, cipher_ctx_t *, int);
     void(*const ctx_release) (cipher_ctx_t *);
+
+    /*
+     * AEAD-2022 session-based UDP. NULL for legacy ciphers; when set,
+     * udprelay must use these instead of encrypt_all/decrypt_all, passing
+     * a per-conversation session slot. The slot is released with
+     * udp_session_release.
+     */
+    int(*const encrypt_udp) (buffer_t *, cipher_t *, size_t, void **);
+    int(*const decrypt_udp) (buffer_t *, cipher_t *, size_t, void **);
+    void(*const udp_session_release) (void *);
 } crypto_t;
+
+/* Pair the encrypt/decrypt contexts of one connection (needed by AEAD-2022
+ * to echo and verify the request salt in the response header). */
+static inline void
+cipher_ctx_pair(cipher_ctx_t *a, cipher_ctx_t *b)
+{
+    a->peer = b;
+    b->peer = a;
+}
 
 int balloc(buffer_t *, size_t);
 int brealloc(buffer_t *, size_t, size_t);
@@ -150,6 +186,7 @@ unsigned char *crypto_md5(const unsigned char *, size_t, unsigned char *);
 
 int crypto_derive_key(const char *, uint8_t *, size_t);
 int crypto_parse_key(const char *, uint8_t *, size_t);
+int crypto_parse_psk(const char *, uint8_t *, size_t);
 int crypto_hkdf(const mbedtls_md_info_t *md, const unsigned char *salt,
                 int salt_len, const unsigned char *ikm, int ikm_len,
                 const unsigned char *info, int info_len, unsigned char *okm,

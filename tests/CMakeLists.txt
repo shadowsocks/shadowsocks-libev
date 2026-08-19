@@ -131,10 +131,25 @@ ss_add_test(test_jconf
     "test_jconf.c;${PROJECT_SOURCE_DIR}/src/jconf.c;${PROJECT_SOURCE_DIR}/src/json.c;${PROJECT_SOURCE_DIR}/src/utils.c;${PROJECT_SOURCE_DIR}/src/netutils.c"
     "${TEST_JCONF_LIBS};m")
 
+# Crypto sources shared by the tests that link the crypto layer. The AEAD-2022
+# ciphers pull in BLAKE3 (linked as the `blake3` target) and the session-based
+# UDP codec, so they must be built together with crypto.c.
+set(SS_CRYPTO_TEST_SOURCES
+    ${PROJECT_SOURCE_DIR}/src/crypto.c
+    ${PROJECT_SOURCE_DIR}/src/aead.c
+    ${PROJECT_SOURCE_DIR}/src/aead2022.c
+    ${PROJECT_SOURCE_DIR}/src/aead2022_udp.c
+    ${PROJECT_SOURCE_DIR}/src/stream.c
+    ${PROJECT_SOURCE_DIR}/src/ppbloom.c
+    ${PROJECT_SOURCE_DIR}/src/cache.c
+    ${PROJECT_SOURCE_DIR}/src/base64.c
+    ${PROJECT_SOURCE_DIR}/src/utils.c
+)
+
 # test_buffer - needs sodium and mbedtls for crypto.c buffer functions
 ss_add_test(test_buffer
-    "test_buffer.c;${PROJECT_SOURCE_DIR}/src/crypto.c;${PROJECT_SOURCE_DIR}/src/utils.c;${PROJECT_SOURCE_DIR}/src/base64.c;${PROJECT_SOURCE_DIR}/src/aead.c;${PROJECT_SOURCE_DIR}/src/stream.c;${PROJECT_SOURCE_DIR}/src/ppbloom.c;${PROJECT_SOURCE_DIR}/src/cache.c"
-    "${LIBSODIUM_SHARED};${LIBMBEDTLS_SHARED};${LIBMBEDCRYPTO_SHARED};${LIBEV_SHARED};${TEST_PPBLOOM_LIBS};m")
+    "test_buffer.c;${SS_CRYPTO_TEST_SOURCES}"
+    "${LIBSODIUM_SHARED};${LIBMBEDTLS_SHARED};${LIBMBEDCRYPTO_SHARED};${LIBEV_SHARED};${TEST_PPBLOOM_LIBS};blake3;m")
 
 # test_crypto - full crypto test
 set(TEST_CRYPTO_LIBS
@@ -148,8 +163,15 @@ if(WITH_EMBEDDED_SRC)
 else()
     list(APPEND TEST_CRYPTO_LIBS ${LIBBLOOM_SHARED})
 endif()
+# BLAKE3 backs the 2022 ciphers' key derivation
+list(APPEND TEST_CRYPTO_LIBS blake3)
 ss_add_test(test_crypto
-    "test_crypto.c;${PROJECT_SOURCE_DIR}/src/crypto.c;${PROJECT_SOURCE_DIR}/src/aead.c;${PROJECT_SOURCE_DIR}/src/stream.c;${PROJECT_SOURCE_DIR}/src/ppbloom.c;${PROJECT_SOURCE_DIR}/src/cache.c;${PROJECT_SOURCE_DIR}/src/base64.c;${PROJECT_SOURCE_DIR}/src/utils.c"
+    "test_crypto.c;${SS_CRYPTO_TEST_SOURCES}"
+    "${TEST_CRYPTO_LIBS};m")
+
+# test_aead2022 - Shadowsocks 2022 Edition (SIP022) ciphers
+ss_add_test(test_aead2022
+    "test_aead2022.c;${SS_CRYPTO_TEST_SOURCES}"
     "${TEST_CRYPTO_LIBS};m")
 
 # test_ss_setup - bash unit tests for the ss-setup TUI tool

@@ -87,6 +87,12 @@ typedef struct remote_ctx {
 #ifdef MODULE_REMOTE
     struct sockaddr_storage dst_addr;
 #endif
+    /*
+     * AEAD-2022 UDP session state for this conversation, owned by the
+     * crypto layer and released with crypto->udp_session_release.
+     * NULL for legacy ciphers.
+     */
+    void *udp_session;
     struct server_ctx *server_ctx;
 } remote_ctx_t;
 

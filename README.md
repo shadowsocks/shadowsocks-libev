@@ -344,7 +344,11 @@ you may refer to the man pages of the applications, respectively.
 
        -k <password>              Password of your remote server.
 
-       -m <encrypt_method>        Encrypt method: rc4-md5,
+       -m <encrypt_method>        Encrypt method:
+                                  2022-blake3-aes-128-gcm,
+                                  2022-blake3-aes-256-gcm,
+                                  2022-blake3-chacha20-poly1305,
+                                  rc4-md5,
                                   aes-128-gcm, aes-192-gcm, aes-256-gcm,
                                   aes-128-cfb, aes-192-cfb, aes-256-cfb,
                                   aes-128-ctr, aes-192-ctr, aes-256-ctr,
@@ -354,6 +358,15 @@ you may refer to the man pages of the applications, respectively.
                                   xchacha20-ietf-poly1305,
                                   salsa20, chacha20 and chacha20-ietf.
                                   The default cipher is chacha20-ietf-poly1305.
+
+                                  The 2022-blake3-* ciphers implement
+                                  Shadowsocks 2022 (SIP022) and are the
+                                  recommended choice. They take a
+                                  base64-encoded pre-shared key of exactly
+                                  the cipher's key size via -k, not a
+                                  password: generate one with
+                                  `openssl rand -base64 32` (or 16 for
+                                  2022-blake3-aes-128-gcm).
 
        [-a <user>]                Run as another user.
 

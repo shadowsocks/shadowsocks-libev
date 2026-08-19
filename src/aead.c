@@ -37,23 +37,11 @@
 
 #include "ppbloom.h"
 #include "aead.h"
+#include "aead_internal.h"
 #include "utils.h"
 #include "winsock.h"
 
 #define NONE                    (-1)
-#define AES128GCM               0
-#define AES192GCM               1
-#define AES256GCM               2
-/*
- * methods above requires gcm context
- * methods below doesn't require it,
- * then we need to fake one
- */
-#define CHACHA20POLY1305IETF    3
-
-#ifdef FS_HAVE_XCHACHA20IETF
-#define XCHACHA20POLY1305IETF   4
-#endif
 
 #define CHUNK_SIZE_LEN          2
 #define CHUNK_SIZE_MASK         0x3FFF
@@ -108,7 +96,10 @@ const char *supported_aead_ciphers[AEAD_CIPHER_NUM] = {
     "aes-128-gcm",
     "aes-192-gcm",
     "aes-256-gcm",
+    "2022-blake3-aes-128-gcm",
+    "2022-blake3-aes-256-gcm",
     "chacha20-ietf-poly1305",
+    "2022-blake3-chacha20-poly1305",
 #ifdef FS_HAVE_XCHACHA20IETF
     "xchacha20-ietf-poly1305"
 #endif
@@ -121,6 +112,9 @@ static const char *supported_aead_ciphers_mbedtls[AEAD_CIPHER_NUM] = {
     "AES-128-GCM",
     "AES-192-GCM",
     "AES-256-GCM",
+    "AES-128-GCM",
+    "AES-256-GCM",
+    CIPHER_UNSUPPORTED,
     CIPHER_UNSUPPORTED,
 #ifdef FS_HAVE_XCHACHA20IETF
     CIPHER_UNSUPPORTED
@@ -128,27 +122,33 @@ static const char *supported_aead_ciphers_mbedtls[AEAD_CIPHER_NUM] = {
 };
 
 static const int supported_aead_ciphers_nonce_size[AEAD_CIPHER_NUM] = {
-    12, 12, 12, 12,
+    12, 12, 12, 12, 12, 12, 12,
 #ifdef FS_HAVE_XCHACHA20IETF
     24
 #endif
 };
 
 static const int supported_aead_ciphers_key_size[AEAD_CIPHER_NUM] = {
-    16, 24, 32, 32,
+    16, 24, 32, 16, 32, 32, 32,
 #ifdef FS_HAVE_XCHACHA20IETF
     32
 #endif
 };
 
 static const int supported_aead_ciphers_tag_size[AEAD_CIPHER_NUM] = {
-    16, 16, 16, 16,
+    16, 16, 16, 16, 16, 16, 16,
 #ifdef FS_HAVE_XCHACHA20IETF
     16
 #endif
 };
 
-static int
+int
+aead_is_2022(const cipher_t *cipher)
+{
+    return cipher != NULL && is_aead_2022(cipher->method);
+}
+
+int
 aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
                     uint8_t *c,
                     size_t *clen,
@@ -177,6 +177,8 @@ aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
     // Otherwise, just use the mbedTLS one with crappy AES-NI.
     case AES192GCM:
     case AES128GCM:
+    case AES128GCM2022:
+    case AES256GCM2022:
 #if MBEDTLS_VERSION_NUMBER < 0x03000000
         err = mbedtls_cipher_auth_encrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen, c, clen, c + mlen, tlen);
@@ -187,6 +189,7 @@ aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
 #endif
         break;
     case CHACHA20POLY1305IETF:
+    case CHACHA20POLY1305IETF2022:
         err = crypto_aead_chacha20poly1305_ietf_encrypt(c, &long_clen, m, mlen,
                                                         ad, adlen, NULL, n, k);
         *clen = (size_t)long_clen;
@@ -205,7 +208,7 @@ aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
     return err;
 }
 
-static int
+int
 aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
                     uint8_t *p, size_t *plen,
                     uint8_t *m, size_t mlen,
@@ -230,6 +233,8 @@ aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
     // Otherwise, just use the mbedTLS one with crappy AES-NI.
     case AES192GCM:
     case AES128GCM:
+    case AES128GCM2022:
+    case AES256GCM2022:
 #if MBEDTLS_VERSION_NUMBER < 0x03000000
         err = mbedtls_cipher_auth_decrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen - tlen, p, plen, m + mlen - tlen, tlen);
@@ -239,6 +244,7 @@ aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
 #endif
         break;
     case CHACHA20POLY1305IETF:
+    case CHACHA20POLY1305IETF2022:
         err = crypto_aead_chacha20poly1305_ietf_decrypt(p, &long_plen, NULL, m, mlen,
                                                         ad, adlen, n, k);
         *plen = (size_t)long_plen; // it's safe to cast 64bit to 32bit length here
@@ -290,21 +296,27 @@ aead_get_cipher_type(int method)
     return mbedtls_cipher_info_from_string(mbedtlsname);
 }
 
-static void
+void
 aead_cipher_ctx_set_key(cipher_ctx_t *cipher_ctx, int enc)
 {
-    const digest_type_t *md = mbedtls_md_info_from_string("SHA1");
-    if (md == NULL) {
-        FATAL("SHA1 Digest not found in crypto library");
-    }
+    if (is_aead_2022(cipher_ctx->cipher->method)) {
+        ss2022_derive_subkey(cipher_ctx->cipher->key, cipher_ctx->cipher->key_len,
+                             cipher_ctx->salt, cipher_ctx->cipher->key_len,
+                             cipher_ctx->skey, cipher_ctx->cipher->key_len);
+    } else {
+        const digest_type_t *md = mbedtls_md_info_from_string("SHA1");
+        if (md == NULL) {
+            FATAL("SHA1 Digest not found in crypto library");
+        }
 
-    int err = crypto_hkdf(md,
-                          cipher_ctx->salt, cipher_ctx->cipher->key_len,
-                          cipher_ctx->cipher->key, cipher_ctx->cipher->key_len,
-                          (uint8_t *)SUBKEY_INFO, strlen(SUBKEY_INFO),
-                          cipher_ctx->skey, cipher_ctx->cipher->key_len);
-    if (err) {
-        FATAL("Unable to generate subkey");
+        int err = crypto_hkdf(md,
+                              cipher_ctx->salt, cipher_ctx->cipher->key_len,
+                              cipher_ctx->cipher->key, cipher_ctx->cipher->key_len,
+                              (uint8_t *)SUBKEY_INFO, strlen(SUBKEY_INFO),
+                              cipher_ctx->skey, cipher_ctx->cipher->key_len);
+        if (err) {
+            FATAL("Unable to generate subkey");
+        }
     }
 
     memset(cipher_ctx->nonce, 0, cipher_ctx->cipher->nonce_len);
@@ -374,6 +386,7 @@ aead_ctx_init(cipher_t *cipher, cipher_ctx_t *cipher_ctx, int enc)
 {
     sodium_memzero(cipher_ctx, sizeof(cipher_ctx_t));
     cipher_ctx->cipher = cipher;
+    cipher_ctx->role   = aead_get_role();
 
     aead_cipher_ctx_init(cipher_ctx, cipher->method, enc);
 
@@ -407,6 +420,11 @@ aead_ctx_release(cipher_ctx_t *cipher_ctx)
 int
 aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
 {
+    if (is_aead_2022(cipher->method)) {
+        LOGE("AEAD-2022 UDP requires the session interface");
+        return CRYPTO_ERROR;
+    }
+
     cipher_ctx_t cipher_ctx;
     aead_ctx_init(cipher, &cipher_ctx, 1);
 
@@ -448,6 +466,11 @@ aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
 int
 aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 {
+    if (is_aead_2022(cipher->method)) {
+        LOGE("AEAD-2022 UDP requires the session interface");
+        return CRYPTO_ERROR;
+    }
+
     size_t salt_len = cipher->key_len;
     size_t tag_len  = cipher->tag_len;
     int err         = CRYPTO_OK;
@@ -540,6 +563,9 @@ aead_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
 {
     if (cipher_ctx == NULL)
         return CRYPTO_ERROR;
+
+    if (is_aead_2022(cipher_ctx->cipher->method))
+        return ss2022_tcp_encrypt(plaintext, cipher_ctx, capacity);
 
     if (plaintext->len == 0) {
         return CRYPTO_OK;
@@ -634,6 +660,9 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 {
     int err          = CRYPTO_OK;
     cipher_t *cipher = cipher_ctx->cipher;
+
+    if (is_aead_2022(cipher->method))
+        return ss2022_tcp_decrypt(ciphertext, cipher_ctx, capacity);
 
     size_t salt_len = cipher->key_len;
 
@@ -741,12 +770,26 @@ aead_key_init(int method, const char *pass, const char *key)
         FATAL("Cannot initialize cipher");
     }
 
-    if (key != NULL)
+    if (is_aead_2022(method)) {
+        /*
+         * SIP022 requires a cryptographically-secure fixed-length key,
+         * provided in base64. EVP_BytesToKey-style password derivation
+         * MUST NOT be used, so the password (or key) field must hold the
+         * base64 PSK itself.
+         */
+        const char *psk = (key != NULL) ? key : pass;
+        if (psk == NULL) {
+            FATAL("AEAD-2022 ciphers require a base64 pre-shared key");
+        }
+        cipher->key_len = crypto_parse_psk(psk, cipher->key,
+                                           supported_aead_ciphers_key_size[method]);
+    } else if (key != NULL) {
         cipher->key_len = crypto_parse_key(key, cipher->key,
                                            supported_aead_ciphers_key_size[method]);
-    else
+    } else {
         cipher->key_len = crypto_derive_key(pass, cipher->key,
                                             supported_aead_ciphers_key_size[method]);
+    }
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and nonce");

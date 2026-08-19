@@ -40,5 +40,8 @@ run_test python tests/test.py $BIN -c tests/salsa20.json
 run_test python tests/test.py $BIN -c tests/chacha20.json
 run_test python tests/test.py $BIN -c tests/chacha20-ietf.json
 run_test python tests/test.py $BIN -c tests/chacha20-ietf-poly1305.json
+run_test python tests/test.py $BIN -c tests/2022-blake3-aes-128-gcm.json
+run_test python tests/test.py $BIN -c tests/2022-blake3-aes-256-gcm.json
+run_test python tests/test.py $BIN -c tests/2022-blake3-chacha20-poly1305.json
 
 exit $result
