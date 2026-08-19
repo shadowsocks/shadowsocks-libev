@@ -328,7 +328,7 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
     }
 
     if (port != NULL) {
-        sprintf(port, "%d", load16_be(buf + offset));
+        snprintf(port, MAX_PORT_STR_LEN, "%d", load16_be(buf + offset));
     }
     offset += 2;
 
@@ -351,14 +351,14 @@ get_addr_str(const struct sockaddr *sa, bool has_port)
         memcpy(&sa_in, sa, sizeof(struct sockaddr_in));
         inet_ntop(AF_INET, &sa_in.sin_addr, addr, INET_ADDRSTRLEN);
         p = ntohs(sa_in.sin_port);
-        sprintf(port, "%d", p);
+        snprintf(port, sizeof(port), "%d", p);
         break;
 
     case AF_INET6:
         memcpy(&sa_in6, sa, sizeof(struct sockaddr_in6));
         inet_ntop(AF_INET6, &sa_in6.sin6_addr, addr, INET6_ADDRSTRLEN);
         p = ntohs(sa_in6.sin6_port);
-        sprintf(port, "%d", p);
+        snprintf(port, sizeof(port), "%d", p);
         break;
 
     default:

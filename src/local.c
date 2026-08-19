@@ -396,7 +396,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
                 LOGI("inet_ntop(AF_INET): %s", strerror(errno));
                 ip[0] = '\0';
             }
-            sprintf(port, "%d", p);
+            snprintf(port, sizeof(port), "%d", p);
         }
     } else if (atyp == SOCKS5_ATYP_DOMAIN) {
         if (buf->len < request_len + 1) {
@@ -414,7 +414,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
             uint16_t p = load16_be(buf->data + request_len + 1 + name_len);
             memcpy(host, buf->data + request_len + 1, name_len);
             host[name_len] = '\0';
-            sprintf(port, "%d", p);
+            snprintf(port, sizeof(port), "%d", p);
         }
     } else if (atyp == SOCKS5_ATYP_IPV6) {
         size_t in6_addr_len = sizeof(struct in6_addr);
@@ -431,7 +431,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
                 LOGI("inet_ntop(AF_INET6): %s", strerror(errno));
                 ip[0] = '\0';
             }
-            sprintf(port, "%d", p);
+            snprintf(port, sizeof(port), "%d", p);
         }
     } else {
         LOGE("unsupported addrtype: %d", request->atyp);
@@ -2079,8 +2079,8 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
 
     char local_port_str[16];
     char remote_port_str[16];
-    sprintf(local_port_str, "%d", local_port);
-    sprintf(remote_port_str, "%d", remote_port);
+    snprintf(local_port_str, sizeof(local_port_str), "%d", local_port);
+    snprintf(remote_port_str, sizeof(remote_port_str), "%d", remote_port);
 
 #ifdef __MINGW32__
     winsock_init();
