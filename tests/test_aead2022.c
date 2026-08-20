@@ -49,6 +49,12 @@ make_crypto(const char *method)
 static void
 free_crypto(crypto_t *c)
 {
+    /*
+     * crypto_init() sets up the nonce bloom filter each time it is called,
+     * so it has to be torn down with every crypto_t or each test leaks a
+     * fresh pair of filters.
+     */
+    ppbloom_free();
     ss_free(c->cipher);
     ss_free(c);
 }
@@ -382,6 +388,5 @@ main(void)
         test_udp_replay_rejected(m);
     }
 
-    ppbloom_free();
     return 0;
 }
