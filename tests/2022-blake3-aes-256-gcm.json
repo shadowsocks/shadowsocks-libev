@@ -1,0 +1,10 @@
+{
+    "server": "127.0.0.1",
+    "server_port": 8389,
+    "local_port": 1081,
+    "password": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+    "timeout": 60,
+    "method": "2022-blake3-aes-256-gcm",
+    "local": "127.0.0.1",
+    "fast_open": false
+}

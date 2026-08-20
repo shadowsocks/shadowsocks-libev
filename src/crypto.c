@@ -192,6 +192,11 @@ crypto_init(const char *password, const char *key, const char *method)
                 .decrypt     = &aead_decrypt,
                 .ctx_init    = &aead_ctx_init,
                 .ctx_release = &aead_ctx_release,
+                /* AEAD-2022 replaces the stateless UDP path with sessions */
+                .encrypt_udp = aead_is_2022(cipher) ? &aead_2022_encrypt_udp : NULL,
+                .decrypt_udp = aead_is_2022(cipher) ? &aead_2022_decrypt_udp : NULL,
+                .udp_session_release = aead_is_2022(cipher)
+                                       ? &aead_2022_udp_session_release : NULL,
             };
             memcpy(crypto, &tmp, sizeof(crypto_t));
             return crypto;
@@ -354,15 +359,40 @@ crypto_hkdf_expand(const mbedtls_md_info_t *md, const unsigned char *prk,
     return 0;
 }
 
+/*
+ * Report an unusable key and exit, after showing a freshly generated one of
+ * the right size so the user has something to paste back.
+ */
+static void
+crypto_key_fatal(const char *what, uint8_t *key, size_t key_len)
+{
+    char encoded[BASE64_SIZE(MAX_KEY_LENGTH)];
+
+    rand_bytes(key, key_len);
+    base64_encode(encoded, sizeof(encoded), key, key_len);
+    LOGE("Invalid %s for your chosen cipher!", what);
+    LOGE("It requires a " SIZE_FMT "-byte key encoded with Base64", key_len);
+    LOGE("Generating a new random key: %s", encoded);
+    FATAL("Please use the key above or input a valid key");
+}
+
 int
 crypto_parse_key(const char *base64, uint8_t *key, size_t key_len)
 {
-    size_t base64_len = strlen(base64);
-    int out_len       = BASE64_SIZE(base64_len);
-    uint8_t out[out_len];
+    /*
+     * Decode into a fixed buffer rather than one sized from the input: the
+     * key comes from the command line or config file, and a VLA sized by
+     * its length lets a long string overflow the stack. Only the first
+     * key_len bytes are ever used, and base64_decode never writes past the
+     * size it is given.
+     */
+    uint8_t out[MAX_KEY_LENGTH];
 
-    out_len = base64_decode(out, base64, out_len);
-    if (out_len > 0 && out_len >= key_len) {
+    if (key_len > sizeof(out))
+        FATAL("Key length exceeds the maximum supported size");
+
+    int out_len = base64_decode(out, base64, (int)key_len);
+    if (out_len > 0 && (size_t)out_len >= key_len) {
         memcpy(key, out, key_len);
 #ifdef SS_DEBUG
         dump("KEY", (char *)key, key_len);
@@ -370,14 +400,39 @@ crypto_parse_key(const char *base64, uint8_t *key, size_t key_len)
         return key_len;
     }
 
-    out_len = BASE64_SIZE(key_len);
-    char out_key[out_len];
-    rand_bytes(key, key_len);
-    base64_encode(out_key, out_len, key, key_len);
-    LOGE("Invalid key for your chosen cipher!");
-    LOGE("It requires a " SIZE_FMT "-byte key encoded with URL-safe Base64", key_len);
-    LOGE("Generating a new random key: %s", out_key);
-    FATAL("Please use the key above or input a valid key");
+    crypto_key_fatal("key", key, key_len);
+    return key_len;
+}
+
+/*
+ * SIP022 requires a base64-encoded pre-shared key of exactly the cipher's
+ * key size. Unlike crypto_parse_key there is no password fallback: a wrong
+ * size is a hard error, since deriving a key from a password is forbidden.
+ */
+int
+crypto_parse_psk(const char *base64, uint8_t *key, size_t key_len)
+{
+    /*
+     * One byte of slack lets an over-long key be told apart from an exact
+     * one: base64_decode stops at the size it is given, so decoding into
+     * key_len + 1 bytes yields key_len only for a key of exactly that size.
+     */
+    uint8_t out[MAX_KEY_LENGTH + 1];
+
+    if (key_len >= sizeof(out))
+        FATAL("Key length exceeds the maximum supported size");
+
+    int out_len = base64_decode(out, base64, (int)key_len + 1);
+
+    if (out_len != (int)key_len) {
+        LOGE("AEAD-2022 requires exactly a " SIZE_FMT "-byte key in base64", key_len);
+        crypto_key_fatal("pre-shared key", key, key_len);
+    }
+
+    memcpy(key, out, key_len);
+#ifdef SS_DEBUG
+    dump("PSK", (char *)key, key_len);
+#endif
     return key_len;
 }
 

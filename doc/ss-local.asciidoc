@@ -17,6 +17,7 @@ SYNOPSIS
  [--mtu <MTU>] [--no-delay]
  [--plugin <plugin_name>] [--plugin-opts <plugin_options>]
  [--password <password>] [--key <key_in_base64>]
+ [--server-url <ss_url>]
 
 DESCRIPTION
 -----------
@@ -48,11 +49,21 @@ Set the password. The server and the client should use the same password.
 --key <key_in_base64>::
 Set the key directly. The key should be encoded with URL-safe Base64.
 
+--server-url <ss_url>::
+Take the server address, port, cipher, password and any SIP003 plugin
+from a single 'ss://' URL, as produced by most clients and by
+*shadowsocks-rust*'s `ssurl`. Both the SIP002 form
+('ss://base64(method:password)@host:port/?plugin=...#tag') and the older
+'ss://base64(method:password@host:port)' form are accepted. Options given
+later on the command line override the values taken from the URL.
+
 -m <encrypt_method>::
 Set the cipher.
 +
-*Shadowsocks-libev* accepts 19 different ciphers:
+*Shadowsocks-libev* accepts 22 different ciphers:
 +
+2022-blake3-aes-128-gcm, 2022-blake3-aes-256-gcm,
+2022-blake3-chacha20-poly1305,
 aes-128-gcm, aes-192-gcm, aes-256-gcm,
 rc4-md5, aes-128-cfb, aes-192-cfb, aes-256-cfb,
 aes-128-ctr, aes-192-ctr, aes-256-ctr, bf-cfb,
@@ -61,6 +72,13 @@ chacha20-ietf-poly1305, xchacha20-ietf-poly1305,
 salsa20, chacha20 and chacha20-ietf.
 +
 The default cipher is 'chacha20-ietf-poly1305'.
++
+The '2022-blake3-*' ciphers implement Shadowsocks 2022 (SIP022) and are
+the recommended choice: they provide full replay protection and
+session-based UDP relay. They require a base64-encoded pre-shared key of
+exactly the cipher's key size (16 bytes for 2022-blake3-aes-128-gcm, 32
+bytes for the others) given with *-k*; passwords are not accepted and are
+never stretched into a key. Generate one with `openssl rand -base64 32`.
 +
 If built with PolarSSL or custom OpenSSL libraries, some of
 these ciphers may not work.

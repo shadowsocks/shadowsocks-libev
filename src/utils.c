@@ -462,6 +462,12 @@ usage()
     printf(
         "       [--key <key_in_base64>]    Key of your remote server.\n");
 #endif
+#ifdef MODULE_LOCAL
+    printf(
+        "       [--server-url <ss_url>]    Server as an ss:// URL, carrying the\n");
+    printf(
+        "                                  address, cipher, password and plugin.\n");
+#endif
     printf(
         "       [--plugin <name>]          Enable SIP003 plugin. (Experimental)\n");
     printf(

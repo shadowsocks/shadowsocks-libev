@@ -16,9 +16,28 @@ set(SS_ACL_SOURCE
 set(SS_CRYPTO_SOURCE
         crypto.c
         aead.c
+        aead2022.c
+        aead2022_udp.c
         stream.c
         base64.c
         )
+
+# BLAKE3 (vendored) provides the key derivation for the 2022 ciphers. Only
+# the portable backend is built: the SIMD ones need per-file ISA flags and
+# extra assembly, which is not worth it for key derivation.
+add_library(blake3 STATIC
+        blake3/blake3.c
+        blake3/blake3_dispatch.c
+        blake3/blake3_portable.c
+        )
+target_compile_definitions(blake3 PUBLIC
+        BLAKE3_NO_AVX512 BLAKE3_NO_AVX2 BLAKE3_NO_SSE41 BLAKE3_NO_SSE2
+        BLAKE3_USE_NEON=0
+        )
+target_include_directories(blake3 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# vendored upstream code is not held to the project's -Werror budget
+target_compile_options(blake3 PRIVATE -Wno-error -Wno-unused-function)
+set_target_properties(blake3 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 set(SS_PLUGIN_SOURCE
         plugin.c
@@ -40,6 +59,7 @@ set(LIBSHADOWSOCKS_LIBEV_SOURCE
         udprelay.c
         cache.c
         local.c
+        ssurl.c
         ${SS_CRYPTO_SOURCE}
         ${SS_PLUGIN_SOURCE}
         ${SS_ACL_SOURCE}
@@ -111,6 +131,7 @@ find_library(LIBPCRE2 libpcre2-8.a)
 # Dependencies we need for static and shared
 list(APPEND DEPS
         m
+        blake3
         bloom
         ${LIBEV}
         ${LIBUDNS}
@@ -138,6 +159,7 @@ find_library(LIBPCRE2_SHARED pcre2-8)
 if (WITH_EMBEDDED_SRC)
 list(APPEND DEPS_SHARED
         m
+        blake3
         bloom
         cork
         ipset
@@ -154,6 +176,7 @@ find_library(LIBCORK_SHARED cork)
 find_library(LIBCORKIPSET_SHARED corkipset)
 list(APPEND DEPS_SHARED
         m
+        blake3
         ${LIBBLOOM_SHARED}
         ${LIBCORK_SHARED}
         ${LIBCORKIPSET_SHARED}

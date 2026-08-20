@@ -5,54 +5,79 @@
 #   MBEDTLS_INCLUDE_DIRS
 #   MBEDTLS_CRYPTO_LIBRARY
 #   MBEDTLS_TLS_LIBRARY
+#
+# The headers and the libraries MUST come from the same installation. Mixing
+# them is not a build-time error but a memory-corruption bug at runtime:
+# mbedTLS structs such as mbedtls_cipher_context_t changed size between 3.x
+# and 4.x, so a context allocated with sizeof() from one version and
+# initialized by the other overruns its heap block. Homebrew makes this easy
+# to hit, since mbedtls (4.x) and the keg-only mbedtls@3 can both be present
+# and CMAKE_PREFIX_PATH outranks HINTS in find_library's search order.
 
 include(CheckCSourceCompiles)
 
-# mbedtls@3 is keg-only on Homebrew; also check versioned opt paths
-find_path(MBEDTLS_INCLUDE_DIR
-    NAMES mbedtls/cipher.h
-    HINTS
-        /opt/homebrew/opt/mbedtls@3/include
-        /usr/local/opt/mbedtls@3/include
-        /opt/homebrew/opt/mbedtls/include
-        /usr/local/opt/mbedtls/include
-        /opt/homebrew/include
-        /usr/local/include
-        /usr/include
+# This codebase targets the mbedTLS 3.x API, so prefer a 3.x installation.
+set(_MBEDTLS_PREFIX_HINTS
+    /opt/homebrew/opt/mbedtls@3
+    /usr/local/opt/mbedtls@3
+    /opt/homebrew/opt/mbedtls
+    /usr/local/opt/mbedtls
+    /opt/homebrew
+    /usr/local
+    /usr
 )
 
-find_library(MBEDTLS_CRYPTO_LIBRARY
-    NAMES mbedcrypto
-    HINTS
-        /opt/homebrew/opt/mbedtls@3/lib
-        /usr/local/opt/mbedtls@3/lib
-        /opt/homebrew/opt/mbedtls/lib
-        /usr/local/opt/mbedtls/lib
-        /opt/homebrew/lib
-        /usr/local/lib
-        /usr/lib
-)
+# Locate a prefix that provides both the headers and libmbedcrypto, so the
+# two can never be drawn from different installations.
+foreach(_prefix IN LISTS _MBEDTLS_PREFIX_HINTS)
+    if(EXISTS "${_prefix}/include/mbedtls/cipher.h")
+        find_library(_MBEDTLS_CRYPTO_IN_PREFIX
+            NAMES mbedcrypto
+            PATHS "${_prefix}/lib"
+            NO_DEFAULT_PATH
+        )
+        if(_MBEDTLS_CRYPTO_IN_PREFIX)
+            set(_MBEDTLS_ROOT "${_prefix}")
+            break()
+        endif()
+        unset(_MBEDTLS_CRYPTO_IN_PREFIX CACHE)
+    endif()
+endforeach()
 
-find_library(MBEDTLS_TLS_LIBRARY
-    NAMES mbedtls
-    HINTS
-        /opt/homebrew/opt/mbedtls@3/lib
-        /usr/local/opt/mbedtls@3/lib
-        /opt/homebrew/opt/mbedtls/lib
-        /usr/local/opt/mbedtls/lib
-        /opt/homebrew/lib
-        /usr/local/lib
-        /usr/lib
-)
+if(_MBEDTLS_ROOT)
+    # Pin every component to the prefix chosen above.
+    find_path(MBEDTLS_INCLUDE_DIR
+        NAMES mbedtls/cipher.h
+        PATHS "${_MBEDTLS_ROOT}/include"
+        NO_DEFAULT_PATH
+    )
+    find_library(MBEDTLS_CRYPTO_LIBRARY
+        NAMES mbedcrypto
+        PATHS "${_MBEDTLS_ROOT}/lib"
+        NO_DEFAULT_PATH
+    )
+    find_library(MBEDTLS_TLS_LIBRARY
+        NAMES mbedtls
+        PATHS "${_MBEDTLS_ROOT}/lib"
+        NO_DEFAULT_PATH
+    )
+else()
+    # No single prefix provided both; fall back to a plain search.
+    find_path(MBEDTLS_INCLUDE_DIR NAMES mbedtls/cipher.h)
+    find_library(MBEDTLS_CRYPTO_LIBRARY NAMES mbedcrypto)
+    find_library(MBEDTLS_TLS_LIBRARY NAMES mbedtls)
+endif()
+
+unset(_MBEDTLS_CRYPTO_IN_PREFIX CACHE)
 
 if(MBEDTLS_INCLUDE_DIR AND MBEDTLS_CRYPTO_LIBRARY)
     set(MBEDTLS_FOUND TRUE)
     set(MBEDTLS_INCLUDE_DIRS ${MBEDTLS_INCLUDE_DIR})
 
-    # Check for required CFB mode support
     set(CMAKE_REQUIRED_INCLUDES ${MBEDTLS_INCLUDE_DIR})
     set(CMAKE_REQUIRED_LIBRARIES ${MBEDTLS_CRYPTO_LIBRARY})
 
+    # Check for required CFB mode support
     check_c_source_compiles("
         #include <mbedtls/cipher.h>
         #if !defined(MBEDTLS_CIPHER_MODE_CFB)
@@ -75,6 +100,31 @@ if(MBEDTLS_INCLUDE_DIR AND MBEDTLS_CRYPTO_LIBRARY)
         if(NOT MBEDTLS_HAS_CFB_V3)
             message(FATAL_ERROR "mbedTLS found but MBEDTLS_CIPHER_MODE_CFB is not enabled. "
                 "Please enable CFB mode in your mbedTLS configuration.")
+        endif()
+    endif()
+
+    # Verify the headers and the runtime library agree on the version. A
+    # mismatch silently corrupts the heap, so refuse to configure instead.
+    if(NOT CMAKE_CROSSCOMPILING AND NOT DEFINED MBEDTLS_VERSION_CONSISTENT)
+        try_run(_mbedtls_run_result _mbedtls_compile_result
+            ${CMAKE_BINARY_DIR}/CMakeFiles/mbedtls_version_check
+            ${CMAKE_CURRENT_LIST_DIR}/mbedtls_version_check.c
+            CMAKE_FLAGS
+                "-DINCLUDE_DIRECTORIES=${MBEDTLS_INCLUDE_DIR}"
+                "-DLINK_LIBRARIES=${MBEDTLS_CRYPTO_LIBRARY}"
+            RUN_OUTPUT_VARIABLE _mbedtls_run_output
+        )
+        if(_mbedtls_compile_result AND _mbedtls_run_result EQUAL 0)
+            set(MBEDTLS_VERSION_CONSISTENT TRUE CACHE INTERNAL "")
+        elseif(_mbedtls_compile_result)
+            message(FATAL_ERROR
+                "mbedTLS headers and library are from different installations:\n"
+                "  ${_mbedtls_run_output}\n"
+                "  headers: ${MBEDTLS_INCLUDE_DIR}\n"
+                "  library: ${MBEDTLS_CRYPTO_LIBRARY}\n"
+                "Mixing them corrupts memory at runtime. Point both at the same "
+                "mbedTLS installation, e.g. "
+                "-DCMAKE_PREFIX_PATH=/opt/homebrew/opt/mbedtls@3")
         endif()
     endif()
 

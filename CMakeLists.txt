@@ -13,10 +13,15 @@ include(GNUInstallDirs)
 # Compilation database for clang-tidy and other tooling
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Compiler flags matching autotools
+# C11 with GNU extensions. _GNU_SOURCE stays for the glibc-specific
+# interfaces used by the Linux-only modules (ss-redir, connmark/nftables).
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS ON)
+
 # Note: -Werror is applied per-target in src/CMakeLists.txt to avoid
 # breaking bundled submodules (libcork, libipset, libbloom)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -D_GNU_SOURCE")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -Wall -Wno-deprecated-declarations -fno-strict-aliasing")
 
 option(ENABLE_SANITIZERS "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)

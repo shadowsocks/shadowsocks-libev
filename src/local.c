@@ -52,6 +52,7 @@
 #include <libcork/core.h>
 
 #include "netutils.h"
+#include "ssurl.h"
 #include "utils.h"
 #include "socks5.h"
 #include "acl.h"
@@ -396,7 +397,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
                 LOGI("inet_ntop(AF_INET): %s", strerror(errno));
                 ip[0] = '\0';
             }
-            sprintf(port, "%d", p);
+            snprintf(port, sizeof(port), "%d", p);
         }
     } else if (atyp == SOCKS5_ATYP_DOMAIN) {
         if (buf->len < request_len + 1) {
@@ -414,7 +415,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
             uint16_t p = load16_be(buf->data + request_len + 1 + name_len);
             memcpy(host, buf->data + request_len + 1, name_len);
             host[name_len] = '\0';
-            sprintf(port, "%d", p);
+            snprintf(port, sizeof(port), "%d", p);
         }
     } else if (atyp == SOCKS5_ATYP_IPV6) {
         size_t in6_addr_len = sizeof(struct in6_addr);
@@ -431,7 +432,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
                 LOGI("inet_ntop(AF_INET6): %s", strerror(errno));
                 ip[0] = '\0';
             }
-            sprintf(port, "%d", p);
+            snprintf(port, sizeof(port), "%d", p);
         }
     } else {
         LOGE("unsupported addrtype: %d", request->atyp);
@@ -1217,6 +1218,7 @@ new_server(int fd)
     server->d_ctx = ss_malloc(sizeof(cipher_ctx_t));
     crypto->ctx_init(crypto->cipher, server->e_ctx, 1);
     crypto->ctx_init(crypto->cipher, server->d_ctx, 0);
+    cipher_ctx_pair(server->e_ctx, server->d_ctx);
 
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
@@ -1454,6 +1456,9 @@ main(int argc, char **argv)
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
     char *remote_port = NULL;
 
+    /* Lives until exit; its strings are handed to the config above. */
+    ss_url_t server_url = { 0 };
+
     memset(remote_addr, 0, sizeof(ss_addr_t) * MAX_REMOTE_NUM);
 
     static struct option long_options[] = {
@@ -1471,6 +1476,7 @@ main(int argc, char **argv)
         { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
         { "password",    required_argument, NULL, GETOPT_VAL_PASSWORD    },
         { "key",         required_argument, NULL, GETOPT_VAL_KEY         },
+        { "server-url",  required_argument, NULL, GETOPT_VAL_SERVER_URL  },
         { "help",        no_argument,       NULL, GETOPT_VAL_HELP        },
         { NULL,          0,                 NULL, 0                      }
     };
@@ -1517,6 +1523,30 @@ main(int argc, char **argv)
             break;
         case GETOPT_VAL_KEY:
             key = optarg;
+            break;
+        case GETOPT_VAL_SERVER_URL:
+            /*
+             * An ss:// URI carries the server, credentials and plugin in one
+             * argument. Options given later on the command line still win,
+             * since they are applied as getopt reaches them.
+             */
+            if (ss_url_parse(optarg, &server_url) != 0) {
+                FATAL("invalid ss:// server URL");
+            }
+            if (remote_num < MAX_REMOTE_NUM) {
+                remote_addr[remote_num].host = server_url.host;
+                remote_addr[remote_num].port = NULL;
+                remote_num++;
+            }
+            remote_port = server_url.port;
+            method      = server_url.method;
+            password    = server_url.password;
+            if (server_url.plugin != NULL)
+                plugin = server_url.plugin;
+            if (server_url.plugin_opts != NULL)
+                plugin_opts = server_url.plugin_opts;
+            if (server_url.tag != NULL)
+                LOGI("using server \"%s\"", server_url.tag);
             break;
         case GETOPT_VAL_REUSE_PORT:
             reuse_port = 1;
@@ -2078,8 +2108,8 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
 
     char local_port_str[16];
     char remote_port_str[16];
-    sprintf(local_port_str, "%d", local_port);
-    sprintf(remote_port_str, "%d", remote_port);
+    snprintf(local_port_str, sizeof(local_port_str), "%d", local_port);
+    snprintf(remote_port_str, sizeof(remote_port_str), "%d", remote_port);
 
 #ifdef __MINGW32__
     winsock_init();
