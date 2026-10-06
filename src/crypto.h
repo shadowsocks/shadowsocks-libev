@@ -116,6 +116,7 @@ typedef struct {
 typedef struct cipher_ctx {
     uint32_t init;
     uint64_t counter;
+    uint8_t printable_salt; /* opt-in client TCP salt prefix; never used by UDP */
     cipher_evp_t *evp;
     aes256gcm_ctx *aes256gcm_ctx;
     cipher_t *cipher;

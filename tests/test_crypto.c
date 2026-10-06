@@ -173,6 +173,125 @@ test_aead_repeat_salt_rejection_releases_context(void)
     ss_free(crypto);
 }
 
+/* A nonprintable sentinel exposes the selected span without adding wire state.
+ * Retain the random tail so every test connection still has a fresh salt. */
+static void
+test_printable_salt_lengths(const char *method)
+{
+    crypto_t *crypto = crypto_init("password", NULL, method);
+    assert(crypto != NULL);
+    unsigned seen = 0;
+    buffer_t buf = {0};
+    balloc(&buf, 2048);
+    for (int sample = 0; sample < 512; sample++) {
+        cipher_ctx_t enc;
+        crypto->ctx_init(crypto->cipher, &enc, 1);
+        enc.printable_salt = 1;
+        memset(enc.salt, 0xff, 12);
+        uint8_t tail[20];
+        memcpy(tail, enc.salt + 12, sizeof(tail));
+        buf.data[0] = 'x';
+        buf.len = 1;
+        assert(crypto->encrypt(&buf, &enc, 2048) == CRYPTO_OK);
+        assert(buf.len == 32 + 2 + 32 + 1);
+        size_t length = 0;
+        while (length < 12 && enc.salt[length] != 0xff) {
+            assert(enc.salt[length] >= 0x20 && enc.salt[length] <= 0x7e);
+            length++;
+        }
+        assert(length >= 6 && length <= 12);
+        for (size_t i = length; i < 12; i++)
+            assert(enc.salt[i] == 0xff);
+        assert(memcmp(tail, enc.salt + 12, sizeof(tail)) == 0);
+        assert(memcmp(buf.data, enc.salt, 32) == 0);
+        seen |= 1u << (length - 6);
+        crypto->ctx_release(&enc);
+    }
+    /* Probability of missing a length with unbiased sampling is < 4e-34. */
+    assert(seen == 0x7f);
+    bfree(&buf);
+    ppbloom_free();
+    ss_free(crypto->cipher);
+    ss_free(crypto);
+}
+
+/* Exercise empty first writes, exact wire overhead, fragmented input, tampering
+ * and replay with the receiver's independent bloom filter. */
+static void
+test_printable_salt(const char *method, int enabled)
+{
+    crypto_t *crypto = crypto_init("password", NULL, method);
+    assert(crypto != NULL);
+    cipher_ctx_t enc, dec;
+    crypto->ctx_init(crypto->cipher, &enc, 1);
+    crypto->ctx_init(crypto->cipher, &dec, 0);
+    assert(enc.printable_salt == 0);
+    enc.printable_salt = enabled;
+    uint8_t original[32];
+    memcpy(original, enc.salt, 32);
+    buffer_t buf = {0}, fragment = {0};
+    balloc(&buf, 2048);
+    balloc(&fragment, 2048);
+    assert(crypto->encrypt(&buf, &enc, 2048) == CRYPTO_OK);
+    assert(enc.init == 0 && buf.len == 0);
+    assert(memcmp(original, enc.salt, 32) == 0);
+    memcpy(buf.data, "payload", 7);
+    buf.len = 7;
+    assert(crypto->encrypt(&buf, &enc, 2048) == CRYPTO_OK);
+    assert(buf.len == 32 + 2 + 32 + 7);
+    assert(memcmp(buf.data, enc.salt, 32) == 0);
+    assert(memcmp(original + 12, enc.salt + 12, 20) == 0);
+    if (enabled) {
+        for (int i = 0; i < 6; i++)
+            assert(enc.salt[i] >= 0x20 && enc.salt[i] <= 0x7e);
+    } else {
+        assert(memcmp(original, enc.salt, 32) == 0);
+    }
+    uint8_t wire[73];
+    memcpy(wire, buf.data, sizeof(wire));
+    ppbloom_free();
+    ppbloom_init(10000, 1e-15);
+    for (size_t i = 0; i < sizeof(wire); i++) {
+        fragment.data[0] = wire[i];
+        fragment.len = 1;
+        int result = crypto->decrypt(&fragment, &dec, 2048);
+        if (i + 1 < sizeof(wire)) {
+            assert(result == CRYPTO_NEED_MORE);
+        } else {
+            assert(result == CRYPTO_OK);
+            assert(fragment.len == 7 && memcmp(fragment.data, "payload", 7) == 0);
+        }
+    }
+    memcpy(original, enc.salt, 32);
+    memcpy(buf.data, "next", 4);
+    buf.len = 4;
+    assert(crypto->encrypt(&buf, &enc, 2048) == CRYPTO_OK);
+    assert(buf.len == 2 + 32 + 4);
+    assert(memcmp(original, enc.salt, 32) == 0);
+    assert(crypto->decrypt(&buf, &dec, 2048) == CRYPTO_OK);
+    assert(buf.len == 4 && memcmp(buf.data, "next", 4) == 0);
+    crypto->ctx_release(&dec);
+    crypto->ctx_init(crypto->cipher, &dec, 0);
+    memcpy(buf.data, wire, sizeof(wire));
+    buf.len = sizeof(wire);
+    assert(crypto->decrypt(&buf, &dec, 2048) == CRYPTO_ERROR);
+    crypto->ctx_release(&dec);
+    ppbloom_free();
+    ppbloom_init(10000, 1e-15);
+    crypto->ctx_init(crypto->cipher, &dec, 0);
+    memcpy(buf.data, wire, sizeof(wire));
+    buf.data[sizeof(wire) - 1] ^= 1;
+    buf.len = sizeof(wire);
+    assert(crypto->decrypt(&buf, &dec, 2048) == CRYPTO_ERROR);
+    crypto->ctx_release(&dec);
+    crypto->ctx_release(&enc);
+    bfree(&buf);
+    bfree(&fragment);
+    ppbloom_free();
+    ss_free(crypto->cipher);
+    ss_free(crypto);
+}
+
 /*
  * Round-trip a multi-segment stream through a stream cipher.
  *
@@ -232,6 +351,12 @@ main(void)
         return 1;
     }
 
+    test_printable_salt_lengths("chacha20-ietf-poly1305");
+    test_printable_salt_lengths("aes-256-gcm");
+    test_printable_salt("chacha20-ietf-poly1305", 0);
+    test_printable_salt("chacha20-ietf-poly1305", 1);
+    test_printable_salt("aes-256-gcm", 0);
+    test_printable_salt("aes-256-gcm", 1);
     test_crypto_md5();
     test_crypto_derive_key();
     test_crypto_hkdf();

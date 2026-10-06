@@ -86,6 +86,7 @@ typedef struct {
     int mptcp;
     int ipv6_first;
     int no_delay;
+    int printable_salt;
     int tcp_tproxy;
     char *workdir;
     char *acl;

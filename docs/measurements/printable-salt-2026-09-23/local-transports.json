@@ -1,0 +1,92 @@
+[
+  {
+    "mode": "raw",
+    "cipher": "chacha20-ietf-poly1305",
+    "concurrent_transfers": 4,
+    "success": true,
+    "large_bytes": 10485760,
+    "large_seconds": 0.08012195900028019,
+    "echo_mbps": 1046.9798922378652
+  },
+  {
+    "mode": "base64",
+    "cipher": "chacha20-ietf-poly1305",
+    "concurrent_transfers": 4,
+    "success": true,
+    "large_bytes": 10485760,
+    "large_seconds": 0.07741466600009517,
+    "echo_mbps": 1083.5941603093252
+  },
+  {
+    "mode": "base85",
+    "cipher": "chacha20-ietf-poly1305",
+    "concurrent_transfers": 4,
+    "success": true,
+    "large_bytes": 10485760,
+    "large_seconds": 0.905553042000065,
+    "echo_mbps": 92.63519209733269
+  },
+  {
+    "mode": "lowpop85",
+    "cipher": "chacha20-ietf-poly1305",
+    "concurrent_transfers": 4,
+    "success": true,
+    "large_bytes": 10485760,
+    "large_seconds": 1.2371564999998554,
+    "echo_mbps": 67.80555249073969
+  },
+  {
+    "mode": "tls",
+    "cipher": "chacha20-ietf-poly1305",
+    "concurrent_transfers": 4,
+    "success": true,
+    "large_bytes": 10485760,
+    "large_seconds": 0.08228737499985073,
+    "echo_mbps": 1019.4283144911619
+  },
+  {
+    "mode": "raw",
+    "cipher": "aes-256-gcm",
+    "concurrent_transfers": 4,
+    "success": true,
+    "large_bytes": 10485760,
+    "large_seconds": 0.06935350000003382,
+    "echo_mbps": 1209.5435702590223
+  },
+  {
+    "mode": "base64",
+    "cipher": "aes-256-gcm",
+    "concurrent_transfers": 4,
+    "success": true,
+    "large_bytes": 10485760,
+    "large_seconds": 0.07823958400012998,
+    "echo_mbps": 1072.1692998758867
+  },
+  {
+    "mode": "base85",
+    "cipher": "aes-256-gcm",
+    "concurrent_transfers": 4,
+    "success": true,
+    "large_bytes": 10485760,
+    "large_seconds": 0.8975279999999657,
+    "echo_mbps": 93.4634685491742
+  },
+  {
+    "mode": "lowpop85",
+    "cipher": "aes-256-gcm",
+    "concurrent_transfers": 4,
+    "success": true,
+    "large_bytes": 10485760,
+    "large_seconds": 1.2540836660000423,
+    "echo_mbps": 66.89033776156141
+  },
+  {
+    "mode": "tls",
+    "cipher": "aes-256-gcm",
+    "concurrent_transfers": 4,
+    "success": true,
+    "large_bytes": 10485760,
+    "large_seconds": 0.06872141700023349,
+    "echo_mbps": 1220.6686599566913
+  }
+]

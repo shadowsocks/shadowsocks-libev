@@ -52,6 +52,42 @@ class CliTests(unittest.TestCase):
                     self.assertIn('--outbound-address', help_result.stdout)
                     self.assertNotIn('--server-port', help_result.stdout)
 
+    def test_printable_salt_is_local_only_and_rejects_other_ciphers(self):
+        for name in self.binaries:
+            help_result = self.run_cli(name, '--help')
+            self.assertEqual('--printable-salt' in help_result.stdout, name == 'local')
+            if name != 'local':
+                self.assertEqual(self.run_cli(name, '--printable-salt').returncode, 2)
+        for method in ('aes-128-gcm', 'aes-256-cfb', '2022-blake3-aes-256-gcm',
+                       '2022-blake3-chacha20-poly1305'):
+            with self.subTest(method=method):
+                result = self.run_cli('local', '-s', '127.0.0.1', '-p', '8388',
+                                      '-l', '1080', '-k', 'test-password', '-m', method,
+                                      '--printable-salt')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('requires chacha20-ietf-poly1305', result.stderr)
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / 'client.json'
+            config.write_text(json.dumps(dict(server='127.0.0.1', server_port=8388,
+                                              local_port=1080, password='test-password',
+                                              method='aes-128-gcm')))
+            result = self.run_cli('local', '-c', str(config), '--printable-salt')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('requires chacha20-ietf-poly1305', result.stderr)
+            # The config key alone enables it, so the cipher check still applies.
+            config.write_text(json.dumps(dict(server='127.0.0.1', server_port=8388,
+                                              local_port=1080, password='test-password',
+                                              method='aes-128-gcm', printable_salt=True)))
+            result = self.run_cli('local', '-c', str(config))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('requires chacha20-ietf-poly1305', result.stderr)
+            config.write_text(json.dumps(dict(server='127.0.0.1', server_port=8388,
+                                              local_port=1080, password='test-password',
+                                              method='aes-128-gcm', printable_salt='yes')))
+            result = self.run_cli('local', '-c', str(config))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("option 'printable_salt' must be a boolean", result.stderr)
+
     def test_long_aliases_accept_their_arguments(self):
         for name in self.binaries:
             args = ['--config', 'not-loaded-before-help.json', '--cipher', 'aes-128-gcm',

@@ -1,0 +1,273 @@
+{
+  "protocol": {
+    "modes": [
+      "raw",
+      "base64",
+      "base85",
+      "lowpop85",
+      "tls"
+    ],
+    "ports": [
+      32220,
+      32221,
+      32222,
+      32223,
+      32224
+    ],
+    "phases": 5,
+    "phase_seconds": 120,
+    "small_interval_seconds": 5,
+    "small_bytes": 1024,
+    "large_per_phase": 1,
+    "large_bytes": 10485760,
+    "rotation": "mode i uses port (i + phase_index) modulo 5",
+    "acceptance": "screening only; all-success is compatibility, not censorship resistance"
+  },
+  "complete": false,
+  "aborts": [
+    {
+      "event": "aborted",
+      "reason": "AssertionError: remote supervisor stopped",
+      "utc": "2026-09-23T10:50:53Z"
+    }
+  ],
+  "completed_phases": 3,
+  "outcome_logging_limit": "Runs before the durable-outcome fix can omit in-flight outcomes at abort.",
+  "health_checks": 19,
+  "health_failures": 0,
+  "modes": {
+    "raw": {
+      "recorded_outcomes": 92,
+      "success": 92,
+      "errors": [],
+      "small_median_ms": 182.72097949989075,
+      "small_p95_ms": 2646.290791999945,
+      "large_median_mbps": 12.72926290474592
+    },
+    "base64": {
+      "recorded_outcomes": 93,
+      "success": 93,
+      "errors": [],
+      "small_median_ms": 181.17083300012382,
+      "small_p95_ms": 2382.4694589998217,
+      "large_median_mbps": 5.420371172252078
+    },
+    "base85": {
+      "recorded_outcomes": 92,
+      "success": 92,
+      "errors": [],
+      "small_median_ms": 186.88187499992637,
+      "small_p95_ms": 2382.5787079999827,
+      "large_median_mbps": 4.107073353264521
+    },
+    "lowpop85": {
+      "recorded_outcomes": 92,
+      "success": 92,
+      "errors": [],
+      "small_median_ms": 197.4834169998303,
+      "small_p95_ms": 2383.1408749997536,
+      "large_median_mbps": 3.789692522854444
+    },
+    "tls": {
+      "recorded_outcomes": 92,
+      "success": 92,
+      "errors": [],
+      "small_median_ms": 280.86322900003324,
+      "small_p95_ms": 3078.0023329998585,
+      "large_median_mbps": 4.804416561409541
+    }
+  },
+  "client.pcap/unsolicited": {
+    "connections": 0,
+    "exact_replays": []
+  },
+  "client.pcap": {
+    "raw": {
+      "connections": 92,
+      "sequence_ok": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 1,
+      "popcount": 0,
+      "prefix": 0,
+      "half": 1,
+      "run": 0,
+      "tls_header": 0
+    },
+    "base64": {
+      "connections": 93,
+      "sequence_ok": 93,
+      "complete_first_payload": 93,
+      "historical_exemption": 93,
+      "popcount": 0,
+      "prefix": 93,
+      "half": 93,
+      "run": 93,
+      "tls_header": 0
+    },
+    "base85": {
+      "connections": 92,
+      "sequence_ok": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92,
+      "popcount": 0,
+      "prefix": 92,
+      "half": 92,
+      "run": 92,
+      "tls_header": 0
+    },
+    "tls": {
+      "connections": 92,
+      "sequence_ok": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92,
+      "popcount": 0,
+      "prefix": 0,
+      "half": 0,
+      "run": 0,
+      "tls_header": 92
+    },
+    "lowpop85": {
+      "connections": 92,
+      "sequence_ok": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92,
+      "popcount": 92,
+      "prefix": 0,
+      "half": 1,
+      "run": 1,
+      "tls_header": 0
+    }
+  },
+  "client.pcap/stream_start": {
+    "raw": {
+      "connections": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 1
+    },
+    "base64": {
+      "connections": 93,
+      "complete_first_payload": 93,
+      "historical_exemption": 93
+    },
+    "base85": {
+      "connections": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92
+    },
+    "tls": {
+      "connections": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92
+    },
+    "lowpop85": {
+      "connections": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92
+    }
+  },
+  "remote-server.pcap/unsolicited": {
+    "connections": 2,
+    "exact_replays": [
+      {
+        "mode": "raw",
+        "phase": 1,
+        "port": 32220,
+        "delay_seconds": 3.929837942123413,
+        "payload_bytes": 79,
+        "payload_sha256": "82a31e39eaef22fd6ed9c588772aa89ac6792cb16513e6390b229b00be33c812"
+      },
+      {
+        "mode": "raw",
+        "phase": 4,
+        "port": 32223,
+        "delay_seconds": 0.9364199638366699,
+        "payload_bytes": 79,
+        "payload_sha256": "652fa6336adc1bdd23cd51836d7b6816952be871c83a65a042734b747d056611"
+      }
+    ]
+  },
+  "remote-server.pcap": {
+    "raw": {
+      "connections": 92,
+      "sequence_ok": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 1,
+      "popcount": 0,
+      "prefix": 0,
+      "half": 1,
+      "run": 0,
+      "tls_header": 0
+    },
+    "base85": {
+      "connections": 92,
+      "sequence_ok": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92,
+      "popcount": 0,
+      "prefix": 92,
+      "half": 92,
+      "run": 92,
+      "tls_header": 0
+    },
+    "base64": {
+      "connections": 93,
+      "sequence_ok": 93,
+      "complete_first_payload": 93,
+      "historical_exemption": 93,
+      "popcount": 0,
+      "prefix": 93,
+      "half": 93,
+      "run": 93,
+      "tls_header": 0
+    },
+    "tls": {
+      "connections": 92,
+      "sequence_ok": 89,
+      "complete_first_payload": 92,
+      "historical_exemption": 89,
+      "popcount": 0,
+      "prefix": 0,
+      "half": 0,
+      "run": 0,
+      "tls_header": 89
+    },
+    "lowpop85": {
+      "connections": 92,
+      "sequence_ok": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92,
+      "popcount": 92,
+      "prefix": 0,
+      "half": 1,
+      "run": 1,
+      "tls_header": 0
+    }
+  },
+  "remote-server.pcap/stream_start": {
+    "raw": {
+      "connections": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 1
+    },
+    "base85": {
+      "connections": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92
+    },
+    "base64": {
+      "connections": 93,
+      "complete_first_payload": 93,
+      "historical_exemption": 93
+    },
+    "tls": {
+      "connections": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92
+    },
+    "lowpop85": {
+      "connections": 92,
+      "complete_first_payload": 92,
+      "historical_exemption": 92
+    }
+  }
+}
