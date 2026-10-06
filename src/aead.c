@@ -592,6 +592,15 @@ aead_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
     ciphertext->len = out_len;
 
     if (!cipher_ctx->init) {
+        if (cipher_ctx->printable_salt) {
+            /* Only ss-local TCP opts in, after ctx_init. Keep UDP salt
+             * generation untouched and derive the key from the final salt. */
+            /* Vary the constrained span without adding a delimiter or marker. */
+            size_t prefix_len = 6 + randombytes_uniform(7);
+            for (size_t i = 0; i < prefix_len; i++) {
+                cipher_ctx->salt[i] = 0x20 + randombytes_uniform(95);
+            }
+        }
         memcpy(ciphertext->data, cipher_ctx->salt, salt_len);
         aead_cipher_ctx_set_key(cipher_ctx, 1);
         cipher_ctx->init = 1;

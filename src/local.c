@@ -102,6 +102,7 @@ static int mode      = TCP_ONLY;
 static int ipv6first = 0;
 int fast_open        = 0;
 static int no_delay  = 0;
+static int printable_salt = 0;
 static int udp_fd    = 0;
 static int ret_val   = 0;
 
@@ -1265,6 +1266,7 @@ new_server(int fd)
     server->d_ctx = ss_malloc(sizeof(cipher_ctx_t));
     crypto->ctx_init(crypto->cipher, server->e_ctx, 1);
     crypto->ctx_init(crypto->cipher, server->d_ctx, 0);
+    server->e_ctx->printable_salt = printable_salt;
     cipher_ctx_pair(server->e_ctx, server->d_ctx);
 
     ss_io_init(&server->recv_ctx->io, server_recv_cb, fd, SS_READ);
@@ -1653,6 +1655,7 @@ Same behavior as `-S`; see that option for details. Short alias: `-S`.
 \snippet{doc} utils.c cli_long_password
 \snippet{doc} utils.c cli_long_key
 \snippet{doc} utils.c cli_long_server_url
+\snippet{doc} utils.c cli_long_printable_salt
 \snippet{doc} utils.c cli_long_help
 [cli-options] */
     static struct option long_options[] = {
@@ -1684,6 +1687,7 @@ Same behavior as `-S`; see that option for details. Short alias: `-S`.
         { "tcp-outgoing-sndbuf", required_argument, NULL, GETOPT_VAL_TCP_OUTGOING_SNDBUF },
         { "tcp-outgoing-rcvbuf", required_argument, NULL, GETOPT_VAL_TCP_OUTGOING_RCVBUF },
         { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN   },
+        { "printable-salt", no_argument, NULL, GETOPT_VAL_PRINTABLE_SALT },
         { "no-delay",    no_argument,       NULL, GETOPT_VAL_NODELAY     },
         { "acl",         required_argument, NULL, GETOPT_VAL_ACL         },
         { "mtu",         required_argument, NULL, GETOPT_VAL_MTU         },
@@ -1739,6 +1743,9 @@ Same behavior as `-S`; see that option for details. Short alias: `-S`.
             mptcp = get_mptcp(1);
             if (mptcp)
                 LOGI("enable multipath TCP (%s)", mptcp > 0 ? "out-of-tree" : "upstream");
+            break;
+        case GETOPT_VAL_PRINTABLE_SALT:
+            printable_salt = 1;
             break;
         case GETOPT_VAL_NODELAY:
             no_delay = 1;
@@ -1981,6 +1988,9 @@ Same behavior as `-S`; see that option for details. Short alias: `-S`.
         if (no_delay == 0) {
             no_delay = conf->no_delay;
         }
+        if (printable_salt == 0) {
+            printable_salt = conf->printable_salt;
+        }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;
@@ -2080,6 +2090,13 @@ Same behavior as `-S`; see that option for details. Short alias: `-S`.
 
     if (method == NULL) {
         method = "chacha20-ietf-poly1305";
+    }
+    if (printable_salt && strcmp(method, "chacha20-ietf-poly1305") != 0
+        && strcmp(method, "aes-256-gcm") != 0) {
+        FATAL("--printable-salt (printable_salt) requires chacha20-ietf-poly1305 or aes-256-gcm");
+    }
+    if (printable_salt) {
+        LOGI("enable experimental printable TCP salt");
     }
 
     if (timeout == NULL) {

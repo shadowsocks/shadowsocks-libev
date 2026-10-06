@@ -1,0 +1,30 @@
+[
+  {
+    "method": "aes-256-gcm",
+    "enabled": false,
+    "flows": 32,
+    "printable": 0,
+    "sequence_ok": 32
+  },
+  {
+    "method": "aes-256-gcm",
+    "enabled": true,
+    "flows": 32,
+    "printable": 32,
+    "sequence_ok": 32
+  },
+  {
+    "method": "chacha20-ietf-poly1305",
+    "enabled": false,
+    "flows": 32,
+    "printable": 0,
+    "sequence_ok": 32
+  },
+  {
+    "method": "chacha20-ietf-poly1305",
+    "enabled": true,
+    "flows": 32,
+    "printable": 32,
+    "sequence_ok": 32
+  }
+]

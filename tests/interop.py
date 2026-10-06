@@ -179,12 +179,16 @@ def peers(commands, ports, environment=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--self", action="store_true", help="use this build for both peers")
+    parser.add_argument("--printable-salt", action="store_true", help="enable experimental C client TCP prefix")
+    parser.add_argument("--server-bin", help="independent stock ss-server executable (requires --self)")
     parser.add_argument("--method", help="run one cipher")
     parser.add_argument("--bin", default=os.environ.get("SS_BIN_DIR", "build/bin"), help="program directory")
     parser.add_argument("--plugin", help="SIP003 fixture executable (requires --self)")
     parser.add_argument("--isolate-windows-runtime", action="store_true",
                         help="remove MSYS2/toolchain DLL directories from child PATH")
     args = parser.parse_args()
+    if args.server_bin and not args.self:
+        parser.error("--server-bin requires --self")
     if args.plugin and not args.self:
         parser.error("--plugin requires --self")
     environment = None
@@ -197,6 +201,8 @@ def main():
     binary_dir = Path(args.bin).resolve()
     suffix = ".exe" if os.name == "nt" else ""
     local, server = [str(binary_dir / (name + suffix)) for name in ("ss-local", "ss-server")]
+    if args.server_bin:
+        server = str(Path(args.server_bin).resolve())
     rust_local, rust_server = shutil.which("sslocal"), shutil.which("ssserver")
     missing = [p for p in (local, server) if not os.path.isfile(p)]
     if not args.self:
@@ -207,6 +213,8 @@ def main():
     methods = ["2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm",
                "2022-blake3-chacha20-poly1305", "aes-128-gcm", "aes-256-gcm",
                "chacha20-ietf-poly1305"]
+    if args.printable_salt:
+        methods = ["aes-256-gcm", "chacha20-ietf-poly1305"]
     if args.method:
         methods = [args.method]
     failures = 0
@@ -224,6 +232,8 @@ def main():
                     server_port, local_port = free_port(), free_port()
                     c_server = [server, "-s", "127.0.0.1", "-p", str(server_port), "-k", psk, "-m", method, "-u"]
                     c_local = [local, "-s", "127.0.0.1", "-p", str(server_port), "-l", str(local_port), "-k", psk, "-m", method, "-u"]
+                    if args.printable_salt:
+                        c_local.append("--printable-salt")
                     commands = [c_server, c_local]
                     plugin_temp = tempfile.TemporaryDirectory(prefix="ss-plugin-") if args.plugin else None
                     markers = []

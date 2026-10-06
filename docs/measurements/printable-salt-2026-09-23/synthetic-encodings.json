@@ -1,0 +1,102 @@
+[
+  {
+    "mode": "raw",
+    "synthetic": true,
+    "source_bytes": 1048576,
+    "wire_bytes": 1048576,
+    "overhead_fraction": 0.0,
+    "codec_roundtrip_mib_s": null,
+    "historical_exemption_samples": 2000,
+    "historical_exemption_passes": {
+      "popcount": 0,
+      "prefix": 1,
+      "half": 4,
+      "run": 0,
+      "any": 5
+    },
+    "byte_entropy": 7.9998218311327545,
+    "alphabet_size": 256,
+    "printable_fraction": 0.37133216857910156,
+    "ones_per_byte": 3.9997339248657227
+  },
+  {
+    "mode": "printable6",
+    "synthetic": true,
+    "source_bytes": 1048576,
+    "wire_bytes": 1048576,
+    "overhead_fraction": 0.0,
+    "codec_roundtrip_mib_s": null,
+    "historical_exemption_samples": 2000,
+    "historical_exemption_passes": {
+      "popcount": 0,
+      "prefix": 2000,
+      "half": 54,
+      "run": 0,
+      "any": 2000
+    },
+    "byte_entropy": 7.999821825117097,
+    "alphabet_size": 256,
+    "printable_fraction": 0.3713359832763672,
+    "ones_per_byte": 3.999736785888672
+  },
+  {
+    "mode": "base64",
+    "synthetic": true,
+    "source_bytes": 1048576,
+    "wire_bytes": 1398336,
+    "overhead_fraction": 0.33355712890625,
+    "codec_roundtrip_mib_s": 418.4611676388659,
+    "historical_exemption_samples": 2000,
+    "historical_exemption_passes": {
+      "popcount": 0,
+      "prefix": 2000,
+      "half": 2000,
+      "run": 2000,
+      "any": 2000
+    },
+    "byte_entropy": 6.0012302038144885,
+    "alphabet_size": 66,
+    "printable_fraction": 0.9999542313149343,
+    "ones_per_byte": 3.7805248523959905
+  },
+  {
+    "mode": "base85",
+    "synthetic": true,
+    "source_bytes": 1048576,
+    "wire_bytes": 1310784,
+    "overhead_fraction": 0.25006103515625,
+    "codec_roundtrip_mib_s": 12.200986906081184,
+    "historical_exemption_samples": 2000,
+    "historical_exemption_passes": {
+      "popcount": 0,
+      "prefix": 2000,
+      "half": 2000,
+      "run": 2000,
+      "any": 2000
+    },
+    "byte_entropy": 6.408921116110362,
+    "alphabet_size": 86,
+    "printable_fraction": 0.9999511742590694,
+    "ones_per_byte": 3.799169809823739
+  },
+  {
+    "mode": "lowpop85",
+    "synthetic": true,
+    "source_bytes": 1048576,
+    "wire_bytes": 1310784,
+    "overhead_fraction": 0.25006103515625,
+    "codec_roundtrip_mib_s": 8.75479461798384,
+    "historical_exemption_samples": 2000,
+    "historical_exemption_passes": {
+      "popcount": 2000,
+      "prefix": 13,
+      "half": 173,
+      "run": 0,
+      "any": 2000
+    },
+    "byte_entropy": 6.408921116110362,
+    "alphabet_size": 86,
+    "printable_fraction": 0.4492898906303403,
+    "ones_per_byte": 2.444301273131195
+  }
+]

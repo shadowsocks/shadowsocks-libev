@@ -222,5 +222,21 @@ if(SS_BUILD_EXECUTABLES AND NOT CMAKE_CROSSCOMPILING)
             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_cli.py
                     --bin-dir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
         set_tests_properties(test_cli PROPERTIES LABELS "integration" TIMEOUT 60)
+        if(UNIX)
+            add_test(NAME test_experiment_supervisor
+                COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/experiments/test_supervisor.py
+                        --bin ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+            set_tests_properties(test_experiment_supervisor PROPERTIES
+                LABELS "integration" TIMEOUT 30)
+        endif()
+        add_test(NAME test_experimental_transports
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/experiments/test_transport.py)
+        set_tests_properties(test_experimental_transports PROPERTIES
+            LABELS "integration" TIMEOUT 30)
+        add_test(NAME test_printable_salt_interop
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/interop.py
+                    --self --printable-salt --bin ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+        set_tests_properties(test_printable_salt_interop PROPERTIES
+            LABELS "integration" TIMEOUT 90)
     endif()
 endif()

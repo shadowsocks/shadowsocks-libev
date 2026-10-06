@@ -1,0 +1,7 @@
+{
+  "last_matched_request_utc": "2026-09-23T10:50:38.585912+00:00",
+  "first_unseen_request_utc": "2026-09-23T10:50:43.584421+00:00",
+  "subsequent_unseen_packets": 10,
+  "first_unseen_payload_bytes": 52,
+  "explanation": "After this point, captured client SSH payloads were absent from the server capture. This supports forward-path loss, without identifying its cause or actor."
+}

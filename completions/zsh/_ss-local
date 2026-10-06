@@ -24,6 +24,7 @@ _arguments "-h::" \
            "--acl:acl file:_files" \
            "--mtu::" \
            "--mptcp::" \
+           "--printable-salt[Experimental printable TCP salt]" \
            "--no-delay::" \
            "--key:key in base64:" \
            "--plugin:plugin name:" \

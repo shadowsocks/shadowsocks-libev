@@ -451,6 +451,11 @@ read_jconf(const char *file)
                     value, json_boolean,
                     "invalid config file: option 'no_delay' must be a boolean");
                 conf.no_delay = value->u.boolean;
+            } else if (strcmp(name, "printable_salt") == 0) {
+                check_json_value_type(
+                    value, json_boolean,
+                    "invalid config file: option 'printable_salt' must be a boolean");
+                conf.printable_salt = value->u.boolean;
             } else if (strcmp(name, "tcp_tproxy") == 0) {
                 check_json_value_type(
                     value, json_boolean,

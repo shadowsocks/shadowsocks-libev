@@ -1,0 +1,41 @@
+{
+  "status": "aborted_management_ssh_timeout",
+  "planned_phases": 2,
+  "completed_phases": 0,
+  "recorded_start": "2026-09-23T10:20:21Z",
+  "cleanup": {
+    "event": "cleanup",
+    "remote_exit": 255,
+    "capture_retrieved": true,
+    "utc": "2026-09-23T10:36:30Z"
+  },
+  "health_checks_passed": 32,
+  "modes": {
+    "stock": {
+      "recorded_transfers": 197,
+      "success": 197,
+      "small_count": 191,
+      "large_count": 6,
+      "small_median_ms": 173.38316699988354,
+      "large_median_mbps": 23.89289883802104
+    },
+    "modified": {
+      "recorded_transfers": 197,
+      "success": 197,
+      "small_count": 191,
+      "large_count": 6,
+      "small_median_ms": 172.58616700019047,
+      "large_median_mbps": 27.25382920437916
+    }
+  },
+  "unsolicited_replay": {
+    "mode": "stock",
+    "port": 32181,
+    "payload_bytes": 79,
+    "payload_sha256": "4ccffea9fe4f971ff965a11b7a3431d7f153ac0905903fb362ca37273064b7bf",
+    "delay_seconds": 3.1093130111694336,
+    "other_source": true,
+    "server_application_response_bytes": 0,
+    "attribution": "unknown"
+  }
+}

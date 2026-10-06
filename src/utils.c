@@ -427,6 +427,16 @@ Enable UDP relay and disable TCP relay.
 Resolve hostname to IPv6 address first.
 [cli_short_6] */
 
+/* [cli_long_printable_salt]
+\par `--printable-salt`
+Experimental client TCP salt camouflage, disabled by default. Config key: `"printable_salt": true`
+(ss-local only). Randomly choose 6-12 leading
+salt bytes and sample each as printable ASCII (0x20-0x7e). Requires chacha20-ietf-poly1305 or
+aes-256-gcm. Adds no framing bytes; leaves UDP and server responses unchanged.
+The 32-byte salt retains at least 238 bits of entropy. Salt uniqueness
+remains essential. This is not TLS impersonation or proven censorship resistance.
+[cli_long_printable_salt] */
+
 /* [cli_long_fast_open]
 \par `--fast-open`
 Enable TCP Fast Open where supported by the operating system.
@@ -678,6 +688,9 @@ usage(void)
     cli_help_option("--fast-open", "Enable TCP Fast Open where supported.");
     cli_help_option("--reuse-port", "Enable port reuse where supported.");
     cli_help_option("--no-delay", "Enable TCP_NODELAY.");
+#ifdef MODULE_LOCAL
+    cli_help_option("--printable-salt", "Experimental printable TCP salt (chacha20-ietf-poly1305/aes-256-gcm only).");
+#endif
 #if !defined(MODULE_MANAGER) && (!defined(MODULE_REMOTE) || defined(__linux__))
     cli_help_option("--mptcp", "Enable Multipath TCP where supported.");
 #endif

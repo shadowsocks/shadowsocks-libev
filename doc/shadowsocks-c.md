@@ -79,6 +79,7 @@ The config file equivalent of command line options is listed as examples below.
 - `--fast-open`: `"fast_open": true`
 - `--reuse-port`: `"reuse_port": true`
 - `--no-delay`: `"no_delay": true`
+- `--printable-salt`: `"printable_salt": true` (ss-local only)
 - `--plugin "obfs-server"`: `"plugin": "obfs-server"`
 - `--plugin-opts "obfs=http"`: `"plugin_opts": "obfs=http"`
 - `-6`: `"ipv6_first": true`
