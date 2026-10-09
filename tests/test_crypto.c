@@ -231,6 +231,12 @@ main(void)
     if (sodium_init() < 0) {
         return 1;
     }
+#if MBEDTLS_VERSION_NUMBER >= 0x04000000
+    /* crypto_init() does this, but the first tests run without it */
+    if (psa_crypto_init() != PSA_SUCCESS) {
+        return 1;
+    }
+#endif
 
     test_crypto_md5();
     test_crypto_derive_key();

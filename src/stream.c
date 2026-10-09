@@ -24,8 +24,6 @@
 #include "config.h"
 #endif
 
-#include <mbedtls/entropy.h>
-#include <mbedtls/ctr_drbg.h>
 #include <mbedtls/version.h>
 #define CIPHER_UNSUPPORTED "unsupported"
 
@@ -193,7 +191,7 @@ stream_get_cipher_type(int method)
              ciphername);
         return NULL;
     }
-    return mbedtls_cipher_info_from_string(mbedtlsname);
+    return crypto_cipher_info_from_string(mbedtlsname);
 }
 
 void
@@ -219,8 +217,7 @@ stream_cipher_ctx_init(cipher_ctx_t *ctx, int method, int enc)
         LOGE("Cipher %s not found in mbed TLS library", ciphername);
         FATAL("Cannot initialize mbed TLS cipher");
     }
-    mbedtls_cipher_init(evp);
-    if (mbedtls_cipher_setup(evp, cipher) != 0) {
+    if (crypto_cipher_setup(evp, cipher) != 0) {
         FATAL("Cannot initialize mbed TLS cipher context");
     }
 }
@@ -238,7 +235,7 @@ stream_ctx_release(cipher_ctx_t *cipher_ctx)
         return;
     }
 
-    mbedtls_cipher_free(cipher_ctx->evp);
+    crypto_cipher_free(cipher_ctx->evp);
     ss_free(cipher_ctx->evp);
 }
 
@@ -274,16 +271,16 @@ cipher_ctx_set_nonce(cipher_ctx_t *cipher_ctx, uint8_t *nonce, size_t nonce_len,
         LOGE("cipher_ctx_set_nonce(): Cipher context is null");
         return;
     }
-    if (mbedtls_cipher_setkey(evp, true_key, cipher->key_len * 8, enc) != 0) {
-        mbedtls_cipher_free(evp);
+    if (crypto_cipher_setkey(evp, true_key, cipher->key_len, enc) != 0) {
+        crypto_cipher_free(evp);
         FATAL("Cannot set mbed TLS cipher key");
     }
-    if (mbedtls_cipher_set_iv(evp, nonce, nonce_len) != 0) {
-        mbedtls_cipher_free(evp);
+    if (crypto_cipher_set_iv(evp, nonce, nonce_len) != 0) {
+        crypto_cipher_free(evp);
         FATAL("Cannot set mbed TLS cipher NONCE");
     }
-    if (mbedtls_cipher_reset(evp) != 0) {
-        mbedtls_cipher_free(evp);
+    if (crypto_cipher_reset(evp) != 0) {
+        crypto_cipher_free(evp);
         FATAL("Cannot finalize mbed TLS cipher context");
     }
 
@@ -298,8 +295,8 @@ cipher_ctx_update(cipher_ctx_t *ctx, uint8_t *output, size_t *olen,
                   const uint8_t *input, size_t ilen)
 {
     cipher_evp_t *evp = ctx->evp;
-    return mbedtls_cipher_update(evp, (const uint8_t *)input, ilen,
-                                 (uint8_t *)output, olen);
+    return crypto_cipher_update(evp, (const uint8_t *)input, ilen,
+                                (uint8_t *)output, olen);
 }
 
 int
