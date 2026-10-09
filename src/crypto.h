@@ -40,20 +40,49 @@
 #include <sodium.h>
 typedef crypto_aead_aes256gcm_state aes256gcm_ctx;
 /* Definitions for mbedTLS */
-#include <mbedtls/cipher.h>
+#include <mbedtls/version.h>
 #include <mbedtls/md.h>
+#if MBEDTLS_VERSION_NUMBER >= 0x04000000
+/*
+ * Mbed TLS 4.x removed the cipher module from its public API, so the
+ * ciphers go through PSA Crypto there.
+ */
+#include <psa/crypto.h>
+typedef struct {
+    psa_key_type_t type;
+    size_t key_bits;
+    psa_algorithm_t alg;
+} cipher_kt_t;
+typedef struct {
+    const cipher_kt_t *kt;
+    psa_key_id_t key;
+    psa_cipher_operation_t op;
+    int enc;
+} cipher_evp_t;
+#else
+#include <mbedtls/cipher.h>
 typedef mbedtls_cipher_info_t cipher_kt_t;
 typedef mbedtls_cipher_context_t cipher_evp_t;
+#endif
 typedef mbedtls_md_info_t digest_type_t;
 #define MAX_KEY_LENGTH 64
 #define MAX_NONCE_LENGTH 32
 #define MAX_MD_SIZE MBEDTLS_MD_MAX_SIZE
+#if MBEDTLS_VERSION_NUMBER >= 0x04000000
+#if SS_ENABLE_LEGACY && !defined(PSA_WANT_ALG_CFB)
+#error Cipher Feedback mode a.k.a CFB not supported by your mbed TLS.
+#endif
+#ifndef PSA_WANT_ALG_GCM
+#error No GCM support detected
+#endif
+#else
 /* we must have MBEDTLS_CIPHER_MODE_CFB defined */
 #if SS_ENABLE_LEGACY && !defined(MBEDTLS_CIPHER_MODE_CFB)
 #error Cipher Feedback mode a.k.a CFB not supported by your mbed TLS.
 #endif
 #ifndef MBEDTLS_GCM_C
 #error No GCM support detected
+#endif
 #endif
 #ifdef crypto_aead_xchacha20poly1305_ietf_ABYTES
 #define FS_HAVE_XCHACHA20IETF
@@ -197,6 +226,31 @@ int crypto_hkdf_extract(const mbedtls_md_info_t *md, const unsigned char *salt,
 int crypto_hkdf_expand(const mbedtls_md_info_t *md, const unsigned char *prk,
                        int prk_len, const unsigned char *info, int info_len,
                        unsigned char *okm, int okm_len);
+
+/*
+ * Cipher operations on top of the mbed TLS cipher module (2.x, 3.x) or PSA
+ * Crypto (4.x). The cipher names are the mbed TLS ones, e.g. "AES-256-GCM".
+ * Functions returning int return 0 on success.
+ */
+const cipher_kt_t *crypto_cipher_info_from_string(const char *name);
+int crypto_cipher_setup(cipher_evp_t *evp, const cipher_kt_t *kt);
+int crypto_cipher_setkey(cipher_evp_t *evp, const uint8_t *key,
+                         size_t key_len, int enc);
+int crypto_cipher_set_iv(cipher_evp_t *evp, const uint8_t *iv, size_t iv_len);
+int crypto_cipher_reset(cipher_evp_t *evp);
+int crypto_cipher_update(cipher_evp_t *evp, const uint8_t *input, size_t ilen,
+                         uint8_t *output, size_t *olen);
+/* c receives the ciphertext followed by the tag, *clen includes the tag */
+int crypto_cipher_auth_encrypt(cipher_evp_t *evp, const uint8_t *n, size_t nlen,
+                               const uint8_t *ad, size_t adlen,
+                               const uint8_t *m, size_t mlen,
+                               uint8_t *c, size_t *clen, size_t tlen);
+/* c holds the ciphertext followed by the tag, clen includes the tag */
+int crypto_cipher_auth_decrypt(cipher_evp_t *evp, const uint8_t *n, size_t nlen,
+                               const uint8_t *ad, size_t adlen,
+                               const uint8_t *c, size_t clen,
+                               uint8_t *p, size_t *plen, size_t tlen);
+void crypto_cipher_free(cipher_evp_t *evp);
 #ifdef SS_DEBUG
 void dump(char *tag, char *text, int len);
 #endif
